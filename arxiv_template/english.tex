@@ -76,7 +76,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the first multi-source hybrid dataset, integrating 8,450 real-world open-source project schematics, 7,500 textbook circuit diagrams, and 14,000 procedurally generated synthetic renderings, totaling approximately 30,000 raw samples, of which 24,717 independent samples are retained after rigorous multi-round deduplication and quality screening. At the model level, we employ LoRA (rank $r=8$, $\alpha=16$) for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B, updating only 0.30\% of parameters (2.7M/908M) on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM). Constrained by 8\,GB VRAM, Flash Attention is unavailable during inference, requiring a manual降级 implementation of attention computation, and max\_length is limited to 30 tokens. On the easy50 test set, the fully fine-tuned model achieves Avg.\ NED = 0.8554, a 3.8\% improvement over the unfine-tuned baseline (0.8895). Through controlled variable experiments (E1--E4), we systematically diagnose performance bottlenecks and identify that LoRA not covering the vision-language projection layer (Projector) is the key factor limiting fine-tuning effectiveness. Furthermore, based on the diagnostic findings, we outline a performance improvement roadmap, including near-term actionable enhancements such as Projector LoRA extension, multi-epoch training, and diverse decoding, as well as long-term exploration directions such as multi-task decoupling and simulation-based verification.
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the first multi-source hybrid dataset, integrating 8,450 real-world open-source project schematics, 7,500 textbook circuit diagrams, and 14,000 procedurally generated synthetic renderings, totaling approximately 30,000 raw samples, of which 24,717 independent samples are retained after rigorous multi-round deduplication and quality screening. At the model level, we employ LoRA (rank $r=8$, $\alpha=16$) for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B, updating only 0.30\% of parameters (2.7M/908M) on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM). Constrained by 8\,GB VRAM, Flash Attention is unavailable during inference, requiring a manual fallback implementation of attention computation, and max\_length is limited to 30 tokens. On the easy50 test set, the fully fine-tuned model achieves Avg.\ NED = 0.8554, a 3.8\% improvement over the unfine-tuned baseline (0.8895). Through controlled variable experiments (E1--E4), we systematically diagnose performance bottlenecks and identify that LoRA not covering the vision-language projection layer (Projector) is the key factor limiting fine-tuning effectiveness. Furthermore, based on the diagnostic findings, we outline a performance improvement roadmap, including near-term actionable enhancements such as Projector LoRA extension, multi-epoch training, and diverse decoding, as well as long-term exploration directions such as multi-task decoupling and simulation-based verification.
 \end{abstract}
 
 \keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Post-training \and Low-VRAM Training}
@@ -241,20 +241,20 @@ The current LoRA fine-tuning achieves only a 3.8\% Avg.\ NED improvement (0.8895
 
 \begin{enumerate}
     \item \textbf{Projector frozen (Core bottleneck).} PaddleOCR-VL's vision-language projection layer (\texttt{mlp\_AR}, 25.9M parameters) is responsible for mapping image features output by the vision encoder to the language model's embedding space. The current LoRA only covers the q/k/v/o projections of self-attention layers; the Projector's \texttt{linear\_1} (4608$\times$4608) and \texttt{linear\_2} (4608$\times$1024) are completely frozen. This means the mapping from visual features to language space remains unchanged throughout training, preventing the model from learning visual-semantic correspondences of circuit symbols. Experiment E4 confirmed this bottleneck, but adding Projector LoRA caused OOM under the current 8\,GB VRAM constraint.
-    \item \textbf{Insufficient training.} Currently only 1 epoch, max\_dim=168px, batch\_size=1. Loss decreased from 3.0 to 1.2 but has not yet converged, indicating substantial room for optimization. The class collapse at 100 samples and partial缓解 at 2,433 samples demonstrates that data volume is critical for maintaining output diversity, but 2,433 samples may still be insufficient to cover the full vocabulary distribution of circuit OCR.
-    \item \textbf{Inference受限.} Flash Attention is unavailable on Windows + RTX 4060, requiring manual降级 implementation. The 8\,GB VRAM limits max\_length to 30 tokens, far insufficient for outputting complete SPICE netlists (typically requiring 100--500 tokens). The 47/50 sample completion rate indicates the current方案 is接近 the VRAM limit.
+    \item \textbf{Insufficient training.} Currently only 1 epoch, max\_dim=168px, batch\_size=1. Loss decreased from 3.0 to 1.2 but has not yet converged, indicating substantial room for optimization. The class collapse at 100 samples and partialmitigation at 2,433 samples demonstrates that data volume is critical for maintaining output diversity, but 2,433 samples may still be insufficient to cover the full vocabulary distribution of circuit OCR.
+    \item \textbf{Inferenceconstraints.} Flash Attention is unavailable on Windows + RTX 4060, requiring manual fallback implementation. The 8\,GB VRAM limits max\_length to 30 tokens, far insufficient for outputting complete SPICE netlists (typically requiring 100--500 tokens). The 47/50 sample completion rate indicates the currentapproaches isnear the VRAM limit.
     \item \textbf{Limitations of pure text NED as the sole metric.} NED cannot distinguish between circuit semantic correctness and character-level similarity, nor reflect the correctness of topological connections. The topology evaluation framework (component F1, pin accuracy) has been designed but not yet implemented.
 \end{enumerate}
 
 \subsubsection{Near-term Improvement Plan (Executable on Current Hardware)}
 
-\textbf{Step 1: Unlock the Projector bottleneck.} The Projector's LoRA parameter count is only approximately 120K (\texttt{linear\_1} + \texttt{linear\_2}), and will not significantly increase VRAM during training. The OOM in Experiment E4 occurred during inference (full attention computation during generation), not during training. Therefore, Projector LoRA can be added during training, with inference验证 by further reducing max\_length (e.g., 15--20 tokens) or image dimensions. If Projector LoRA yields a substantial NED improvement (e.g., $>$ 1\%), it will prove that this bottleneck is worth investing in on GPUs with larger VRAM.
+\textbf{Step 1: Unlock the Projector bottleneck.} The Projector's LoRA parameter count is only approximately 120K (\texttt{linear\_1} + \texttt{linear\_2}), and will not significantly increase VRAM during training. The OOM in Experiment E4 occurred during inference (full attention computation during generation), not during training. Therefore, Projector LoRA can be added during training, with inferenceverification by further reducing max\_length (e.g., 15--20 tokens) or image dimensions. If Projector LoRA yields a substantial NED improvement (e.g., $>$ 1\%), it will prove that this bottleneck is worth investing in on GPUs with larger VRAM.
 
-\textbf{Step 2: Multi-epoch training.} Increase the number of epochs under the current configuration (1 $\to$ 3--5), using cosine annealing learning rate to complete a full schedule within each epoch. Expected training time increase of 3--5$\times$ (5--8 hours), still within acceptable range for a single GPU. Experiment E2 has already ruled out the pure-resolution hypothesis; more epochs allow the model to more充分 learn the circuit vocabulary distribution in the training data.
+\textbf{Step 2: Multi-epoch training.} Increase the number of epochs under the current configuration (1 $\to$ 3--5), using cosine annealing learning rate to complete a full schedule within each epoch. Expected training time increase of 3--5$\times$ (5--8 hours), still within acceptable range for a single GPU. Experiment E2 has already ruled out the pure-resolution hypothesis; more epochs allow the model to more fully learn the circuit vocabulary distribution in the training data.
 
 \textbf{Step 3: Diverse decoding strategies.} Currently using greedy decoding (do\_sample=False), with some samples outputting single-label repetition. Introducing top-p/top-k sampling and temperature adjustment may increase output diversity. The effect of different decoding strategies needs to be evaluated within the framework of circuit annotation accuracy, avoiding random errors introduced by sampling.
 
-\textbf{Step 4: Implement topology evaluation.} Encode the designed topology evaluation protocol (component F1, type accuracy, pin accuracy) as automated scripts. Since NED has been shown to be ineffective at distinguishing circuit outputs of different quality (base model乱码 NED=0.89 vs.\ LoRA circuit-label NED=0.92), topology evaluation can provide more meaningful feedback signals for model improvement.
+\textbf{Step 4: Implement topology evaluation.} Encode the designed topology evaluation protocol (component F1, type accuracy, pin accuracy) as automated scripts. Since NED has been shown to be ineffective at distinguishing circuit outputs of different quality (base model garbled NED=0.89 vs.\ LoRA circuit-label NED=0.92), topology evaluation can provide more meaningful feedback signals for model improvement.
 
 \subsubsection{Long-term Directions (Requiring Additional Resources)}
 
@@ -266,7 +266,7 @@ If the near-term improvements raise NED to a practically useful level (e.g., $<$
     \item \textbf{Larger base models:} Transfer the current LoRA fine-tuning approach to larger-scale vision-language models in the PaddlePaddle ecosystem, exploring the impact of model capacity on circuit schematic understanding tasks. Larger vision encoders can extract finer-grained circuit symbol features.
 \end{itemize}
 
-All of the above near-term方案 are low-risk improvements directly executable on current hardware. The long-term directions require additional computational and engineering resources and are discussed here only as directional guidance.
+All of the above near-termapproaches are low-risk improvements directly executable on current hardware. The long-term directions require additional computational and engineering resources and are discussed here only as directional guidance.
 
 
 \section{Experimental Evaluation}
@@ -301,7 +301,7 @@ LoRA $r=8$ full train & 2,433   & 100 min  & 47/50 & 0.8554 & \textbf{+3.8\%} \\
 \end{tabular}
 \vspace{4pt}
 \small
-Note: (1) 3 samples failed (OOM) due to insufficient GPU VRAM (8\,GB) during Flash Attention降级 computation. (2) Lower NED is better; NED=0 = perfect match, NED=1 = complete mismatch.
+Note: (1) 3 samples failed (OOM) due to insufficient GPU VRAM (8\,GB) during Flash Attention fallback computation. (2) Lower NED is better; NED=0 = perfect match, NED=1 = complete mismatch.
 \end{table}
 
 \subsection{LoRA Fine-tuning Experimental Results}
@@ -322,13 +322,13 @@ To identify the key bottlenecks limiting LoRA fine-tuning effectiveness, we desi
 \midrule
 E1: Blank image   & Real vs.\ solid gray & Output differs & Vision encoder works; model ``sees'' images \\
 E2: Resolution    & max\_dim $168\to336$ & Still collapsed & Resolution is not root cause \\
-E3: Epoch count   & 1 vs.\ 3 epochs      & OOM, incomplete & Needs further验证 \\
+E3: Epoch count   & 1 vs.\ 3 epochs      & OOM, incomplete & Needs furtherverification \\
 E4: LoRA layers   & Add Projector layers  & OOM, incomplete & Projector is key bottleneck \\
 \bottomrule
 \end{tabular}
 \vspace{4pt}
 \small
-Key findings: (1) E1 confirms the LoRA fine-tuned model's vision capability is正常 and output varies with images; (2) E2 rules out the image resolution hypothesis; (3) E4 identifies the Projector (mlp\_AR, 25.9M parameters) as the sole bridge for vision-language mapping being frozen as the root cause of insufficient training, but adding Projector LoRA causes VRAM overflow.
+Key findings: (1) E1 confirms the LoRA fine-tuned model's vision capability is functional and output varies with images; (2) E2 rules out the image resolution hypothesis; (3) E4 identifies the Projector (mlp\_AR, 25.9M parameters) as the sole bridge for vision-language mapping being frozen as the root cause of insufficient training, but adding Projector LoRA causes VRAM overflow.
 \end{table}
 
 \begin{table}[h]
@@ -372,11 +372,11 @@ Topology evaluation provides a more fine-grained measure of circuit understandin
 
 \subsection{Base Model Failure Mode Analysis}
 
-We conducted qualitative analysis of the base model's outputs on circuit schematics and归纳出 three typical failure modes:
+We conducted qualitative analysis of the base model's outputs on circuit schematics andsummarized three typical failure modes:
 
 \begin{enumerate}[label=\arabic*.]
-    \item \textbf{Token Repetition Degeneration:} The model becomes trapped in a循环 of repeatedly outputting the same token. For example, in response to a schematic containing multiple component designators and netlist lines, the model outputs a continuous repetition of ``GND GND GND GND \ldots'' This suggests that the model loses autoregressive decoding diversity when faced with out-of-domain images, collapsing to a degenerate distribution.
-    \item \textbf{Memory Hallucination:} The model does not perform image-conditioned generation but instead outputs generic text fragments memorized from its pre-training data (e.g., webpage navigation labels, Markdown formatting markers). This indicates that while the原始 PaddleOCR-VL possesses strong general document understanding capabilities, it has not established the visual-semantic mapping between circuit symbols and their corresponding text.
+    \item \textbf{Token Repetition Degeneration:} The model becomes trapped in aloop of repeatedly outputting the same token. For example, in response to a schematic containing multiple component designators and netlist lines, the model outputs a continuous repetition of ``GND GND GND GND \ldots'' This suggests that the model loses autoregressive decoding diversity when faced with out-of-domain images, collapsing to a degenerate distribution.
+    \item \textbf{Memory Hallucination:} The model does not perform image-conditioned generation but instead outputs generic text fragments memorized from its pre-training data (e.g., webpage navigation labels, Markdown formatting markers). This indicates that while thepre-trained PaddleOCR-VL possesses strong general document understanding capabilities, it has not established the visual-semantic mapping between circuit symbols and their corresponding text.
     \item \textbf{Partial Recognition and Information Omission:} The model occasionally correctly identifies individual component designators (e.g., ``R1'') but omits the main component names, net labels, and parameter values present in the drawing. The output length is far shorter than the ground truth annotation, suggesting an attention distribution problem across the circuit diagram layout.
 \end{enumerate}
 
@@ -388,13 +388,13 @@ After 100-sample LoRA fine-tuning, the model's output behavior underwent the fol
 
 \textbf{Positive Effects:}
 \begin{itemize}
-    \item The domain归属 of output content underwent a fundamental shift: from the base model's generic text (Arduino tutorial fragments, Markdown markers) to circuit-domain labels (component values ``1.2\,V,'' net labels ``GND''). This demonstrates that LoRA fine-tuning successfully established the visual-semantic mapping between circuit symbols and their corresponding text.
-    \item Output length increased from the base model's extreme brevity (2--5 characters) to lengths相近 to circuit annotations.
+    \item The domainaffiliation of output content underwent a fundamental shift: from the base model's generic text (Arduino tutorial fragments, Markdown markers) to circuit-domain labels (component values ``1.2\,V,'' net labels ``GND''). This demonstrates that LoRA fine-tuning successfully established the visual-semantic mapping between circuit symbols and their corresponding text.
+    \item Output length increased from the base model's extreme brevity (2--5 characters) to lengths comparable to circuit annotations.
 \end{itemize}
 
 \textbf{Diagnostic finding: Class collapse and NED limitations.}
 
-In the 100-sample quick verification, we observed a diagnostic phenomenon: the model achieved an NED of only 0.9184. One hundred samples (only 4.1\% of the full 2,433 training set) are insufficient for the model to learn adequate lexical diversity; the model learned the highest-frequency circuit label \texttt{GND} in the training set and then over-relied on this label, degenerating into single-label repetition during testing. This phenomenon reveals the risk of Class Collapse---few-sample LoRA fine-tuning can cause severe contraction of the model's output distribution, akin to catastrophic forgetting. Meanwhile, the base model's乱码 achieves a paradoxically lower (better) NED (0.8895) due to character diversity, demonstrating that pure text NED cannot distinguish between ``domain-relevant but monotonous output'' and ``domain-irrelevant but diverse乱码,'' necessitating topology-level evaluation metrics as a supplement.
+In the 100-sample quick verification, we observed a diagnostic phenomenon: the model achieved an NED of only 0.9184. One hundred samples (only 4.1\% of the full 2,433 training set) are insufficient for the model to learn adequate lexical diversity; the model learned the highest-frequency circuit label \texttt{GND} in the training set and then over-relied on this label, degenerating into single-label repetition during testing. This phenomenon reveals the risk of Class Collapse---few-sample LoRA fine-tuning can cause severe contraction of the model's output distribution, akin to catastrophic forgetting. Meanwhile, the base model'sgarbled output achieves a paradoxically lower (better) NED (0.8895) due to character diversity, demonstrating that pure text NED cannot distinguish between ``domain-relevant but monotonous output'' and ``domain-irrelevant but diversegarbled output,'' necessitating topology-level evaluation metrics as a supplement.
 
 \textbf{Post-full-training status.}
 
@@ -422,7 +422,7 @@ This paper presents CircuitOCR, a complete solution for circuit schematic OCR an
 
 \begin{enumerate}[label=\arabic*.]
     \item \textbf{Class collapse risk and NED limitations:} Few-sample LoRA fine-tuning carries a class collapse risk---the model over-relies on a few high-frequency labels, leading to loss of output diversity. Furthermore, pure text NED has limitations in evaluating circuit OCR quality: non-domain-relevant random output may obtain a better NED score due to character diversity. See Section~5 for details.
-    \item \textbf{Engineering challenges:} Under the Windows + PaddlePaddle 2.6.2 environment, GPU bfloat16 support has known limitations: flash\_attention is unavailable and requires manual降级 implementation; PaddleFormers' fp8 dtype management mechanism has compatibility conflicts with PaddlePaddle's原生 fp8 (requiring removal of global float8 alias to ensure correct model weight read/write). These engineering issues consumed substantial debugging time and提醒 us that the community needs to strengthen E2E training stability testing on the Windows platform.
+    \item \textbf{Engineering challenges:} Under the Windows + PaddlePaddle 2.6.2 environment, GPU bfloat16 support has known limitations: flash\_attention is unavailable and requires manual fallback implementation; PaddleFormers' fp8 dtype management mechanism has compatibility conflicts with PaddlePaddle's native fp8 (requiring removal of global float8 alias to ensure correct model weight read/write). These engineering issues consumed substantial debugging time and reminds us that the community needs to strengthen E2E training stability testing on the Windows platform.
     \item \textbf{Prerequisites for post-training:} The engineering infrastructure required for long-term directions such as multi-task decoupling and simulator verification (Ngspice integration, multi-LoRA switching, larger GPU VRAM) far exceeds the capabilities of the current single-GPU laptop workstation.
 \end{enumerate}
 
