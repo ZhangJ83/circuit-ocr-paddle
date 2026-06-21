@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+PaddleOCR-VL-LoRA-ablation-*/
+*.log
+!training_lora_final.log
+results_*.jsonl
+*.npz
