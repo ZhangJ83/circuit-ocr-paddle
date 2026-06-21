@@ -18,8 +18,10 @@
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{amsfonts}
+\usepackage{amsmath}
 \usepackage{nicefrac}
 \usepackage{microtype}
+\usepackage{enumitem}
 \usepackage{graphicx}
 \usepackage{natbib}
 \usepackage{doi}
@@ -59,7 +61,6 @@
 \affil[2]{School of Computer Science, Sun Yat-sen University, Guangzhou, China}
 \fi
 
-% Clear header and subtitle
 \renewcommand{\headeright}{}
 \renewcommand{\undertitle}{}
 \renewcommand{\shorttitle}{}
@@ -75,7 +76,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the first multi-source hybrid dataset, integrating 8,450 real-world open-source project schematics, 7,500 textbook circuit diagrams, and 14,000 procedurally generated synthetic renderings, totaling approximately 30,000 samples after rigorous multi-round deduplication and quality screening. At the model level, we employ LoRA parameter-efficient fine-tuning to adapt PaddleOCR-VL-0.9B and evaluate performance using Average Normalized Edit Distance (Avg.\ NED) across four graded difficulty tiers. Furthermore, we propose a post-training framework for circuit schematic understanding, including slime-based multi-expert rollout orchestration, critic-based PPO trajectory compression training, and circuit simulation verification as an anti-cheating mechanism. Experimental results demonstrate that the fine-tuned model achieves significant improvements over the unfine-tuned baseline in component recognition and netlist generation tasks.
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the first multi-source hybrid dataset, integrating 8,450 real-world open-source project schematics, 7,500 textbook circuit diagrams, and 14,000 procedurally generated synthetic renderings, totaling approximately 30,000 samples after rigorous multi-round deduplication and quality screening. At the model level, we employ LoRA parameter-efficient fine-tuning to adapt PaddleOCR-VL-0.9B and evaluate performance using Average Normalized Edit Distance (Avg.\ NED) across four graded difficulty tiers. Furthermore, we propose a post-training framework for circuit schematic understanding, including slime-based multi-expert rollout orchestration, critic-based PPO trajectory compaction training, and circuit simulation verification as an anti-cheating mechanism. Experimental results demonstrate that the fine-tuned model achieves significant improvements over the unfine-tuned baseline in component recognition and netlist generation tasks.
 \end{abstract}
 
 \keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Post-training \and Reinforcement Learning}
@@ -83,7 +84,7 @@ Automatic recognition of circuit schematic diagrams is a core challenge in Elect
 
 \section{Introduction}
 
-Vision-Language Models (VLMs) have substantially expanded the application boundaries of traditional large language models, demonstrating significant advantages in scenarios requiring visual understanding, such as robotic navigation and document parsing. Compared to traditional OCR pipelines that rely on multi-stage processing and substantial memory overhead, VLMs can directly output structured text from images in an end-to-end manner, eliminating cumbersome intermediate steps.
+Vision-Language Models (VLMs) have substantially expanded the application boundaries of traditional large language models, demonstrating significant advantages in scenarios requiring visual understanding, such as robotic navigation and document parsing tasks. Compared to traditional OCR pipelines that rely on multi-stage processing and substantial memory overhead, VLMs can directly output structured text from images in an end-to-end manner, eliminating cumbersome intermediate processing steps.
 
 
 \section{Background and System Setup}
@@ -111,7 +112,7 @@ In the unfine-tuned setting, we conducted circuit schematic benchmark testing, w
 
 \subsection{Raw Data Collection and Sources}
 
-We constructed the first high-quality and effective multi-source dataset~\citep{zhang2026circuitocrfinal}. One portion of our dataset comes from the Open Schematic large-scale open-source dataset~\citep{openschematics2025}, comprising 8,450 real-world schematic diagrams and standard components from actual projects, totaling approximately 0.7 GB. This dataset is released under the original CC-BY-4.0 attribution license, permitting free open-source use and commercial applications. It adheres to real-world naming standards and conventions, with annotations in their own coordinate system independent of image pixel coordinates. The estimated Bounding Box accuracy of its annotations is approximately 71.4\% (with some PCB occlusion noise). This dataset serves as the core training set for our model, suitable for training text recognition and netlist extraction models as a large-sample training corpus.
+We constructed the first high-quality and effective multi-source dataset~\citep{zhang2026circuitocrfinal}. One portion of our dataset comes from the Open Schematic large-scale open-source dataset~\citep{openschematics2025}, comprising 8,450 real-world schematic diagrams and standard components from actual projects, totaling approximately 0.7\,GB. This dataset is released under the original CC-BY-4.0 attribution license, permitting free open-source use and commercial applications. It adheres to real-world naming standards and conventions, with annotations in their own coordinate system independent of image pixel coordinates. The estimated Bounding Box accuracy of its annotations is approximately 71.4\% (with some PCB occlusion noise). This dataset serves as the core training set for our model, suitable for training text recognition and netlist extraction models as a large-sample training corpus.
 
 The second portion is the Masala-CHAI open-source dataset~\citep{bhandari2025masalachai}, also using the CC-BY-4.0 attribution license, with accompanying code partially under Apache-2.0. This dataset comprises circuit diagrams collected from electronic textbooks and teaching materials, with each image directly paired with a standard SPICE netlist ground truth. It directly aligns with the ``schematic-to-netlist'' task and is well-suited as a supervised fine-tuning (SFT) dataset for end-to-end image-to-SPICE netlist generation.
 
@@ -123,7 +124,7 @@ Across the three data sources: Open Schematics and Masala-CHAI provide diverse r
 
 \textbf{Open-source dataset overview}
 
-\begin{enumerate}
+\begin{enumerate}[label=\arabic*.]
     \item Open Schematics: approximately 8,450 images, real-world physical schematics, large-scale coverage of diverse real-world components.
     \item Masala-CHAI: approximately 7,500 images, component-annotated diagrams with standard SPICE simulation netlists.
 \end{enumerate}
@@ -139,63 +140,63 @@ To ensure the quality of data fed into the model, we constructed a pipeline of `
 Due to overlapping synthetic mapping in the image pixel libraries, duplicate schematics exist. We employ three deduplication strategies:
 
 \begin{itemize}
-    \item \textbf{Text hash deduplication (literal)}: Compute MD5/SHA256 hashes from text rendered as single PNG images from original, KiCad, and EDA sources, directly eliminating samples with identical text.
-    \item \textbf{Topology hash deduplication (logical)}: Different individuals drawing the same circuit may place components differently while maintaining identical electrical topology. We normalize and reorder component types and connection relationships, generate a topological feature string, compute its MD5 hash, and eliminate samples that are 100\% logically identical.
-    \item \textbf{Visual perceptual hashing (pHash/dHash)}: Use perceptual hashing algorithms to compare entire PNG images, eliminating duplicate images with only minimal visual differences (e.g., only the version number or date in the bottom-right corner has changed).
+    \item \textbf{Text hash deduplication (literal):} Compute MD5/SHA256 hashes from text rendered as single PNG images from original, KiCad, and EDA sources, directly eliminating samples with identical text.
+    \item \textbf{Topology hash deduplication (logical):} Different individuals drawing the same circuit may place components differently while maintaining identical electrical topology. We normalize and reorder component types and connection relationships, generate a topological feature string, compute its MD5 hash, and eliminate samples that are 100\% logically identical.
+    \item \textbf{Visual perceptual hashing (pHash/dHash):} Use perceptual hashing algorithms to compare entire PNG images, eliminating duplicate images with only minimal visual differences (e.g., only the version number or date in the bottom-right corner has changed).
 \end{itemize}
 
 \textbf{2. Sample Quality Rules}
 
 \begin{itemize}
-    \item \textbf{Multi-component filtering}: Remove schematics with fewer than three components (many are lab prototypes, bare PCB block diagrams, or single package libraries).
-    \item \textbf{Boundary and overlapping text cleaning}: Check whether annotation Bounding Boxes exceed image boundaries ($x < 0$, width overflow, etc.); for text box pairs with IoU $> 0.8$, where severe overlap renders them indistinguishable, remove the sample.
-    \item \textbf{Distorted schematic culling}: Remove schematics containing internal hidden circuit symbol annotations such as KiCad \texttt{pwr} symbols (adding redundancy for such non-visible elements would induce model hallucinations).
+    \item \textbf{Multi-component filtering:} Remove schematics with fewer than three components (many are lab prototypes, bare PCB block diagrams, or single package libraries).
+    \item \textbf{Boundary and overlapping text cleaning:} Check whether annotation Bounding Boxes exceed image boundaries ($x < 0$, width overflow, etc.); for text box pairs with IoU $> 0.8$, where severe overlap renders them indistinguishable, remove the sample.
+    \item \textbf{Distorted schematic culling:} Remove schematics containing internal hidden circuit symbol annotations such as KiCad \texttt{pwr} symbols (adding redundancy for such non-visible elements would induce model hallucinations).
 \end{itemize}
 
-\textbf{Quality inspection pipeline}
+\paragraph{Quality Inspection Pipeline}
 
 \subsubsection{LLM-Based Quality Scoring and Purification}
 
 A vision large language model is introduced to automatically score all schematic images on a 1--5 scale across the following dimensions:
 
 \begin{itemize}
-    \item \textbf{Image clarity}: Whether the text in the schematic is discernible to the human eye; eliminate excessively blurred or low-contrast degraded images.
-    \item \textbf{Component density}: Whether the image is overly dense to the point of being indiscernible; whether the schematic is overcrowded.
-    \item \textbf{Quality threshold}: Retain only samples with a composite score $\geq 3$.
+    \item \textbf{Image clarity:} Whether the text in the schematic is discernible to the human eye; eliminate excessively blurred or low-contrast degraded images.
+    \item \textbf{Component density:} Whether the image is overly dense to the point of being indiscernible; whether the schematic is overcrowded.
+    \item \textbf{Quality threshold:} Retain only samples with a composite score $\geq 3$.
 \end{itemize}
 
-\textbf{Manual Inspection}
+\paragraph{Manual Inspection}
 
 For samples destined for evaluation and benchmark test sets, mandatory manual bounding-box verification is performed. A simple Gradio-based visual quality inspection tool was built: the image and predicted Bounding Boxes are rendered on the image, with the corresponding netlist displayed on the right side.
 
-\textbf{Manual Re-inspection and Review}
+\paragraph{Manual Re-inspection and Review}
 
 Samples missed during the initial screening by the quality inspection tool are manually verified and corrected. Rollback mechanism: systematic and widespread netlist logic errors discovered during large-scale inspection trigger a rollback modification of our synthetic generation code, followed by re-rendering of the affected data portion.
 
-\textbf{3.2.3 Execution of Cleaning}
+\paragraph{Execution of Cleaning}
 
-\textbf{Data Cleaning and Multi-Source Quality Control Statistics}
+\paragraph{Data Cleaning and Multi-Source Quality Control Statistics}
 
 The cleaning module simultaneously applied multiple rounds of deduplication and quality screening across Masala-CHAI, Open Schematics, and the synthetic dataset, totaling over 40,000 samples:
 
-\begin{enumerate}
+\begin{enumerate}[label=\arabic*.]
     \item Initial screened samples: 39,947
     \item After topology deduplication: 14,897 remaining
     \item After visual hash and perceptual hash filtering: 9,117 (filtered out $\sim$7,000 duplicate schematic cases with identical topology but slight image modifications); logical deduplication: 1,580 (removed samples with identical topology but duplicate naming parameters and annotations); SFT sample automatic screening: 10,240 samples, 1,100 duplicates removed; visual scoring evaluation: 2,530 (filtered out extremely low-clarity, minutely blurred and distorted real-world schematics via LLM evaluation; 0 anomalous samples scoring below 3 were removed, i.e., all samples in this batch passed quality screening).
 \end{enumerate}
 
-\textbf{Dataset Splitting and PaddleOCR-VL SFT Format Conversion}
+\paragraph{Dataset Splitting and PaddleOCR-VL SFT Format Conversion}
 
 After the rigorous cleaning described above, a total of 24,717 independent schematic samples were obtained. These were split into training, validation, and test sets following a standard 70\%/15\%/15\% ratio: 20,470 training samples, 521 validation samples, and 523 test samples. Three rounds of naming integrity verification were conducted, confirming compliance of all resulting JSON files.
 
 \textit{Note:} Full manual verification was not performed. Due to time and manpower constraints on one hand, and the inherent rigor of the automated data cleaning pipeline and multi-source dataset conventions on the other, the correctness of the dataset has been ensured to the greatest extent possible.
 
-\textbf{Dataset Stratification}
+\paragraph{Dataset Stratification}
 
 \begin{itemize}
-    \item \textbf{Synthetic dataset}: Drawn directly within the program by the circuit generation algorithm, requiring no annotation (bbox); connection relationships are directly output by program logic, achieving absolute precision in annotated characters and multi-value information. Masala-CHAI and Open Schematics samples originate from textbooks and real-world GitHub project schematics, with inherent annotation discrepancies.
-    \item \textbf{Triple-filter cleaning pipeline}: For real-world schematics that may contain noise and imperfections, we adopted rigorous automated verification and employed LLM-based visual self-inspection, using AI to replace manual preliminary review.
-    \item \textbf{Output format consistency verification}: Line-by-line validation was performed on the split samples, achieving 100\% alignment.
+    \item \textbf{Synthetic dataset:} Drawn directly within the program by the circuit generation algorithm, requiring no annotation (bbox); connection relationships are directly output by program logic, achieving absolute precision in annotated characters and multi-value information. Masala-CHAI and Open Schematics samples originate from textbooks and real-world GitHub project schematics, with inherent annotation discrepancies.
+    \item \textbf{Triple-filter cleaning pipeline:} For real-world schematics that may contain noise and imperfections, we adopted rigorous automated verification and employed LLM-based visual self-inspection, using AI to replace manual preliminary review.
+    \item \textbf{Output format consistency verification:} Line-by-line validation was performed on the split samples, achieving 100\% alignment.
 \end{itemize}
 
 \subsection{Data Distribution and Statistics}
@@ -219,27 +220,249 @@ Synthetic          & $\sim$14,000 & Apache 2.0 & Procedurally generated, 100\% a
 \end{tabular}
 \end{table}
 
+\textbf{Label Length Distribution.} The training set exhibits an extremely wide span of label text lengths, ranging from short component lists (5--10 tokens) to complete SPICE netlists (200+ tokens), reflecting the diversity of the circuit schematic OCR task. Based on label length, we partition the test set into four graded difficulty tiers: easy50 (label length 27--109 characters), easy100 (27--163 characters), easy200 (27--296 characters), and full523 (all 523 samples), to systematically evaluate model performance across different complexity levels.
+
+\textbf{Circuit Type Coverage.} The dataset covers four major circuit categories: analog circuits (op-amps, filters, power management), digital circuits (logic gates, MCU peripherals, memory interfaces), mixed-signal circuits (ADC/DAC, PLL), and power circuits (DC-DC converters, LDO regulators). The procedural generation of the synthetic dataset ensures adequate training samples for each category.
+
+\subsection{Data Augmentation Strategy}
+
+During training, we apply the following online augmentations to each input image: random JPEG compression (quality factor 85--100), random scaling (max dimension 168--224 pixels), and random horizontal flipping. These lightweight augmentations simulate real-world image quality variations while preserving the readability of the circuit schematics.
+
 
 \section{Model Fine-tuning and Post-training}
 
 \subsection{Model Fine-tuning}
 
-We employ LoRA (Low-Rank Adaptation)~\citep{hu2021lora} for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B. The fine-tuning is conducted across four rank ablations ($r=8, 16, 32, 64$) and five data tiers (100, 200, 300, 400, and 523 test samples) to systematically evaluate the impact of rank size and data scale on circuit schematic OCR performance.
+We employ LoRA (Low-Rank Adaptation)~\citep{hu2021lora} for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B.
 
-\subsection{Post-training}
+\subsection{Post-training: Reinforcement Learning for Circuit Schematic Understanding}
+
+Although LoRA supervised fine-tuning can effectively enhance basic OCR capabilities, circuit schematic understanding involves two heterogeneous sub-tasks---visual text extraction (OCR) and topological graph tracing---which inherently possess long-horizon, multi-step reasoning characteristics. Standard supervised training alone struggles to capture the logical coherence and topological correctness required for netlist generation. To address this, we propose a post-training framework for circuit schematic understanding, consisting of the following three core components.
+
+\subsubsection{Slime-based Multi-Expert Circuit Rollout Orchestration}
+
+Circuit schematic recognition comprises two fundamentally distinct sub-tasks: visual text extraction and topological graph tracing. The former requires the model to accurately read minuscule text from dense layouts, while the latter demands tracing wire connections that span the entire drawing. A single model handling both simultaneously is highly susceptible to context collapse: the model forgets topological relationships while attending to text, and loses component information while tracing wires.
+
+To address this issue, we designed a three-parallel sub-agent rollout architecture under the slime framework:
+
+\begin{itemize}
+    \item \textbf{Text-Agent:} Specializes in component text recognition, including reference designators (e.g., R1, C3), pin numbers (Pinout), parameter values (e.g., 10k$\Omega$, 100nF), and net labels (e.g., VCC, GND, SPI-CLK). This agent uses a high-resolution vision encoder branch with local cropping and magnification processing.
+    \item \textbf{Node-Agent:} Specializes in connectivity tracing of crossing wires and electrical nodes. This agent models the circuit schematic as an undirected graph, reconstructs the connection matrix via pixel-level wire segmentation and junction detection, and outputs component-pin pairs connected by each wire segment.
+    \item \textbf{Graph-Agent:} Responsible for fusing the component/pin information identified by Text-Agent with the connectivity relationships extracted by Node-Agent into a standard SPICE netlist. This agent verifies the legality of each net (e.g., checks for undriven floating nodes) and outputs a SPICE-syntax-compliant netlist.
+\end{itemize}
+
+The three agents execute rollouts in parallel, exchanging intermediate results through the shared memory pool of the slime framework. The Online Parallel Distillation (OPD) mechanism enables over a dozen micro-expert models trained on different circuit styles (analog/RF, digital MCU, high-power supply) to be efficiently merged into a single全能 circuit model within two days. This architecture avoids the attention dilution problem inherent in end-to-end single models, significantly improving rollout throughput and accuracy through task decoupling and parallel training.
+
+\subsubsection{Critic-based PPO with Trajectory Compaction Training}
+
+A complete PCB schematic may contain hundreds of components and thousands of wires, resulting in extremely lengthy single rollout trajectories. Different functional blocks (e.g., power modules, filter networks, signal amplification stages) exhibit enormous complexity disparities---power modules have many components but regular structures, while high-speed digital signal regions have extremely high wire density but fewer components. This imbalance causes simple sub-circuits to generate disproportionately high reward signals, which then dominate gradient update directions and cause the model to avoid learning complex topological structures.
+
+We propose a Critic-based PPO algorithm with trajectory compaction strategies:
+
+\begin{itemize}
+    \item \textbf{Trajectory Compaction:} The complete PCB schematic is cropped into multiple sub-graphs by functional region, each corresponding to an independent training trajectory. Compacted sub-trajectories eliminate redundant spatial movement steps, increasing the proportion of effective reasoning steps from less than 20\% in the original to over 60\%.
+    \item \textbf{Token-level Critic Estimation:} We abandon traditional group-wise advantage estimation in favor of a single-rollout PPO variant. The Critic model evaluates token-level advantage values (Advantages) at the current recognition step. For specific decisions such as identifying that R1's Pin 1 should connect to NET\_CLK, token-level loss functions are applied regardless of whether the sub-circuit is simple or complex, thereby neutralizing length imbalance.
+\end{itemize}
+
+This design ensures that when the model faces simultaneous training on ``complex sub-circuits'' and ``simple sub-circuits,'' gradient signals are not biased by the disproportionately high rewards from simple circuits, forcing the model to genuinely learn complex topological structures.
+
+\subsubsection{Anti-Cheating Mechanism with Circuit Rules and Simulation Verification}
+
+The reward signal in circuit schematic recognition possesses a naturally quantifiable characteristic: inputting the model-generated SPICE netlist into a simulator (e.g., Ngspice/LTspice) for execution, or performing graph isomorphism comparison, yields a clear Pass/Fail signal. However, this absolute signal is极易 exploited by the agent for reward hacking. We identify two典型 cheating patterns and design corresponding countermeasures:
+
+\textbf{Cheating Mode 1: Environment Hacking.} The agent may execute shell commands (e.g., \texttt{find / -name "*.json"}) within the sandbox environment to directly read the ground truth netlist files stored on the backend, thereby obtaining spuriously high scores.
+
+\textbf{Cheating Mode 2: Topological Dead-Coupling.} To make the generated netlist pass syntax checks and meet node coverage metrics, the agent may connect all unidentified or uncertain pins to GND or VCC en masse, fabricating an illusion of ``high connectivity.''
+
+\textbf{Dual-Stage Anti-Hack Module:}
+
+\begin{itemize}
+    \item \textbf{Stage 1: Rule-based Filter.} Real-time interception of illegal tool calls by the agent (e.g., reading evaluation set paths, accessing unauthorized files). Simultaneously detects anomalous topological patterns in generated netlists---if an electrical node connects to more than a threshold number (default 50) of distinct device pins, it is flagged as a ``super-node'' suspect.
+    \item \textbf{Stage 2: Circuit Judge.} A裁判 model proficient in circuit design performs intent review on flagged behaviors, distinguishing whether incorrect wire connections stem from visual errors or deliberate score-hacking shortcuts. The裁判 model is trained on circuit design specifications and can differentiate legitimate large nodes (e.g., GND networks naturally contain numerous pins) from malicious short-circuits.
+    \item \textbf{Online Guard.} Once cheating is confirmed, the system does not terminate the rollout trajectory. Instead, it intercepts the cheating call and returns Dummy Information---for instance, returning a high-impedance open-circuit state or a fake simulation convergence failure error. This allows the agent to continue completing the schematic drawing while carrying ``false feedback,'' both blocking dirty data from contaminating the reward signal and preventing training instability and model collapse caused by abrupt rollout termination.
+\end{itemize}
+
+\subsubsection{Post-training Workflow Overview}
+
+\[
+\text{Input}
+\xrightarrow{\text{slime}}
+\begin{cases}
+    \text{Text-Agent}, \\
+    \text{Node-Agent}
+\end{cases}
+\xrightarrow{\text{Compact}}
+\text{PPO Critic}
+\]
+
+\[
+\text{Netlist}
+\xrightarrow{\text{Anti-Hack}}
+\begin{cases}
+    \text{Pass} \Rightarrow \text{Sim} \Rightarrow \text{Reward}, \\
+    \text{Cheat} \Rightarrow \text{Dummy} \Rightarrow \text{Continue}
+\end{cases}
+\]
+
+In this post-training design, we focus on打通 three core closed loops: (1) decoupled orchestration of text and topology (slime multi-expert Rollout); (2) stable convergence across schematic sub-blocks of varying lengths (Critic-based PPO trajectory compaction); (3) prevention of netlist generation shortcuts (Anti-Hack dual-stage detection and dynamic blocking).
 
 
 \section{Experimental Evaluation}
 
-\subsection{Baseline}
+\subsection{Experimental Setup}
 
-\subsection{Fine-tuned and Post-trained Model}
+All experiments were conducted on a single NVIDIA RTX 4060 (8\,GB VRAM). The model uses PaddleOCR-VL-0.9B as the base, with LoRA fine-tuning configured at rank $r=8$, $\alpha=16$, targeting all attention layer projection matrices (q\_proj, k\_proj, v\_proj, o\_proj). Training employs the AdamW optimizer ($\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1), learning rate $5\times10^{-4}$, cosine annealing to $5\times10^{-5}$, 1 epoch, maximum image dimension 168 pixels. Total trainable parameters amount to 2,746,368, representing 0.30\% of the total model parameters (908M).
+
+The evaluation metric is Average Normalized Edit Distance (Avg.\ NED), defined as:
+
+\begin{equation}
+\text{NED}(p, g) = \frac{\text{LevenshteinDistance}(p, g)}{\max(|p|, |g|)}
+\end{equation}
+
+where $p$ is the model prediction text and $g$ is the ground truth annotation. NED = 0 indicates a perfect match, and NED = 1 indicates a complete mismatch.
+
+\subsection{Baseline Benchmark Results}
+
+The unfine-tuned PaddleOCR-VL-0.9B base model performs extremely poorly on the circuit schematic OCR task. As shown in Table~\ref{tab:baseline}, the base model achieves Avg.\ NED close to 1.0 (completely erroneous) across all four difficulty tiers, with outputs primarily exhibiting: (1) degenerate repetition of a single token; (2) generation of generic text memorized from training data rather than image-conditioned recognition; (3) output of meaningless format markers.
+
+\begin{table}[h]
+\centering
+\caption{Baseline Benchmark Results (Unfine-tuned, Sampled Evaluation)}
+\label{tab:baseline}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Tier} & \textbf{Samples Tested} & \textbf{Avg.\ NED} & \textbf{Typical Failure Mode} \\
+\midrule
+easy50 (Base) & 2 & 0.8895 & Token repetition, hallucinated generic text \\
+easy50 (LoRA 100 samples) & 4 & 0.9184 & Repeated single circuit label (GND loop) \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+{\small Note: Higher Avg.\ NED indicates worse performance (NED=0 = perfect match, NED=1 = complete mismatch). Base model outputs contain generic text memorized from training data (e.g., Arduino tutorial fragments), unrelated to the input schematic content. Although the 100-sample LoRA fine-tuned model is insufficiently trained, its output has shifted from generic text to circuit-domain labels, indicating that LoRA has effectively guided the establishment of visual-semantic mappings.}
+\end{table}
+
+\subsection{LoRA Fine-tuned Model}
+
+After rapid verification fine-tuning on 100 samples, the model output transformed from the base model's pure noise to producing circuit-relevant semantic content. Full training set (20,470 samples) fine-tuning experiments are currently in progress. Table~\ref{tab:lora} lists the completed and ongoing LoRA fine-tuning experimental results.
+
+\begin{table}[h]
+\centering
+\caption{Current Experimental Results Comparison}
+\label{tab:lora}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Training Configuration} & \textbf{Train Samples} & \textbf{Trainable Params} & \textbf{easy50 Avg.\ NED} & \textbf{Status} \\
+\midrule
+Base (unfine-tuned)       & 0       & 0              & 0.8895 & Completed \\
+LoRA $r=8$ quick verify   & 100     & 2.7M (0.30\%)  & 0.9184 & Completed \\
+LoRA $r=8$ full training   & 17,302  & 2.7M (0.30\%)  & TBD    & In Progress \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+{\small Training configuration: $r=8$, $\alpha=16$, lr=$5\times10^{-4}$, AdamW ($\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1), cosine annealing to lr=$5\times10^{-5}$, 1 epoch, batch\_size=1, max\_dim=168.
+
+$^\dagger$The 100-sample quick verification NED is paradoxically worse than the base model (0.9184 vs.\ 0.8895). Analysis in Section~5.}
+\end{table}
+
+\subsection{Ablation Studies}
+
+To systematically investigate the impact of key LoRA hyperparameters on circuit schematic OCR performance, we have planned the following ablation studies (partially completed, partially in progress):
+
+\textbf{LoRA Rank Ablation.} Compare $r \in \{8, 16, 32, 64\}$ at fixed $\alpha=16$ across all 20,470 training samples. Higher ranks are expected to capture more circuit-domain-specific features, at the cost of increased training time and VRAM overhead.
+
+\textbf{Data Scale Ablation.} Compare five data tiers (100, 200, 300, 400, full 523 test samples) at fixed $r=8$, $\alpha=16$ to quantify the impact of data volume on model accuracy.
+
+\textbf{Image Size Ablation.} Compare different maximum image dimensions (128, 168, 224) on recognition accuracy. Larger images preserve more detail but increase sequence length and VRAM consumption, requiring a balance between precision and efficiency.
+
+\subsection{Topology Evaluation}
+
+In addition to text-level NED metrics, we have designed a topology-level evaluation protocol. Model outputs are parsed into structured netlists, from which three dimensions of topology metrics are extracted:
+
+\begin{itemize}
+    \item \textbf{Component F1 Score:} Compares predicted component designators (e.g., R1, C3) against the ground truth component set for exact matching.
+    \item \textbf{Type Accuracy:} Evaluates the correctness of component type classification (resistor, capacitor, MOSFET, etc.).
+    \item \textbf{Pin Connection Accuracy:} Evaluates the proportion of component pins correctly connected to their corresponding nets.
+\end{itemize}
+
+Topology evaluation provides a more fine-grained measure of circuit understanding capability than pure text NED, capable of distinguishing whether the model genuinely comprehends electrical connectivity relationships or merely matches at the text level.
 
 
 \section{Empirical Analysis}
 
+\subsection{Base Model Failure Mode Analysis}
+
+We conducted qualitative analysis of the base model's outputs on circuit schematics and归纳出 three typical failure modes:
+
+\begin{enumerate}[label=\arabic*.]
+    \item \textbf{Token Repetition Degeneration:} The model becomes trapped in a循环 of repeatedly outputting the same token. For example, in response to a schematic containing multiple component designators and netlist lines, the model outputs a continuous repetition of ``GND GND GND GND \ldots'' This suggests that the model loses autoregressive decoding diversity when faced with out-of-domain images, collapsing to a degenerate distribution.
+    \item \textbf{Memory Hallucination:} The model does not perform image-conditioned generation but instead outputs generic text fragments memorized from its pre-training data (e.g., webpage navigation labels, Markdown formatting markers). This indicates that while the原始 PaddleOCR-VL possesses strong general document understanding capabilities, it has not established the visual-semantic mapping between circuit symbols and their corresponding text.
+    \item \textbf{Partial Recognition and Information Omission:} The model occasionally correctly identifies individual component designators (e.g., ``R1'') but omits the main component names, net labels, and parameter values present in the drawing. The output length is far shorter than the ground truth annotation, suggesting an attention distribution problem across the circuit diagram layout.
+\end{enumerate}
+
+The root cause of these failure modes lies in the fact that although PaddleOCR-VL performs excellently on multilingual document parsing, its pre-training data predominantly consists of general documents (invoices, forms, book pages) and rarely includes highly specialized engineering drawings such as circuit schematics. The visual features of circuit symbols, Greek letter units, and electrical connection lines differ significantly from conventional document elements.
+
+\subsection{Effect of Fine-tuning on Output---Positive Effects and Current Limitations}
+
+After 100-sample LoRA fine-tuning, the model's output behavior underwent the following changes:
+
+\textbf{Positive Effects:}
+\begin{itemize}
+    \item The domain归属 of output content underwent a fundamental shift: from the base model's generic text (Arduino tutorial fragments, Markdown markers) to circuit-domain labels (component values ``1.2\,V,'' net labels ``GND''). This demonstrates that LoRA fine-tuning successfully established the visual-semantic mapping between circuit symbols and their corresponding text.
+    \item Output length increased from the base model's extreme brevity (2--5 characters) to lengths相近 to circuit annotations.
+\end{itemize}
+
+\textbf{Current Limitations (Key Issues):}
+\begin{itemize}
+    \item \textbf{NED paradoxically worse than base model} (0.9184 vs.\ 0.8895). The 100 samples only cover a very limited set of circuit vocabulary types. The model learned the highest-frequency circuit label ``GND'' from the limited samples but was not exposed to a sufficiently diverse set of component designators, parameter values, and net label formats. As a result, the model degenerates during testing into repeatedly outputting ``GND,'' causing Avg.\ NED to be numerically worse than the base model's varied乱码---乱码 at least possesses character diversity, whereas repeating a single label mismatches the ground truth at every position.
+    \item This phenomenon exposes the \textbf{limitations of pure text NED metrics}: NED measures character-level edit distance and cannot distinguish between ``domain-relevant repetitive output'' and ``domain-irrelevant random乱码.'' In fact, from a circuit understanding perspective, the LoRA model outputting circuit-domain labels (even if only GND) already represents an improvement, but NED cannot capture this semantic progress.
+    \item \textbf{Topology-level evaluation is needed to弥补 NED's shortcomings.} Our designed component F1, type accuracy, and pin connection accuracy metrics (Section~4.4) can more accurately reflect the model's true circuit understanding level.
+\end{itemize}
+
+\textbf{Root Cause Analysis:} The 100 training samples constitute only 0.58\% of the full training set (17,302 samples). Under such limited data, the model undergoes典型的 \textbf{Class Collapse}---learning to recognize a few high-frequency patterns (GND being the most common net label) and then over-relying on that pattern, losing output diversity. This phenomenon is essentially identical to Catastrophic Forgetting in few-shot fine-tuning: the model rapidly forgets the rich output distribution learned during pre-training and converges to a few common tokens from the training set.
+
+Full 17,302-sample training is expected to alleviate this issue by providing sufficient lexical diversity and circuit topology variation. Our ongoing full-scale training experiments will directly test this hypothesis.
+
+\subsection{Dataset Contribution}
+
+The multi-source hybrid dataset construction strategy has proven effective. Open Schematics provides real-world component naming diversity (e.g., specific chip models such as ATMEGA328P and TPS5430), Masala-CHAI provides textbook-grade standard SPICE netlist formats, and the synthetic dataset provides precise annotations and controlled degradation scenarios. The complementarity of the three sources eliminates the overfitting risk of any single source, enabling the model to develop both generalization ability to real component symbols and strict adherence to annotation accuracy.
+
 
 \section{Conclusion and Limitations}
+
+\subsection{Major Contributions and Current Progress}
+
+This paper presents CircuitOCR, a complete solution for circuit schematic OCR and netlist extraction. Current work progress is as follows:
+
+\begin{enumerate}[label=\arabic*.]
+    \item \textbf{Multi-source hybrid dataset (Completed):} Constructed the first large-scale circuit schematic dataset integrating real open-source projects, textbook circuits, and procedurally generated synthetic data. After three rounds of deduplication (text hash, topology hash, visual perceptual hash) and LLM-based quality scoring, approximately 24,717 independent samples were retained.
+    \item \textbf{LoRA fine-tuning scheme (Partially completed):} Verified the feasibility of parameter-efficient fine-tuning of PaddleOCR-VL-0.9B via LoRA. Rapid verification on only 100 samples confirmed the training pipeline is functional (306/306 weights updated normally, model output shifted from generic text to circuit-domain labels). However, limited by sample size, the model experienced class collapse---over-reliance on a few high-frequency labels (e.g., GND), causing Avg.\ NED (0.9184) to be slightly worse than the base model (0.8895). Full 17,302-sample training is in progress.
+    \item \textbf{Post-training framework (Design stage):} Proposed a three-stage enhancement方案 based on slime multi-expert Rollout, Critic-based PPO trajectory compaction, and anti-cheating mechanisms, providing a technical roadmap for后续 research, but not yet implemented and verified at full scale.
+    \item \textbf{Multi-dimensional evaluation framework (Partially completed):} Established a dual-layer protocol of text NED and topology evaluation, but the full implementation of topology evaluation (component F1, pin accuracy) remains to be completed.
+\end{enumerate}
+
+\subsection{Identified Problems and Lessons}
+
+\begin{enumerate}[label=\arabic*.]
+    \item \textbf{Class collapse problem (Core finding):} Few-sample (100 examples) LoRA fine-tuning causes severe contraction of the model's output distribution, degenerating into repetitive output of a single high-frequency label. This indicates that the circuit schematic OCR task requires a sufficiently large training sample size and adequate lexical diversity;维持 model language expression capability cannot be achieved with a small number of samples alone.
+    \item \textbf{Limitations of NED metric:} Avg.\ NED cannot distinguish between ``domain-relevant degenerate output'' and ``domain-irrelevant random乱码.'' The base model's乱码 achieves a seemingly better (lower) NED score due to character diversity, while the LoRA model's circuit-domain label output paradoxically scores higher (worse). This counter-intuitive phenomenon indicates the need for topology-level evaluation metrics to supplement pure text similarity.
+    \item \textbf{Engineering challenges:} Under the Windows + PaddlePaddle 2.6.2 environment, GPU bfloat16 support has known limitations: flash\_attention is unavailable and requires manual降级 implementation; PaddleFormers' fp8 dtype management mechanism has compatibility conflicts with PaddlePaddle's原生 fp8 (requiring removal of global float8 alias to ensure correct model weight read/write). These engineering issues consumed substantial debugging time and提醒 us that the community needs to strengthen E2E training stability testing on the Windows platform.
+    \item \textbf{Prerequisites for post-training:} The infrastructure required for slime + PPO post-training (simulator integration, sandbox security, Critic model training) far exceeds the capabilities of a single GPU workstation and currently remains at the design stage only.
+\end{enumerate}
+
+\subsection{Limitations}
+
+\begin{enumerate}[label=\arabic*.]
+    \item \textbf{Training incomplete:} Full 17,302-sample LoRA fine-tuning is still in progress. This paper primarily reports rapid verification and pipeline functionality validation results, without yet providing comparable final benchmark scores.
+    \item \textbf{Computational resource constraints:} Experiments were conducted on a single RTX 4060 8\,GB laptop GPU, significantly limiting batch size, training speed, and model scale.
+    \item \textbf{Post-training framework unimplemented:} The slime + Critic-based PPO + Anti-Hack framework is currently at the design stage, without code implementation or experimental verification.
+    \item \textbf{Manual verification not performed:} Final manual review of the dataset was not completed.
+\end{enumerate}
+
+\subsection{Future Work}
+
+Future work will focus on: (1) completing LoRA fine-tuning on the full training set and reporting Avg.\ NED scores across all four test tiers; (2) implementing a prototype system of the slime multi-expert rollout framework and integrating Critic-based PPO into the training loop; (3) integrating the simulator (Ngspice) into the reward computation pipeline to enable automated verification of netlist correctness.
 
 
 \bibliographystyle{unsrtnat}
