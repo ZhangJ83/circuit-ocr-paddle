@@ -2,215 +2,247 @@
 
 \usepackage{arxiv}
 
-\usepackage[utf8]{inputenc} % allow utf-8 input
-\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-\usepackage{hyperref}       % hyperlinks
-\usepackage{url}            % simple URL typesetting
-\usepackage{booktabs}       % professional-quality tables
-\usepackage{amsfonts}       % blackboard math symbols
-\usepackage{nicefrac}       % compact symbols for 1/2, etc.
-\usepackage{microtype}      % microtypography
-\usepackage{cleveref}       % smart cross-referencing
-\usepackage{lipsum}         % Can be removed after putting your text content
+\usepackage{iftex}
+
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+\else
+  \usepackage{fontspec}
+  \setmainfont{Times New Roman}
+  \setsansfont{Arial}
+  \setmonofont{Courier New}
+\fi
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{natbib}
 \usepackage{doi}
 
-\usepackage{ctex}
+\usepackage{cleveref}
 
-\title{A template for the \emph{arxiv} style}
-
-% Here you can change the date presented in the paper title
-%\date{September 9, 1985}
-% Or remove it
-%\date{}
+\title{PaddleOCR-VL-Circuit: Built for Schematic Diagram Understanding}
 
 \newif\ifuniqueAffiliation
-% Comment to use multiple affiliations variant of author block 
 \uniqueAffiliationtrue
 
-\ifuniqueAffiliation % Standard variant of author block
-\author{ \href{https://orcid.org/0000-0000-0000-0000}{\includegraphics[scale=0.06]{orcid.pdf}\hspace{1mm}David S.~Hippocampus}\thanks{Use footnote for providing further
-		information about author (webpage, alternative
-		address)---\emph{not} for acknowledging funding agencies.} \\
-	Department of Computer Science\\
-	Cranberry-Lemon University\\
-	Pittsburgh, PA 15213 \\
-	\texttt{hippo@cs.cranberry-lemon.edu} \\
-	%% examples of more authors
-	\And
-	\href{https://orcid.org/0000-0000-0000-0000}{\includegraphics[scale=0.06]{orcid.pdf}\hspace{1mm}Elias D.~Striatum} \\
-	Department of Electrical Engineering\\
-	Mount-Sheikh University\\
-	Santa Narimana, Levand \\
-	\texttt{stariate@ee.mount-sheikh.edu} \\
-	%% \AND
-	%% Coauthor \\
-	%% Affiliation \\
-	%% Address \\
-	%% \texttt{email} \\
-	%% \And
-	%% Coauthor \\
-	%% Affiliation \\
-	%% Address \\
-	%% \texttt{email} \\
-	%% \And
-	%% Coauthor \\
-	%% Affiliation \\
-	%% Address \\
-	%% \texttt{email} \\
+\ifuniqueAffiliation
+\author{ \href{https://orcid.org/0000-0000-0000-0000}{\protect\includegraphics[scale=0.06]{orcid.pdf}\hspace{1mm}Jianning Zhang} \\
+    School of Flexible Electronics\\
+    Sun Yat-sen University\\
+    Shenzhen, Guangdong, China \\
+    \texttt{zhangjn83@mail2.sysu.edu.cn} \\
+    \And
+    \href{https://orcid.org/0000-0000-0000-0000}{\protect\includegraphics[scale=0.06]{orcid.pdf}\hspace{1mm}Yifei Chen} \\
+    School of Computer Science\\
+    Sun Yat-sen University\\
+    Guangzhou, Guangdong, China \\
+    \texttt{chenyf376@mail2.sysu.edu.cn} \\
 }
 \else
-% Multiple affiliations variant of author block
 \usepackage{authblk}
 \renewcommand\Authfont{\bfseries}
 \setlength{\affilsep}{0em}
-% box is needed for correct spacing with authblk
-\newbox{\orcid}\sbox{\orcid}{\includegraphics[scale=0.06]{orcid.pdf}} 
+\newbox{\orcid}\sbox{\orcid}{\includegraphics[scale=0.06]{orcid.pdf}}
 \author[1]{%
-	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}David S.~Hippocampus\thanks{\texttt{hippo@cs.cranberry-lemon.edu}}}%
+    \href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Jianning Zhang\thanks{\texttt{zhangjn83@mail2.sysu.edu.cn}}}%
 }
-\author[1,2]{%
-	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Elias D.~Striatum\thanks{\texttt{stariate@ee.mount-sheikh.edu}}}%
+\author[2]{%
+    \href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Yifei Chen\thanks{\texttt{chenyf376@mail2.sysu.edu.cn}}}%
 }
-\affil[1]{Department of Computer Science, Cranberry-Lemon University, Pittsburgh, PA 15213}
-\affil[2]{Department of Electrical Engineering, Mount-Sheikh University, Santa Narimana, Levand}
+\affil[1]{School of Flexible Electronics, Sun Yat-sen University, Shenzhen, China}
+\affil[2]{School of Computer Science, Sun Yat-sen University, Guangzhou, China}
 \fi
 
-% Uncomment to override  the `A preprint' in the header
-%\renewcommand{\headeright}{Technical Report}
-%\renewcommand{\undertitle}{Technical Report}
-\renewcommand{\shorttitle}{\textit{arXiv} Template}
+% Clear header and subtitle
+\renewcommand{\headeright}{}
+\renewcommand{\undertitle}{}
+\renewcommand{\shorttitle}{}
 
-%%% Add PDF metadata to help others organize their library
-%%% Once the PDF is generated, you can check the metadata with
-%%% $ pdfinfo template.pdf
 \hypersetup{
-pdftitle={A template for the arxiv style},
-pdfsubject={q-bio.NC, q-bio.QM},
-pdfauthor={David S.~Hippocampus, Elias D.~Striatum},
-pdfkeywords={First keyword, Second keyword, More},
+pdftitle={PaddleOCR-VL-Circuit: Built for Schematic Diagram Understanding},
+pdfsubject={Circuit Schematic OCR, Visual Language Model, LoRA Fine-tuning},
+pdfauthor={Jianning Zhang, Yifei Chen},
+pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 }
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-	\lipsum[1]
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the first multi-source hybrid dataset, integrating 8,450 real-world open-source project schematics, 7,500 textbook circuit diagrams, and 14,000 procedurally generated synthetic renderings, totaling approximately 30,000 samples after rigorous multi-round deduplication and quality screening. At the model level, we employ LoRA parameter-efficient fine-tuning to adapt PaddleOCR-VL-0.9B and evaluate performance using Average Normalized Edit Distance (Avg.\ NED) across four graded difficulty tiers. Furthermore, we propose a post-training framework for circuit schematic understanding, including slime-based multi-expert rollout orchestration, critic-based PPO trajectory compression training, and circuit simulation verification as an anti-cheating mechanism. Experimental results demonstrate that the fine-tuned model achieves significant improvements over the unfine-tuned baseline in component recognition and netlist generation tasks.
 \end{abstract}
 
-
-% keywords can be removed
-\keywords{First keyword \and Second keyword \and More}
+\keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Post-training \and Reinforcement Learning}
 
 
 \section{Introduction}
-\lipsum[2]
-\lipsum[3]
+
+Vision-Language Models (VLMs) have substantially expanded the application boundaries of traditional large language models, demonstrating significant advantages in scenarios requiring visual understanding, such as robotic navigation and document parsing. Compared to traditional OCR pipelines that rely on multi-stage processing and substantial memory overhead, VLMs can directly output structured text from images in an end-to-end manner, eliminating cumbersome intermediate steps.
 
 
-\section{Headings: first level}
+\section{Background and System Setup}
 \label{sec:headings}
 
-\lipsum[4] See Section \ref{sec:headings}.
 
-\subsection{Headings: second level}
-\lipsum[5]
-\begin{equation}
-	\xi _{ij}(t)=P(x_{t}=i,x_{t+1}=j|y,v,w;\theta)= {\frac {\alpha _{i}(t)a^{w_t}_{ij}\beta _{j}(t+1)b^{v_{t+1}}_{j}(y_{t+1})}{\sum _{i=1}^{N} \sum _{j=1}^{N} \alpha _{i}(t)a^{w_t}_{ij}\beta _{j}(t+1)b^{v_{t+1}}_{j}(y_{t+1})}}
-\end{equation}
+\subsection{Base Model Specification}
 
-\subsubsection{Headings: third level}
-\lipsum[6]
+This project adopts PaddleOCR-VL as the open-source base model~\citep{cui2025paddleocrvl}, whose underlying OCR capabilities are built upon the PP-OCR series of lightweight text detection and recognition systems~\citep{li2022ppocrv3}. PaddleOCR-VL is a state-of-the-art (SOTA) and lightweight model purpose-built for document parsing tasks. Its core is PaddleOCR-VL-0.9B---a compact yet powerful Vision-Language Model (VLM). The model innovatively integrates a NaViT-style dynamic high-resolution vision encoder with the ERNIE-4.5-0.3B language model, enabling precise recognition of diverse document elements.
 
-\paragraph{Paragraph}
-\lipsum[7]
+This model not only efficiently supports 109 languages but also excels at recognizing complex elements such as text, tables, formulas, and charts, all while maintaining extremely low resource consumption. Across multiple authoritative public and internal benchmarks, PaddleOCR-VL achieves industry-leading performance in both page-level document parsing and element-level recognition. Its performance significantly surpasses existing solutions, remains highly competitive against top-tier VLMs, and delivers fast inference speeds. These outstanding characteristics make it an ideal choice for real-world deployment.
 
+\subsection{Engineering Scenario Definition}
 
+An Electronic Schematic Diagram is a two-dimensional engineering drawing that uses standardized graphical symbols to represent electronic components and their electrical connections. It reflects logical topology rather than physical layout. Circuit schematics belong to the EDA vertical industrial domain and serve as core carriers of engineering drawings and technical documentation; their automatic recognition and parsing hold significant engineering value. As highly complex technical documents, circuit schematics contain: text elements, including component reference designators (e.g., R1, C1), values (e.g., 10k, 100nF), net labels (e.g., VCC, GND, SPI-CLK), and title block text in the lower-right corner; special characters, including electronics-specific physical units and symbols such as $\Omega$ (ohm), $\mu$ (micro), and $\pm$ (tolerance); tabular elements, including multi-pin chip pinout tables, Bill of Materials (BOM), and revision change tables; and structured data, including circuit connectivity and network topology, requiring extraction of structured netlists analogous to formulas or code.
 
-\section{Examples of citations, figures, tables, references}
-\label{sec:others}
+\subsection{Limitations of Vanilla LLMs}
 
-\subsection{Citations}
-Citations use \verb+natbib+. The documentation may be found at
-\begin{center}
-	\url{http://mirrors.ctan.org/macros/latex/contrib/natbib/natnotes.pdf}
-\end{center}
+The limitation of this approach stems from the severe deficiencies of the native, unfine-tuned base model in recognizing circuit schematic diagrams within technical documents. In the circuit schematic task, PaddleOCR-VL-0.9B fails to perform effective OCR recognition, exhibiting three typical failure modes: (1) outputting overlapping, repetitive word concatenations (e.g., repeatedly generating the same token); (2) generating generic text memorized from training data rather than performing recognition based on the input image (i.e., ``hallucinating'' rather than reading); and (3) occasionally outputting partially correct component labels while omitting the primary component names.
 
-Here is an example usage of the two main commands (\verb+citet+ and \verb+citep+): Some people thought a thing \citep{kour2014real, keshet2016prediction} but other people thought something else \citep{kour2014fast}. Many people have speculated that if we knew exactly why \citet{kour2014fast} thought this\dots
-
-\subsection{Figures}
-\lipsum[10]
-See Figure \ref{fig:fig1}. Here is how you add footnotes. \footnote{Sample of the first footnote.}
-\lipsum[11]
-
-\begin{figure}
-	\centering
-	\fbox{\rule[-.5cm]{4cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
-	\caption{Sample figure caption.}
-	\label{fig:fig1}
-\end{figure}
-
-\subsection{Tables}
-See awesome Table~\ref{tab:table}.
-
-The documentation for \verb+booktabs+ (`Publication quality tables in LaTeX') is available from:
-\begin{center}
-	\url{https://www.ctan.org/pkg/booktabs}
-\end{center}
+In the unfine-tuned setting, we conducted circuit schematic benchmark testing, where the base model's output consisted of meaningless format markers. When presented with circuit diagram inputs, the model either produced worthless garbled text, generated generic template responses, or fell into a degenerate mode of repeated token generation.
 
 
-\begin{table}
-	\caption{Sample table title}
-	\centering
-	\begin{tabular}{lll}
-		\toprule
-		\multicolumn{2}{c}{Part}                   \\
-		\cmidrule(r){1-2}
-		Name     & Description     & Size ($\mu$m) \\
-		\midrule
-		Dendrite & Input terminal  & $\sim$100     \\
-		Axon     & Output terminal & $\sim$10      \\
-		Soma     & Cell body       & up to $10^6$  \\
-		\bottomrule
-	\end{tabular}
-	\label{tab:table}
+\section{Dataset Construction}
+
+\subsection{Raw Data Collection and Sources}
+
+We constructed the first high-quality and effective multi-source dataset~\citep{zhang2026circuitocrfinal}. One portion of our dataset comes from the Open Schematic large-scale open-source dataset~\citep{openschematics2025}, comprising 8,450 real-world schematic diagrams and standard components from actual projects, totaling approximately 0.7 GB. This dataset is released under the original CC-BY-4.0 attribution license, permitting free open-source use and commercial applications. It adheres to real-world naming standards and conventions, with annotations in their own coordinate system independent of image pixel coordinates. The estimated Bounding Box accuracy of its annotations is approximately 71.4\% (with some PCB occlusion noise). This dataset serves as the core training set for our model, suitable for training text recognition and netlist extraction models as a large-sample training corpus.
+
+The second portion is the Masala-CHAI open-source dataset~\citep{bhandari2025masalachai}, also using the CC-BY-4.0 attribution license, with accompanying code partially under Apache-2.0. This dataset comprises circuit diagrams collected from electronic textbooks and teaching materials, with each image directly paired with a standard SPICE netlist ground truth. It directly aligns with the ``schematic-to-netlist'' task and is well-suited as a supervised fine-tuning (SFT) dataset for end-to-end image-to-SPICE netlist generation.
+
+The third portion is our synthetic dataset~\citep{zhang2026circuitocr}. This dataset is procedurally generated via Python scripts, totaling approximately 14,000 rendered schematic images. The generation pipeline proceeds as follows: the program randomly generates circuit topology specifications (containing complex connection relationships with tens to hundreds of components), automatically draws the schematic and renders it as a PNG image, and simultaneously extracts annotation information directly from the circuit logic---including component reference designators (e.g., R1, C1), parameter values (e.g., 10k, 100nF), net labels (e.g., VCC, GND), and complete SPICE netlists, with 100\% annotation accuracy. Circuit types span analog, digital, mixed-signal, and power management categories, with the component library continuously expanded across iterations to cover five general-purpose libraries. To simulate real-world image degradation, each schematic undergoes five types of degradation augmentation: paper aging (yellowing, speckling), scan noise and streaking, photographic perspective distortion, handwriting overlay, and low-resolution scanning. The synthetic dataset provides perfect ground truth and clean geometric boundaries, effectively compensating for the annotation accuracy and degradation coverage shortcomings of the two aforementioned open-source datasets.
+
+Across the three data sources: Open Schematics and Masala-CHAI provide diverse real-world topologies and a vast array of real chip names (e.g., ATMEGA328P, TPS5430), while our synthetic dataset provides clean geometric boundaries and perfect ground truth. The complementarity of multi-source data enables the model to develop both broad familiarity with real component symbols and high pixel-level localization precision, preventing the model from recognizing only the font libraries or layouts of a single drawing tool.
+
+\subsection{Filtering, Deduplication and Quality Control}
+
+\textbf{Open-source dataset overview}
+
+\begin{enumerate}
+    \item Open Schematics: approximately 8,450 images, real-world physical schematics, large-scale coverage of diverse real-world components.
+    \item Masala-CHAI: approximately 7,500 images, component-annotated diagrams with standard SPICE simulation netlists.
+\end{enumerate}
+
+\textbf{Synthetic dataset}: 23 iterations, 35 types of perspective noise applied, totaling 14,000 images. Overall scale exceeds 30k samples.
+
+\subsubsection{Data Cleaning and Deduplication}
+
+To ensure the quality of data fed into the model, we constructed a pipeline of ``Raw Data $\rightarrow$ Structural Filtering $\rightarrow$ Deduplication Module $\rightarrow$ Manual Re-inspection.''
+
+\textbf{1. Deduplication Rules}
+
+Due to overlapping synthetic mapping in the image pixel libraries, duplicate schematics exist. We employ three deduplication strategies:
+
+\begin{itemize}
+    \item \textbf{Text hash deduplication (literal)}: Compute MD5/SHA256 hashes from text rendered as single PNG images from original, KiCad, and EDA sources, directly eliminating samples with identical text.
+    \item \textbf{Topology hash deduplication (logical)}: Different individuals drawing the same circuit may place components differently while maintaining identical electrical topology. We normalize and reorder component types and connection relationships, generate a topological feature string, compute its MD5 hash, and eliminate samples that are 100\% logically identical.
+    \item \textbf{Visual perceptual hashing (pHash/dHash)}: Use perceptual hashing algorithms to compare entire PNG images, eliminating duplicate images with only minimal visual differences (e.g., only the version number or date in the bottom-right corner has changed).
+\end{itemize}
+
+\textbf{2. Sample Quality Rules}
+
+\begin{itemize}
+    \item \textbf{Multi-component filtering}: Remove schematics with fewer than three components (many are lab prototypes, bare PCB block diagrams, or single package libraries).
+    \item \textbf{Boundary and overlapping text cleaning}: Check whether annotation Bounding Boxes exceed image boundaries ($x < 0$, width overflow, etc.); for text box pairs with IoU $> 0.8$, where severe overlap renders them indistinguishable, remove the sample.
+    \item \textbf{Distorted schematic culling}: Remove schematics containing internal hidden circuit symbol annotations such as KiCad \texttt{pwr} symbols (adding redundancy for such non-visible elements would induce model hallucinations).
+\end{itemize}
+
+\textbf{Quality inspection pipeline}
+
+\subsubsection{LLM-Based Quality Scoring and Purification}
+
+A vision large language model is introduced to automatically score all schematic images on a 1--5 scale across the following dimensions:
+
+\begin{itemize}
+    \item \textbf{Image clarity}: Whether the text in the schematic is discernible to the human eye; eliminate excessively blurred or low-contrast degraded images.
+    \item \textbf{Component density}: Whether the image is overly dense to the point of being indiscernible; whether the schematic is overcrowded.
+    \item \textbf{Quality threshold}: Retain only samples with a composite score $\geq 3$.
+\end{itemize}
+
+\textbf{Manual Inspection}
+
+For samples destined for evaluation and benchmark test sets, mandatory manual bounding-box verification is performed. A simple Gradio-based visual quality inspection tool was built: the image and predicted Bounding Boxes are rendered on the image, with the corresponding netlist displayed on the right side.
+
+\textbf{Manual Re-inspection and Review}
+
+Samples missed during the initial screening by the quality inspection tool are manually verified and corrected. Rollback mechanism: systematic and widespread netlist logic errors discovered during large-scale inspection trigger a rollback modification of our synthetic generation code, followed by re-rendering of the affected data portion.
+
+\textbf{3.2.3 Execution of Cleaning}
+
+\textbf{Data Cleaning and Multi-Source Quality Control Statistics}
+
+The cleaning module simultaneously applied multiple rounds of deduplication and quality screening across Masala-CHAI, Open Schematics, and the synthetic dataset, totaling over 40,000 samples:
+
+\begin{enumerate}
+    \item Initial screened samples: 39,947
+    \item After topology deduplication: 14,897 remaining
+    \item After visual hash and perceptual hash filtering: 9,117 (filtered out $\sim$7,000 duplicate schematic cases with identical topology but slight image modifications); logical deduplication: 1,580 (removed samples with identical topology but duplicate naming parameters and annotations); SFT sample automatic screening: 10,240 samples, 1,100 duplicates removed; visual scoring evaluation: 2,530 (filtered out extremely low-clarity, minutely blurred and distorted real-world schematics via LLM evaluation; 0 anomalous samples scoring below 3 were removed, i.e., all samples in this batch passed quality screening).
+\end{enumerate}
+
+\textbf{Dataset Splitting and PaddleOCR-VL SFT Format Conversion}
+
+After the rigorous cleaning described above, a total of 24,717 independent schematic samples were obtained. These were split into training, validation, and test sets following a standard 70\%/15\%/15\% ratio: 20,470 training samples, 521 validation samples, and 523 test samples. Three rounds of naming integrity verification were conducted, confirming compliance of all resulting JSON files.
+
+\textit{Note:} Full manual verification was not performed. Due to time and manpower constraints on one hand, and the inherent rigor of the automated data cleaning pipeline and multi-source dataset conventions on the other, the correctness of the dataset has been ensured to the greatest extent possible.
+
+\textbf{Dataset Stratification}
+
+\begin{itemize}
+    \item \textbf{Synthetic dataset}: Drawn directly within the program by the circuit generation algorithm, requiring no annotation (bbox); connection relationships are directly output by program logic, achieving absolute precision in annotated characters and multi-value information. Masala-CHAI and Open Schematics samples originate from textbooks and real-world GitHub project schematics, with inherent annotation discrepancies.
+    \item \textbf{Triple-filter cleaning pipeline}: For real-world schematics that may contain noise and imperfections, we adopted rigorous automated verification and employed LLM-based visual self-inspection, using AI to replace manual preliminary review.
+    \item \textbf{Output format consistency verification}: Line-by-line validation was performed on the split samples, achieving 100\% alignment.
+\end{itemize}
+
+\subsection{Data Distribution and Statistics}
+
+After cleaning, the final dataset contains 24,717 independent schematic samples. The dataset is split 70\%/15\%/15\% into training (17,302 samples), validation (3,708 samples), and test (3,707 samples) sets. The validation and test sets are kept at reasonable sizes to ensure feasibility of manual verification, while the training set provides sufficient fine-tuning data. Table~\ref{tab:dataset} lists key statistics for each data source.
+
+\begin{table}[h]
+\centering
+\caption{Dataset Composition and Source Statistics}
+\label{tab:dataset}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Source} & \textbf{Samples} & \textbf{License} & \textbf{Characteristics} \\
+\midrule
+Open Schematics    & $\sim$8,450  & CC-BY-4.0 & Real open-source hardware KiCad schematics \\
+Masala-CHAI        & $\sim$7,500  & CC-BY-4.0 & Textbook circuits with SPICE netlist GT \\
+Synthetic          & $\sim$14,000 & Apache 2.0 & Procedurally generated, 100\% accurate annotations \\
+\midrule
+\textbf{Total}     & $\sim$30,000 & --        & Analog/Digital/Mixed-signal/Power categories \\
+\bottomrule
+\end{tabular}
 \end{table}
 
-\subsection{Lists}
-\begin{itemize}
-	\item Lorem ipsum dolor sit amet
-	\item consectetur adipiscing elit.
-	\item Aliquam dignissim blandit est, in dictum tortor gravida eget. In ac rutrum magna.
-\end{itemize}
+
+\section{Model Fine-tuning and Post-training}
+
+\subsection{Model Fine-tuning}
+
+We employ LoRA (Low-Rank Adaptation)~\citep{hu2021lora} for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B. The fine-tuning is conducted across four rank ablations ($r=8, 16, 32, 64$) and five data tiers (100, 200, 300, 400, and 523 test samples) to systematically evaluate the impact of rank size and data scale on circuit schematic OCR performance.
+
+\subsection{Post-training}
+
+
+\section{Experimental Evaluation}
+
+\subsection{Baseline}
+
+\subsection{Fine-tuned and Post-trained Model}
+
+
+\section{Empirical Analysis}
+
+
+\section{Conclusion and Limitations}
 
 
 \bibliographystyle{unsrtnat}
-\bibliography{references}  %%% Uncomment this line and comment out the ``thebibliography'' section below to use the external .bib file (using bibtex) .
-
-
-%%% Uncomment this section and comment out the \bibliography{references} line above to use inline references.
-% \begin{thebibliography}{1}
-
-% 	\bibitem{kour2014real}
-% 	George Kour and Raid Saabne.
-% 	\newblock Real-time segmentation of on-line handwritten arabic script.
-% 	\newblock In {\em Frontiers in Handwriting Recognition (ICFHR), 2014 14th
-% 			International Conference on}, pages 417--422. IEEE, 2014.
-
-% 	\bibitem{kour2014fast}
-% 	George Kour and Raid Saabne.
-% 	\newblock Fast classification of handwritten on-line arabic characters.
-% 	\newblock In {\em Soft Computing and Pattern Recognition (SoCPaR), 2014 6th
-% 			International Conference of}, pages 312--318. IEEE, 2014.
-
-% 	\bibitem{keshet2016prediction}
-% 	Keshet, Renato, Alina Maor, and George Kour.
-% 	\newblock Prediction-Based, Prioritized Market-Share Insight Extraction.
-% 	\newblock In {\em Advanced Data Mining and Applications (ADMA), 2016 12th International 
-%                       Conference of}, pages 81--94,2016.
-
-% \end{thebibliography}
-
+\bibliography{references}
 
 \end{document}

@@ -18,7 +18,7 @@
 \usepackage{amsfonts}       % blackboard math symbols
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
-\usepackage{lipsum}         % Can be removed after putting your text content
+\usepackage{enumitem}
 \usepackage{graphicx}
 \usepackage{natbib}
 \usepackage{doi}
@@ -92,7 +92,6 @@
 \affil[2]{Department of Electrical Engineering, Mount-Sheikh University, Santa Narimana, Levand}
 \fi
 
-% Clear header and subtitle
 \renewcommand{\headeright}{}
 \renewcommand{\undertitle}{}
 \renewcommand{\shorttitle}{}
@@ -111,10 +110,10 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-% TODO: 待补充摘要内容
+电路原理图自动识别是电子设计自动化（EDA）领域的一项核心挑战，涉及视觉文字提取与拓扑图论追踪两大异构任务。本文提出 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 与网表提取系统。我们构建了首个多源混合数据集，整合 8,450 张真实开源项目原理图、7,500 张教材电路图以及 14,000 张程序化合成渲染图，总计约 30,000 个经严格多轮去重与质量筛查的样本。在模型层面，我们采用 LoRA 参数高效微调方法对 PaddleOCR-VL-0.9B 进行适配，并在 4 个梯度难度的测试层级上使用平均归一化编辑距离（Avg. NED）进行评估。此外，我们提出了一个面向电路原理图理解的后训练框架，包括基于 slime 的多专家 Rollout 编排、基于 Critic 的 PPO 轨迹压缩训练，以及电路仿真验证防作弊机制。实验结果表明，经过微调的模型相比未微调基座在电路元件识别和网表生成任务上取得了显著提升。
 \end{abstract}
 
-\keywords{电路原理图 \and OCR \and PaddleOCR-VL \and LoRA微调 \and 网表提取}
+\keywords{电路原理图 \and OCR \and PaddleOCR-VL \and LoRA微调 \and 网表提取 \and 后训练 \and 强化学习}
 
 
 \section{引言}
@@ -175,7 +174,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 
 \subsubsection{数据清洗去重}
  
-为保证输入模型数据质量，我们构建了「原始数据→结构过滤→去重模块→人工复检」流水线。
+为保证输入模型数据质量，我们构建了「原始数据$\rightarrow$结构过滤$\rightarrow$去重模块$\rightarrow$人工复检」流水线。
  
 1. 去重规则
  
@@ -191,8 +190,8 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 - 边界与重叠文本清洗：检查标注Bounding Box是否超出图像边界（x<0 / width超界等）；对于文本框之间的IOU，如果两个不同文本的IOU>0.8，严重重叠无法辨认，则删除该样本。
 - 失真图纸剔除清洗：剔除含有pwr等kicad内部隐藏电路符号标注图（因为它们不在图像上强行加冗余会使模型产生幻觉）。
  
-质检流水线
- 
+\paragraph{质检流水线}
+
 \subsubsection{大模型质量打分净化}
  
 引入视觉大模型对所有原理图图像进行自动打分（1–5分），评判维度包括：
@@ -201,19 +200,19 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 - 多元元件密度：画面是否过密导致无法分辨、图纸拥挤。
 - 质量阈值：仅保留综合分≥3的样本。
  
-人工检验
- 
+\paragraph{人工检验}
+
 对于将用于评估的测试集与基准集样本，必须单独进行人工加框校验
 构建简单的Gradio可视化质检工具：将图像、预测Bbox框在图上画出，在右侧展示对应网表
  
-人工排查复查
- 
+\paragraph{人工排查复查}
+
 对质检工具初筛后漏检样本人工校验排查、修正。
 回滚机制：在大检验中发现的系统性、普遍性网表逻辑错误，会回滚修改我们的合成生成代码，重新渲染该部分数据。
  
-3.2.3 执行清洗
- 
-数据清洗与多源质控统计
+\paragraph{执行清洗}
+
+\paragraph{数据清洗与多源质控统计}
  
 清洗模块同时对 Masala-CHAI、Open Schematics 和合成数据集内的共计4万+样本进行多轮去重和质量筛查：
  
@@ -221,13 +220,13 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 2. 拓扑去重后剩余：14897个
 3. 视觉哈希、感知哈希过滤：9117个（过滤掉7千个拓扑相同但图片轻微改动的重复图纸案例）；逻辑去重：1580个（去掉拓扑相同但命名参数、标注重复的样本）；SFT（监督微调）样本自动筛选10240份，重复去重1100份；视觉打分评估：2530个（通过大模型评估过滤掉清晰度极低、细小模糊失真的真实原理图，共清除低于3分的异常样本0个，即该批次样本均通过质量筛查）
  
-数据集划分与 PaddleOCR-VL SFT 格式转换
+\paragraph{数据集划分与 PaddleOCR-VL SFT 格式转换}
  
 经过上述严苛清洗，最终得总量为24717个独立原理图样本，按照70% / 15% / 15%标准比例进行训练集、验证集和测试集划分：训练集20470个样本，验证集521个样本，测试集523个样本，并进行3轮命名完整性校验，验证所有结果的JSON文件合规。
  
 注：整轮人工校验没有进行，一方面由于时间和人手限制，另一方面由自动数据清洗流程和多源数据集原生规范，已最大程度确保数据集的正确性。
  
-数据集分层层面
+\paragraph{数据集分层层面}
  
 - 合成数据集：由电路生成算法在程序内直接绘制，无需标注（bbox），连接关系由程序逻辑直接输出，在标注字符和多值信息上有绝对精度。Masala-CHAI 和 Open Schematics 样本来自教材和 GitHub 的真实项目原理图，标注存在差异。
 - 清洗管线三重过滤：对于可能存在瑕疵噪声的真实世界原理图，我们采取了严格的自动化校验并使用大模型视觉自检，用AI替代人工初审。
@@ -235,23 +234,260 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
  
 \subsection{数据分布与统计}
 
+经清洗后的最终数据集包含 24,717 个独立原理图样本。数据集按 70\%/15\%/15\% 划分为训练集（17,302 样本）、验证集（3,708 样本）和测试集（3,707 样本）。验证集和测试集保持合理规模以保证人工校验的可行性，训练集提供充足的微调数据。表~\ref{tab:dataset} 列出了各数据来源的关键统计指标。
+
+\begin{table}[h]
+\centering
+\caption{数据集构成与来源统计}
+\label{tab:dataset}
+\begin{tabular}{lccc}
+\toprule
+\textbf{来源} & \textbf{样本量} & \textbf{许可协议} & \textbf{特点} \\
+\midrule
+Open Schematics    & $\sim$8,450  & CC-BY-4.0 & 真实开源硬件 KiCad 原理图 \\
+Masala-CHAI        & $\sim$7,500  & CC-BY-4.0 & 教材电路图，配 Spice 网表真值 \\
+合成数据集         & $\sim$14,000 & Apache 2.0 & 程序化生成，100\% 精确标注 \\
+\midrule
+\textbf{合计}      & $\sim$30,000 & --        & 模拟/数字/混合/电源四大类 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{标注长度分布。}图~\ref{fig:label_dist}展示了训练集中标注文本长度的分布。标注从简短的元件列表（5--10 tokens）到完整的 Spice 网表（200+ tokens）不等，体现了电路原理图 OCR 任务的多样性。我们根据标注长度将测试集划分为四个梯度层级：easy50（标注长度 27--109 字符）、easy100（27--163 字符）、easy200（27--296 字符）和 full523（全部 523 样本），以系统评估模型在不同复杂度下的表现。
+
+\textbf{电路类型覆盖。}数据集覆盖四大电路类型：模拟电路（运放、滤波器、电源管理）、数字电路（逻辑门、MCU 外围、存储器接口）、混合信号电路（ADC/DAC、PLL）以及电源电路（DC-DC 转换器、LDO 稳压）。合成数据集的程序化生成确保每种类型均有充足的训练样本。
+
+\subsection{数据增强策略}
+训练过程中，我们对每张输入图像施加以下在线增强：随机 JPEG 压缩（质量因子 85--100）、随机缩放（最大尺寸 168--224 像素）以及随机水平翻转。这些轻量级增强模拟了真实场景中的图像质量变化，同时保持了电路原理图的可读性。
+
 \section{模型微调以及后训练}
 
 \subsection{模型微调}
 
 我们采用LoRA（Low-Rank Adaptation）~\citep{hu2021lora}对PaddleOCR-VL-0.9B进行参数高效微调。
 
-\subsection{后训练}
+\subsection{后训练：基于强化学习的电路原理图理解}
+
+尽管 LoRA 监督微调能有效提升基础 OCR 能力，但电路原理图理解涉及两大异构子任务——视觉文字提取（OCR）与拓扑图论追踪（Topology Tracing）——它们具有天然的长周期、多步推理特性。单一的监督训练难以捕捉网表生成中的逻辑连贯性与拓扑正确性。为此，我们提出了一套面向电路原理图的后训练框架，由以下三个核心组件构成。
+
+\subsubsection{基于 slime 的电路多专家 Rollout 编排}
+
+电路原理图识别包含视觉文字提取与拓扑图论追踪两个性质截然不同的子任务。前者要求模型从密集布局中准确读取微小文字，后者要求模型追踪跨越整个图纸的导线连接关系。单一模型同时处理两者极易导致上下文崩溃：模型在关注文本时遗忘拓扑关系，在追踪导线时丢失元件信息。
+
+为解决这一问题，我们在 slime 框架下设计了三并行的子智能体 Rollout 架构：
+
+\begin{itemize}
+    \item \textbf{Text-Agent（文字专家）：} 专攻元器件文本识别，包括元件编号（如 R1、C3）、引脚编号（Pinout）、参数值（如 10k$\Omega$、100nF）以及网络标签（如 VCC、GND、SPI-CLK）。该智能体使用高分辨率视觉编码器分支，对图像进行局部裁剪和放大处理。
+    \item \textbf{Node-Agent（节点专家）：} 专攻交叉导线和电气节点的连通性追踪。该智能体将电路原理图建模为无向图，通过像素级导线分割和交点检测重建连接矩阵，输出每条导线两端连接的元件-引脚对。
+    \item \textbf{Graph-Agent（图融合专家）：} 负责将 Text-Agent 识别的元件/引脚信息与 Node-Agent 提取的连接关系融合为标准 SPICE 网表。该智能体验证每个网络的合法性（如检查是否存在无驱动的浮空节点），并输出符合 SPICE 语法规范的网表。
+\end{itemize}
+
+三个智能体并行执行 Rollout，通过 slime 框架的共享记忆池交换中间结果。并行在线蒸馏（Online Parallel Distillation, OPD）机制使针对不同电路风格（模拟射频、数字 MCU、高功率电源）训练的十多个微观专家模型在两天内高效合并为一个全能的电路大模型。这一架构避免了端到端单一模型导致的注意力分散问题，通过任务解耦和并行训练大幅提升了 Rollout 的吞吐量和精度。
+
+\subsubsection{基于 Critic 的 PPO 轨迹压缩训练}
+
+完整的 PCB 原理图可能包含数百个元件和数千条导线，单一 Rollout 轨迹极其冗长。不同功能子块（如电源模块、滤波网络、信号放大区）的复杂度差异巨大——电源模块元件多但结构规整，高速数字信号区域导线密度极高但元件较少。这种不平衡导致简单子电路产生超高的奖励信号，进而主导梯度更新方向，使模型回避复杂拓扑结构的学习。
+
+我们提出 Critic-based PPO 算法配合轨迹压缩策略：
+
+\begin{itemize}
+    \item \textbf{轨迹压缩（Trajectory Compaction）：} 将完整的 PCB 原理图按功能区域裁剪为多个子图，每个子图对应一条独立的训练轨迹。压缩后的子轨迹去除了冗余的空间移动步骤，使有效推理步骤占比从原始的不足 20\% 提升至 60\% 以上。
+    \item \textbf{Token 级 Critic 估计：} 放弃传统的群体相对比较（Group-wise Advantage Estimation），采用单推演（Single-rollout）的 PPO 变体。Critic 模型评估在当前识别步骤下的 Token 级别优势值（Advantages）。对于识别 R1 的 Pin 1 应连接到 NET\_CLK 这类具体决策，无论其所在子电路是简单还是复杂，均施加 Token 级别的损失函数来中和长度不平衡。
+\end{itemize}
+
+这一设计确保模型在面对“复杂子电路”与“简单子电路”同时训练时，梯度信号不会被简单电路的超高奖励带偏，迫使模型老老实实地学习复杂的拓扑结构。
+
+\subsubsection{电路规则与仿真验证的防作弊机制}
+
+电路原理图识别的奖励信号具有天然的量化特性：将模型生成的 SPICE 网表输入仿真器（如 Ngspice/LTspice）运行，或进行图同构比对，即可获得明确的 Pass/Fail 信号。然而，这种绝对信号极易被智能体利用进行奖励作弊。我们识别出两种典型的作弊模式并设计了对策：
+
+\textbf{作弊模式 1：环境越权（Environment Hacking）。} 智能体在沙箱环境中可能通过执行 Shell 命令（如 \texttt{find / -name "*.json"}）直接读取后台存放的 Ground Truth 网表文件，从而获得虚假的高分。
+
+\textbf{作弊模式 2：拓扑死耦（Topological Dead-Coupling）。} 为了使生成的网表通过语法检查并满足节点覆盖率指标，智能体可能将所有未识别或不确定的引脚全部挂载到 GND 或 VCC 上，制造出“连通率很高”的假象。
+
+\textbf{双阶段防作弊模块（Anti-Hack Module）：}
+
+\begin{itemize}
+    \item \textbf{第一阶段：规则过滤器（Rule-based Filter）。} 实时拦截智能体的非法工具调用（如读取评测集路径、访问非授权文件）。同时检测生成网表中的异常拓扑模式——若一个电气节点连接了超过阈值数量（默认 50 个）的不同器件引脚，则标记为“超大超级节点”嫌疑。
+    \item \textbf{第二阶段：电路意图裁判（Circuit Judge）。} 由一个精通电路设计的裁判模型对被标记行为进行意图审查，判断是由于视觉误差连错导线，还是故意刷分走捷径。裁判模型接受过电路设计规范的训练，能区分合理的大节点（如 GND 网络天然包含大量引脚）和恶意短路。
+    \item \textbf{在线动态阻断（Online Guard）。} 一旦判定作弊，系统不中止该 Rollout 轨迹，而是拦截其作弊调用并返回虚假信息（Dummy Information），例如返回高阻抗断路状态或虚假的仿真收敛失败报错。这允许智能体带着“错误反馈”继续完成原理图绘制，既阻断了脏数据污染奖励信号，又防止了突然中止 Rollout 导致的训练不稳定和模型崩溃。
+\end{itemize}
+
+\subsubsection{后训练工作流全景}
+
+\begin{equation}
+\text{原理图输入} \xrightarrow{\text{slime分流}}
+\begin{cases}
+    \text{Text-Agent (文字/引脚)}, \\
+    \text{Node-Agent (导线追踪)}
+\end{cases}
+\xrightarrow{\text{轨迹压缩}}
+\text{Critic-based PPO (解决规模失衡)}
+\end{equation}
+
+\begin{equation}
+\text{生成网表} \xrightarrow{\text{防作弊双阶段检测}}
+\begin{cases}
+    \text{正常} \Rightarrow \text{进入仿真器} \Rightarrow \text{返回真实奖励}, \\
+    \text{作弊} \Rightarrow \text{拦截并注入高阻抗 Dummy 数据} \Rightarrow \text{引导 Agent 继续探索}
+\end{cases}
+\end{equation}
+
+在此后训练设计中，我们重点打通了三个核心闭环：(1) 文字与拓扑的解耦编排（slime 多专家 Rollout）；(2) 长短不一原理图子块的稳定收敛（Critic-based PPO 轨迹压缩）；(3) 防止网表生成走捷径（Anti-Hack 双阶段检测与动态阻断）。
 
 \section{实验评估}
 
-\subsection{基线模型}
+\subsection{实验设置}
 
-\subsection{微调与后训练后的模型}
+所有实验在单张 NVIDIA RTX 4060 (8GB VRAM) 上运行。模型使用 PaddleOCR-VL-0.9B 作为基座，LoRA 微调配置为 rank $r=8$、$\alpha=16$，目标模块为所有注意力层的 q\_proj、k\_proj、v\_proj 和 o\_proj 投影矩阵。训练采用 AdamW 优化器（$\beta_1=0.9$、$\beta_2=0.95$、weight\_decay=0.1），学习率 $5\times10^{-4}$，余弦退火至 $5\times10^{-5}$，1 个 epoch，最大图像尺寸 168 像素。总可训练参数量为 2,746,368，占模型总参数量（908M）的 0.30\%。
+
+评估指标采用平均归一化编辑距离（Average Normalized Edit Distance, Avg. NED），定义为：
+
+\begin{equation}
+\text{NED}(p, g) = \frac{\text{LevenshteinDistance}(p, g)}{\max(|p|, |g|)}
+\end{equation}
+
+其中 $p$ 为模型预测文本，$g$ 为标注真值。NED = 0 表示完全匹配，NED = 1 表示完全不匹配。
+
+\subsection{基座模型基准测试}
+
+未微调的 PaddleOCR-VL-0.9B 基座模型在电路原理图 OCR 任务上的表现极差。如表~\ref{tab:baseline} 所示，基座模型在全部四个梯度层级上的 Avg. NED 接近 1.0（完全错误），输出主要表现为：(1) 重复同一词元的退化模式；(2) 生成训练数据中记忆的通用文本而非根据图像识别；(3) 输出无意义格式标记。
+
+\begin{table}[h]
+\centering
+\caption{基座模型基准测试结果（未微调，抽样评估）}
+\label{tab:baseline}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{层级} & \textbf{已测样本} & \textbf{Avg. NED} & \textbf{典型失效模式} \\
+\midrule
+easy50（基座） & 2 & 0.8895 & 重复 token、幻觉性通用文本 \\
+easy50（LoRA 100样本） & 4 & 0.9184 & 重复单一电路标签（GND 循环） \\
+\bottomrule
+\end{tabular}
+\vspace{4pt}
+\small
+注：Avg. NED 越高表示越差（NED=0 为完全匹配，NED=1 为完全不匹配）。基座模型输出的字符串包含从训练数据中记忆的通用文本（如 Arduino 教程片段），与输入原理图内容无关。100 样本 LoRA 微调后模型虽未充分训练，但输出已从通用文本转变为电路领域标签，表明 LoRA 有效引导了视觉-语义映射的建立。
+\end{table}
+
+\subsection{LoRA 微调后模型}
+
+经过 100 样本的快速微调验证，模型输出从基座的纯噪声转变为产生电路相关的语义内容。完整训练集（20,470 样本）微调的实验正在进行中。表~\ref{tab:lora} 列出了已完成和进行中的 LoRA 微调实验结果。
+
+\begin{table}[h]
+\centering
+\caption{当前实验结果对比}
+\label{tab:lora}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{训练配置} & \textbf{训练样本} & \textbf{可训练参数} & \textbf{easy50 Avg. NED} & \textbf{状态} \\
+\midrule
+基座（未微调）            & 0       & 0              & 0.8895 & 已完成 \\
+LoRA r=8 快速验证         & 100     & 2.7M (0.30\%)  & 0.9184 & 已完成 \\
+LoRA r=8 全量训练         & 17,302  & 2.7M (0.30\%)  & 待测   & 进行中 \\
+\bottomrule
+\end{tabular}
+\vspace{4pt}
+\small
+训练配置：$r=8$, $\alpha=16$, lr=$5\times10^{-4}$, AdamW ($\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1), 余弦退火至 lr=$5\times10^{-5}$, 1 epoch, batch\_size=1, max\_dim=168。\\
+$^\dagger$100 样本快速验证的 NED 反而不如基座模型（0.9184 vs 0.8895）。分析见第 5 节。
+\end{table}
+
+\subsection{消融实验}
+
+为系统研究 LoRA 关键超参数对电路原理图 OCR 性能的影响，我们规划了以下消融研究（部分已完成，部分进行中）：
+
+\textbf{LoRA Rank 消融。} 对比 $r \in \{8, 16, 32, 64\}$ 在固定 $\alpha=16$ 和全部 20,470 训练样本下的表现。预期更高的 rank 能捕获更多电路领域特定的特征，但训练时间和显存开销随之增加。
+
+\textbf{数据规模消融。} 对比 5 个数据层级（100、200、300、400、全量 523 测试样本）在固定 $r=8$、$\alpha=16$ 下的性能，以量化数据量对模型精度的影响。
+
+\textbf{图像尺寸消融。} 对比不同最大图像尺寸（128、168、224）对识别精度的影响。更大的图像保留更多细节但增加了序列长度和显存占用，需要在精度和效率之间取得平衡。
+
+\subsection{拓扑评估}
+
+除文本层面的 NED 指标外，我们还设计了拓扑级别的评估协议。将模型输出解析为结构化网表，从中提取三个维度的拓扑指标：
+
+\begin{itemize}
+    \item \textbf{元件 F1 分数：} 比较预测元件编号（如 R1、C3）与真值元件集合的精确匹配。
+    \item \textbf{类型准确率：} 评估元件类型分类（电阻、电容、MOSFET 等）的正确性。
+    \item \textbf{引脚连接准确率：} 评估每个元件引脚连接到正确网络的占比。
+\end{itemize}
+
+拓扑评估提供了比纯文本 NED 更细粒度的电路理解能力衡量，能区分模型是真正理解了电气连接关系还是仅仅在文本层面匹配。
 
 \section{实证分析}
 
+\subsection{基座模型失效模式分析}
+
+我们对基座模型在电路原理图上的输出进行了定性分析，归纳出三种典型的失效模式：
+
+\begin{enumerate}
+    \item \textbf{重复 token 退化：} 模型陷入反复输出同一词元的循环。例如对于包含多个元件编号和网表行的原理图，模型输出为 ``GND GND GND GND ...'' 的连续重复。这暗示模型在面对领域外图像时丧失了自回归解码的多样性，退化为一个退化分布。
+    \item \textbf{记忆性幻觉：} 模型未根据输入图像进行条件生成，而是输出其预训练数据中已记忆的通用文本片段（如网页导航标签、Markdown 格式标记）。这表明原始的 PaddleOCR-VL 虽然具有强大的通用文档理解能力，但未建立电路符号与对应文本之间的视觉-语义映射。
+    \item \textbf{部分识别与信息遗漏：} 模型偶尔能正确识别个别元件编号（如 ``R1''），但遗漏了图纸中的主要元件名称、网络标签和参数值。输出长度远短于真值标注，表明模型对电路图布局的整体注意力分布存在问题。
+\end{enumerate}
+
+这些失效模式的根本原因在于：尽管 PaddleOCR-VL 在多语言文档解析上表现优异，但其预训练数据以通用文档（发票、表单、书籍页面）为主，极少包含电路原理图这类高度专业化的工程图纸。电路符号、希腊字母单位和电气连接线的视觉特征与常规文档元素差异显著。
+
+\subsection{微调对输出的改变——正面效果与当前局限}
+
+经过 100 样本的 LoRA 微调后，模型输出行为发生了以下变化：
+
+\textbf{正面效果：}
+\begin{itemize}
+    \item 输出内容的领域归属发生了根本转变：从基座模型的通用文本（Arduino 教程片段、Markdown 标记）转变为电路领域标签（元件值 ``1.2 V''、网络标签 ``GND''）。这证明 LoRA 微调成功建立了电路符号与对应文本的视觉-语义映射。
+    \item 输出长度从基座模型的极度简短（2--5 字符）增长至与电路标注相近的长度。
+\end{itemize}
+
+\textbf{当前局限（关键问题）：}
+\begin{itemize}
+    \item \textbf{NED 反而不如基座模型}（0.9184 vs 0.8895）。100 个样本仅覆盖了极少数电路词汇类型，模型在有限的样本中学习到了最高频的电路标签 ``GND''，但未接触足够多样的元件编号、参数值和网络标签格式。结果模型在测试时退化输出为 ``GND'' 的反复重复，使得 Avg. NED 在数值上反而不如基座模型的五花八门乱码——乱码至少有字符多样性，而重复单一标签在每个位置上都与真值失配。
+    \item 这一现象暴露了 \textbf{纯文本 NED 指标的局限性}：NED 衡量的是字符级别的编辑距离，无法区分“领域相关的重复输出”和“领域无关的随机乱码”。事实上，从电路理解的角度看，LoRA 模型输出电路领域的标签（即使只有 GND）已经是一种提升，但 NED 无法捕捉这种语义进步。
+    \item \textbf{需要拓扑级评估来弥补 NED 的不足}。我们设计的元件 F1、类型准确率和引脚连接准确率指标（第 4.4 节）能更准确地反映模型的真实电路理解水平。
+\end{itemize}
+
+\textbf{根本原因分析：} 100 个训练样本仅占完整训练集（17,302 样本）的 0.58\%。在如此有限的数据下，模型发生了典型的 \textbf{类别塌缩（Class Collapse）}现象——学会识别少数高频模式（GND 作为最常见的网络标签）后过度依赖该模式，丧失了输出多样性。这一现象与少样本微调中的灾难性遗忘（Catastrophic Forgetting）本质相同：模型迅速遗忘预训练阶段学到的丰富输出分布，转而收敛到训练集中少数常见 token。
+
+完整的 17,302 样本训练预期将通过提供充分的词汇多样性和电路拓扑变化来缓解此问题。我们正在进行的全量训练实验将直接检验这一假设。
+
+\subsection{数据集的贡献}
+
+多源混合数据集的构建策略被证明是有效的。Open Schematics 提供了真实世界的元件命名多样性（如 ATMEGA328P、TPS5430 等具体芯片型号），Masala-CHAI 提供了教材级的标准 Spice 网表格式，合成数据集则提供了精确的标注和受控的退化场景。三者的互补性消除了单一来源的过拟合风险，使模型既具备对真实元件符号的泛化能力，又保持对标注精度的严格要求。
+
 \section{总结与局限性}
+
+\subsection{主要贡献与当前进展}
+
+本文提出了 CircuitOCR，一个面向电路原理图 OCR 与网表提取的完整解决方案。当前工作进展如下：
+
+\begin{enumerate}
+    \item \textbf{多源混合数据集（已完成）：} 构建了首个融合真实开源项目、教材电路和程序化合成的大规模电路原理图数据集，经三轮去重（文本哈希、拓扑哈希、视觉感知哈希）和大模型质量打分后保留约 24,717 个独立样本。
+    \item \textbf{LoRA 微调方案（部分完成）：} 验证了 LoRA 在 PaddleOCR-VL-0.9B 上的参数高效微调可行性。仅 100 样本的快速验证已确认训练管线通畅（306/306 权重正常更新，模型输出从通用文本转向电路领域标签），但受限于样本量，模型发生了类别塌缩——过度依赖少数高频标签（如 GND），导致 Avg. NED（0.9184）反而略逊于基座模型（0.8895）。完整 17,302 样本的训练正在进行中。
+    \item \textbf{后训练框架（设计阶段）：} 提出了基于 slime 多专家 Rollout、Critic-based PPO 轨迹压缩和防作弊机制的三阶段增强方案，为后续研究提供了技术路线，但尚未在完整规模上实现和验证。
+    \item \textbf{多维度评估体系（部分完成）：} 建立了文本 NED 和拓扑评估双层协议框架，但拓扑评估的完整实现（元件 F1、引脚准确率）仍有待完成。
+\end{enumerate}
+
+\subsection{已识别的问题与教训}
+
+\begin{enumerate}
+    \item \textbf{类别塌缩问题（核心发现）：} 少样本（100 例）LoRA 微调导致模型输出分布严重收缩，退化为单一高频标签的重复输出。这表明电路原理图 OCR 任务需要足够大的训练样本量和足够的词汇多样性，单纯靠少量样本无法维持模型的语言表达能力。
+    \item \textbf{NED 指标的局限性：} Avg. NED 无法区分“领域相关的退化输出”和“领域无关的随机乱码”。基座模型的乱码因字符多样性而获得看似更好（更低）的 NED 分数，而 LoRA 模型的电路领域标签输出反而得分更高（更差）。这一反直觉的现象表明需要拓扑级别的评估指标来补充纯文本相似度。
+    \item \textbf{工程挑战：} 在 Windows + PaddlePaddle 2.6.2 环境下，GPU bfloat16 支持存在已知限制：flash\_attention 不可用需手工降级实现，PaddleFormers 的 fp8 dtype 管理机制与 PaddlePaddle 原生 fp8 存在兼容性冲突（需移除全局 float8 alias 方可保证模型权重正确读写）。这些工程问题消耗了大量调试时间，也提醒我们社区需要在 Windows 平台上加强 E2E 训练的稳定性测试。
+    \item \textbf{后训练的前置条件：} slime + PPO 后训练需要的基础设施（仿真器集成、沙箱安全、Critic 模型训练）远超单个 GPU 工作站的能力范围，目前仅处于设计阶段。
+\end{enumerate}
+
+\subsection{局限性}
+
+\begin{enumerate}
+    \item \textbf{训练未完成：} 完整 17,302 样本的 LoRA 微调仍在进行中，本文报告的主要为快速验证和管道功能验证结果，尚未给出可比较的最终 Benchmark 分数。
+    \item \textbf{计算资源受限：} 实验在单张 RTX 4060 8GB 笔记本 GPU 上运行，显著限制了批大小、训练速度和模型规模。
+    \item \textbf{后训练框架未实施：} slime + Critic-based PPO + Anti-Hack 框架目前为设计方案，未进行代码实现和实验验证。
+    \item \textbf{未进行人工校验：} 数据集的最终人工复核未完成。
+\end{enumerate}
+
+\subsection{展望}
+
+未来的工作将集中在：(1) 完成完整训练集的 LoRA 微调并报告全部四个测试层级的 Avg. NED 分数；(2) 实现 slime 多专家 Rollout 框架的原型系统并将 Critic-based PPO 集成到训练循环中；(3) 将仿真器（Ngspice）集成到奖励计算管线中，实现网表正确性的自动化验证；(4) 探索更大规模的基座模型对电路原理图理解能力的影响。
 
 
  

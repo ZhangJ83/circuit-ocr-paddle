@@ -1,0 +1,58 @@
+\begin{thebibliography}{7}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Cui et~al.(2025)Cui, Sun, Liang, Gao, Zhang, Liu, Wang, Zhou, Liu,
+  Lin, Zhang, Zhang, Zheng, Zhang, Zhang, Liu, Yu, and Ma]{cui2025paddleocrvl}
+Cheng Cui, Ting Sun, Suyin Liang, Tingquan Gao, Zelun Zhang, Jiaxuan Liu,
+  Xueqing Wang, Changda Zhou, Hongen Liu, Manhui Lin, Yue Zhang, Yubo Zhang,
+  Handong Zheng, Jing Zhang, Jun Zhang, Yi~Liu, Dianhai Yu, and Yanjun Ma.
+\newblock Paddleocr-vl: Boosting multilingual document parsing via a 0.9b
+  ultra-compact vision-language model, 2025.
+\newblock URL \url{https://arxiv.org/abs/2510.14528}.
+
+\bibitem[Li et~al.(2022)Li, Liu, Guo, Yin, Jiang, Du, Du, Zhu, Lai, Hu, Yu, and
+  Ma]{li2022ppocrv3}
+Chenxia Li, Weiwei Liu, Ruoyu Guo, Xiaoting Yin, Kaitao Jiang, Yongkun Du,
+  Yuning Du, Lingfeng Zhu, Baohua Lai, Xiaoguang Hu, Dianhai Yu, and Yanjun Ma.
+\newblock Pp-ocrv3: More attempts for the improvement of ultra lightweight ocr
+  system.
+\newblock \emph{arXiv preprint arXiv:2206.03001}, 2022.
+
+\bibitem[Zhang(2026)]{zhang2026circuitocrfinal}
+Jianning Zhang.
+\newblock A multi-source dataset for circuit schematic ocr and netlist
+  extraction, 2026.
+\newblock URL \url{https://github.com/ZhangJ83/circuit_ocr_dataset_final}.
+
+\bibitem[bshada(2025)]{openschematics2025}
+bshada.
+\newblock Open schematics: A dataset of electronic schematics from hardware
+  projects, 2025.
+\newblock URL \url{https://huggingface.co/datasets/bshada/open-schematics}.
+\newblock License: CC-BY-4.0.
+
+\bibitem[Bhandari et~al.(2025)Bhandari, Bhat, He, Rahmani, Garg, and
+  Karri]{bhandari2025masalachai}
+Jitendra Bhandari, Vineet Bhat, Yuheng He, Hamed Rahmani, Siddharth Garg, and
+  Ramesh Karri.
+\newblock Masala-chai: A large-scale spice netlist dataset for analog circuits
+  by harnessing ai, 2025.
+\newblock URL \url{https://arxiv.org/abs/2411.14299}.
+
+\bibitem[Zhang and Chen(2026)]{zhang2026circuitocr}
+Jianning Zhang and Yifei Chen.
+\newblock A synthetic dataset for circuit schematic ocr and netlist extraction,
+  2026.
+\newblock URL \url{https://github.com/ZhangJ83/circuit-ocr-dataset}.
+
+\bibitem[Hu et~al.(2021)Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and
+  Chen]{hu2021lora}
+Edward~J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+  Wang, Lu~Wang, and Weizhu Chen.
+\newblock Lora: Low-rank adaptation of large language models, 2021.
+
+\end{thebibliography}
