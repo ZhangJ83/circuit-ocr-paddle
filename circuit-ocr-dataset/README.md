@@ -55,7 +55,7 @@ python scripts/build_dataset.py --project-dir .
 ```bibtex
 @misc{zhang2026circuitocr,
   title={CircuitOCR: A Multi-Source Synthetic Dataset for Circuit Schematic OCR and Netlist Extraction},
-  author={张健宁 and 陈逸菲},
+  author={Jianning Zhang and Yifei Chen},
   year={2026},
   url={https://github.com/ZhangJ83/circuit-ocr-dataset},
 }
