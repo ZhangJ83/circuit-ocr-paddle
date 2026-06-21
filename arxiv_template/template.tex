@@ -130,7 +130,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
  
 
  
-本次项目选用PaddleOCR-VL为开源基座模型~\citep{cui2025paddleocrvl}。PaddleOCR-VL 是一款为文档解析任务量身打造的、性能顶尖 (SOTA) 且轻量高效的模型。它的核心是 PaddleOCR-VL-0.9B——一个紧凑而强大的视觉语言模型 (VLM)。该模型创新地集成了 NaViT 风格的动态分辨率视觉编码器与 ERNIE-4.5-0.3B 语言模型，从而能够精准地识别各类文档元素。
+本次项目选用PaddleOCR-VL为开源基座模型~\citep{cui2025paddleocrvl}，其底层OCR能力建立在PP-OCR系列轻量级文字检测与识别系统之上~\citep{li2022ppocrv3}。PaddleOCR-VL 是一款为文档解析任务量身打造的、性能顶尖 (SOTA) 且轻量高效的模型。它的核心是 PaddleOCR-VL-0.9B——一个紧凑而强大的视觉语言模型 (VLM)。该模型创新地集成了 NaViT 风格的动态分辨率视觉编码器与 ERNIE-4.5-0.3B 语言模型，从而能够精准地识别各类文档元素。
 
 这款模型不仅能高效支持 109 种语言，还擅长识别文本、表格、公式、图表等复杂元素，并始终保持极低的资源占用。在多个权威的公开及内部基准测试中，PaddleOCR-VL 的页面级文档解析与元素级识别性能均达到了业界顶尖水平。其性能远超现有方案，面对顶级视觉语言模型也极具竞争力，且推理速度飞快。这些杰出特性使其成为在真实场景中落地部署的理想选择。
 
@@ -238,6 +238,8 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \section{模型微调以及后训练}
 
 \subsection{模型微调}
+
+我们采用LoRA（Low-Rank Adaptation）~\citep{hu2021lora}对PaddleOCR-VL-0.9B进行参数高效微调。
 
 \subsection{后训练}
 

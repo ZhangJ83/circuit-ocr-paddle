@@ -1,4 +1,4 @@
-\begin{thebibliography}{5}
+\begin{thebibliography}{7}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -13,6 +13,14 @@ Cheng Cui, Ting Sun, Suyin Liang, Tingquan Gao, Zelun Zhang, Jiaxuan Liu,
 \newblock Paddleocr-vl: Boosting multilingual document parsing via a 0.9b
   ultra-compact vision-language model, 2025.
 \newblock URL \url{https://arxiv.org/abs/2510.14528}.
+
+\bibitem[Li et~al.(2022)Li, Liu, Guo, Yin, Jiang, Du, Du, Zhu, Lai, Hu, Yu, and
+  Ma]{li2022ppocrv3}
+Chenxia Li, Weiwei Liu, Ruoyu Guo, Xiaoting Yin, Kaitao Jiang, Yongkun Du,
+  Yuning Du, Lingfeng Zhu, Baohua Lai, Xiaoguang Hu, Dianhai Yu, and Yanjun Ma.
+\newblock Pp-ocrv3: More attempts for the improvement of ultra lightweight ocr
+  system.
+\newblock \emph{arXiv preprint arXiv:2206.03001}, 2022.
 
 \bibitem[Zhang(2026)]{zhang2026circuitocrfinal}
 Jianning Zhang.
@@ -40,5 +48,11 @@ Jianning Zhang and Yifei Chen.
 \newblock A synthetic dataset for circuit schematic ocr and netlist extraction,
   2026.
 \newblock URL \url{https://github.com/ZhangJ83/circuit-ocr-dataset}.
+
+\bibitem[Hu et~al.(2021)Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and
+  Chen]{hu2021lora}
+Edward~J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+  Wang, Lu~Wang, and Weizhu Chen.
+\newblock Lora: Low-rank adaptation of large language models, 2021.
 
 \end{thebibliography}
