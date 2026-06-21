@@ -7,6 +7,7 @@
 \@writefile{toc}{\contentsline {section}{\numberline {1}引言}{1}{section.1}\protected@file@percent }
 \citation{zhang2026circuitocrfinal}
 \citation{openschematics2025}
+\citation{bhandari2025masalachai}
 \@writefile{toc}{\contentsline {section}{\numberline {2}背景与系统设置}{2}{section.2}\protected@file@percent }
 \newlabel{sec:headings}{{2}{2}{背景与系统设置}{section.2}{}}
 \newlabel{sec:headings@cref}{{[section][2][]2}{[1][1][]2}{}{}{}}
@@ -15,7 +16,6 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3}原生大语言模型的局限性}{2}{subsection.2.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}系统的数据集构建}{2}{section.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}原始数据收集与来源}{2}{subsection.3.1}\protected@file@percent }
-\citation{bhandari2025masalachai}
 \citation{zhang2026circuitocr}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}筛选、去重与质量控制}{3}{subsection.3.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.1}数据清洗去重}{3}{subsubsection.3.2.1}\protected@file@percent }
@@ -27,38 +27,41 @@
 \@writefile{toc}{\contentsline {paragraph}{数据清洗与多源质控统计}{4}{section*.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{数据集划分与 PaddleOCR-VL SFT 格式转换}{4}{section*.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{数据集分层层面}{4}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}数据分布与统计}{4}{subsection.3.3}\protected@file@percent }
 \citation{hu2021lora}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}数据分布与统计}{5}{subsection.3.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces 数据集构成与来源统计}}{5}{table.1}\protected@file@percent }
 \newlabel{tab:dataset}{{1}{5}{数据集构成与来源统计}{table.1}{}}
 \newlabel{tab:dataset@cref}{{[table][1][]1}{[1][4][]5}{}{}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4}数据增强策略}{5}{subsection.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}模型微调以及后训练}{5}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}模型微调与性能提升路线}{5}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}模型微调}{5}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}后训练：基于强化学习的电路原理图理解}{5}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}基于 slime 的电路多专家 Rollout 编排}{6}{subsubsection.4.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}基于 Critic 的 PPO 轨迹压缩训练}{6}{subsubsection.4.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.3}电路规则与仿真验证的防作弊机制}{7}{subsubsection.4.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.4}后训练工作流全景}{7}{subsubsection.4.2.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}实验评估}{8}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}实验设置}{8}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}基座模型基准测试}{8}{subsection.5.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces 基座模型基准测试结果（未微调，抽样评估）}}{8}{table.2}\protected@file@percent }
-\newlabel{tab:baseline}{{2}{8}{基座模型基准测试结果（未微调，抽样评估）}{table.2}{}}
-\newlabel{tab:baseline@cref}{{[table][2][]2}{[1][8][]8}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}LoRA 微调后模型}{8}{subsection.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}消融实验}{8}{subsection.5.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 当前实验结果对比}}{9}{table.3}\protected@file@percent }
-\newlabel{tab:lora}{{3}{9}{当前实验结果对比}{table.3}{}}
-\newlabel{tab:lora@cref}{{[table][3][]3}{[1][8][]9}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}拓扑评估}{9}{subsection.5.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}实证分析}{9}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}基座模型失效模式分析}{9}{subsection.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}微调对输出的改变——正面效果与当前局限}{10}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}数据集的贡献}{11}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}总结与局限性}{11}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}主要贡献与当前进展}{11}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}已识别的问题与教训}{11}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}性能提升路线：从 3.8\% 到可用系统}{5}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}已识别的瓶颈}{5}{subsubsection.4.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}近期改进方案（在当前硬件上可执行）}{6}{subsubsection.4.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.3}长期方向（需要更多资源）}{6}{subsubsection.4.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}实验评估}{7}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}实验设置}{7}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}基座模型基准测试}{7}{subsection.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces easy50 基准测试完整对比（max\_length=30）}}{7}{table.2}\protected@file@percent }
+\newlabel{tab:baseline}{{2}{7}{easy50 基准测试完整对比（max\_length=30）}{table.2}{}}
+\newlabel{tab:baseline@cref}{{[table][2][]2}{[1][7][]7}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}LoRA 微调实验结果}{7}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}性能瓶颈排查实验}{7}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}拓扑评估（设计阶段）}{7}{subsection.5.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 性能瓶颈排查实验设计与结果}}{8}{table.3}\protected@file@percent }
+\newlabel{tab:ablation}{{3}{8}{性能瓶颈排查实验设计与结果}{table.3}{}}
+\newlabel{tab:ablation@cref}{{[table][3][]3}{[1][7][]8}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 训练超参数与系统配置}}{8}{table.4}\protected@file@percent }
+\newlabel{tab:hparams}{{4}{8}{训练超参数与系统配置}{table.4}{}}
+\newlabel{tab:hparams@cref}{{[table][4][]4}{[1][7][]8}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}实证分析}{8}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}基座模型失效模式分析}{8}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}微调对输出的改变——正面效果与当前局限}{9}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}数据集的贡献}{9}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}总结与局限性}{10}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}主要贡献与当前进展}{10}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}已识别的问题与教训}{10}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}局限性}{10}{subsection.7.3}\protected@file@percent }
 \bibstyle{unsrtnat}
 \bibdata{references}
 \bibcite{cui2025paddleocrvl}{{1}{2025}{{Cui et~al.}}{{Cui, Sun, Liang, Gao, Zhang, Liu, Wang, Zhou, Liu, Lin, Zhang, Zhang, Zheng, Zhang, Zhang, Liu, Yu, and Ma}}}
@@ -68,6 +71,5 @@
 \bibcite{bhandari2025masalachai}{{5}{2025}{{Bhandari et~al.}}{{Bhandari, Bhat, He, Rahmani, Garg, and Karri}}}
 \bibcite{zhang2026circuitocr}{{6}{2026}{{Zhang and Chen}}{{}}}
 \bibcite{hu2021lora}{{7}{2021}{{Hu et~al.}}{{Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and Chen}}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}局限性}{12}{subsection.7.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}展望}{12}{subsection.7.4}\protected@file@percent }
-\gdef \@abspage@last{12}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}展望}{11}{subsection.7.4}\protected@file@percent }
+\gdef \@abspage@last{11}
