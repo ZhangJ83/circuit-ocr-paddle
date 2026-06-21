@@ -300,8 +300,11 @@ LoRA $r=8$ full train & 2,433   & 100 min  & 47/50 & 0.8554 & \textbf{+3.8\%} \\
 \bottomrule
 \end{tabular}
 \vspace{4pt}
-\small
-Note: (1) 3 samples failed (OOM) due to insufficient GPU VRAM (8\,GB) during Flash Attention fallback computation. (2) Lower NED is better; NED=0 = perfect match, NED=1 = complete mismatch.
+{\small
+Note: (1) 3 samples failed (OOM) due to insufficient GPU VRAM (8\,GB) during Flash Attention fallback computation.
+
+(2) Lower NED is better; NED=0 = perfect match, NED=1 = complete mismatch.
+}
 \end{table}
 
 \subsection{LoRA Fine-tuning Experimental Results}
@@ -322,13 +325,20 @@ To identify the key bottlenecks limiting LoRA fine-tuning effectiveness, we desi
 \midrule
 E1: Blank image   & Real vs.\ solid gray & Output differs & Vision encoder works; model ``sees'' images \\
 E2: Resolution    & max\_dim $168\to336$ & Still collapsed & Resolution is not root cause \\
-E3: Epoch count   & 1 vs.\ 3 epochs      & OOM, incomplete & Needs furtherverification \\
+E3: Epoch count   & 1 vs.\ 3 epochs      & OOM, incomplete & Needs further verification \\
 E4: LoRA layers   & Add Projector layers  & OOM, incomplete & Projector is key bottleneck \\
 \bottomrule
 \end{tabular}
 \vspace{4pt}
-\small
-Key findings: (1) E1 confirms the LoRA fine-tuned model's vision capability is functional and output varies with images; (2) E2 rules out the image resolution hypothesis; (3) E4 identifies the Projector (mlp\_AR, 25.9M parameters) as the sole bridge for vision-language mapping being frozen as the root cause of insufficient training, but adding Projector LoRA causes VRAM overflow.
+{\small
+Key findings:
+
+(1) E1 confirms the LoRA fine-tuned model's vision capability is functional and output varies with images;
+
+(2) E2 rules out the image resolution hypothesis;
+
+(3) E4 identifies the Projector (mlp\_AR, 25.9M parameters) as the sole bridge for vision-language mapping being frozen as the root cause of insufficient training, but adding Projector LoRA causes VRAM overflow.
+}
 \end{table}
 
 \begin{table}[h]
