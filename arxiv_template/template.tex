@@ -1,0 +1,290 @@
+\documentclass{article}
+
+\usepackage{arxiv}
+
+\usepackage{iftex}
+
+\ifPDFTeX
+  \usepackage[utf8]{inputenc} % allow utf-8 input
+  \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\else
+  % XeLaTeX/LuaLaTeX: fontspec loaded by ctex below;
+  % Latin fonts are configured after ctex to override arxiv.sty defaults
+\fi
+
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{lipsum}         % Can be removed after putting your text content
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{doi}
+
+\usepackage{ctex}
+
+\ifPDFTeX\else
+  % Override arxiv.sty NFSS font defaults (ptm/phv) which are unknown to fontspec
+  \setmainfont{Times New Roman}
+  \setsansfont{Arial}
+  \setmonofont{Courier New}
+\fi
+
+\usepackage{cleveref}       % smart cross-referencing -- load last
+
+\title{PaddleOCR-VL-Circuit: Built for Schematic Diagram Understanding}
+
+% Here you can change the date presented in the paper title
+%\date{September 9, 1985}
+% Or remove it
+%\date{}
+
+\newif\ifuniqueAffiliation
+% Comment to use multiple affiliations variant of author block 
+\uniqueAffiliationtrue
+
+\ifuniqueAffiliation % Standard variant of author block
+\author{ \href{https://orcid.org/0000-0000-0000-0000}{\protect\includegraphics[scale=0.06]{orcid.pdf}\hspace{1mm}张健宁} \\
+%\thanks{Use footnote for providing furtherinformation about author (webpage, alternativeaddress)---\emph{not} for acknowledging funding agencies.}
+	柔性电子学院\\
+	中山大学\\
+	深圳市, 广东省，中国  \\
+	\texttt{zhangjn83@mail2.sysu.edu.cn} \\
+	%% examples of more authors
+	\And
+	\href{https://orcid.org/0000-0000-0000-0000}{\protect\includegraphics[scale=0.06]{orcid.pdf}\hspace{1mm}陈逸菲} \\
+	计算机学院\\
+	中山大学\\
+	广州市, 广东省，中国 \\
+	\texttt{chenyf376@mail2.sysu.edu.cn} \\
+	%% \AND
+	%% Coauthor \\
+	%% Affiliation \\
+	%% Address \\
+	%% \texttt{email} \\
+	%% \And
+	%% Coauthor \\
+	%% Affiliation \\
+	%% Address \\
+	%% \texttt{email} \\
+	%% \And
+	%% Coauthor \\
+	%% Affiliation \\
+	%% Address \\
+	%% \texttt{email} \\
+}
+\else
+% Multiple affiliations variant of author block
+\usepackage{authblk}
+\renewcommand\Authfont{\bfseries}
+\setlength{\affilsep}{0em}
+% box is needed for correct spacing with authblk
+\newbox{\orcid}\sbox{\orcid}{\includegraphics[scale=0.06]{orcid.pdf}} 
+\author[1]{%
+	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}David S.~Hippocampus\thanks{\texttt{hippo@cs.cranberry-lemon.edu}}}%
+}
+\author[1,2]{%
+	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Elias D.~Striatum\thanks{\texttt{stariate@ee.mount-sheikh.edu}}}%
+}
+\affil[1]{Department of Computer Science, Cranberry-Lemon University, Pittsburgh, PA 15213}
+\affil[2]{Department of Electrical Engineering, Mount-Sheikh University, Santa Narimana, Levand}
+\fi
+
+% Clear header and subtitle
+\renewcommand{\headeright}{}
+\renewcommand{\undertitle}{}
+\renewcommand{\shorttitle}{}
+
+%%% Add PDF metadata to help others organize their library
+%%% Once the PDF is generated, you can check the metadata with
+%%% $ pdfinfo template.pdf
+\hypersetup{
+pdftitle={PaddleOCR-VL-Circuit: Built for Schematic Diagram Understanding},
+pdfsubject={Circuit Schematic OCR, Visual Language Model, LoRA Fine-tuning},
+pdfauthor={张健宁, 陈逸菲},
+pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% TODO: 待补充摘要内容
+\end{abstract}
+
+\keywords{电路原理图 \and OCR \and PaddleOCR-VL \and LoRA微调 \and 网表提取}
+
+
+\section{引言}
+ 
+视觉语言模型（VLM）极大地扩展了传统大语言模型的应用边界，在需要视觉理解的场景（如机器人导航、文档解析任务）中展现出显著优势。相比于传统OCR方案依赖多级流水线和大量内存开销，VLM能够以端到端的方式直接从图像输出结构化文本，省去了繁琐的中间处理步骤。
+
+
+\section{背景与系统设置}
+\label{sec:headings}
+
+
+\subsection{基座模型规格}
+ 
+
+ 
+本次项目选用PaddleOCR-VL为开源基座模型~\citep{cui2025paddleocrvl}。PaddleOCR-VL 是一款为文档解析任务量身打造的、性能顶尖 (SOTA) 且轻量高效的模型。它的核心是 PaddleOCR-VL-0.9B——一个紧凑而强大的视觉语言模型 (VLM)。该模型创新地集成了 NaViT 风格的动态分辨率视觉编码器与 ERNIE-4.5-0.3B 语言模型，从而能够精准地识别各类文档元素。
+
+这款模型不仅能高效支持 109 种语言，还擅长识别文本、表格、公式、图表等复杂元素，并始终保持极低的资源占用。在多个权威的公开及内部基准测试中，PaddleOCR-VL 的页面级文档解析与元素级识别性能均达到了业界顶尖水平。其性能远超现有方案，面对顶级视觉语言模型也极具竞争力，且推理速度飞快。这些杰出特性使其成为在真实场景中落地部署的理想选择。
+
+\subsection{工程场景定义}
+
+电路原理图（Electronic Schematic Diagram）是一种用标准图形符号表示电子元件及其电气连接关系的二维工程图，它不反映物理布局，只表达逻辑拓扑。电路原理图属于EDA这一垂直工业领域，是一种工程图纸和技术文档的核心载体，其自动识别与解析具有重要的工程价值。电路原理图作为一种高度复杂的专业技术文档，包含的复杂元素有：文本元素，包括元件编号（如R1、C1）、阻值（如10k、100nF）、网络标签（如VCC、GND、SPI-CLK）以及图纸右下角的标题栏文本；特殊字符，包括电容特有的物理单位和符号，例如Ω（欧姆）、μ（微）、±（容差）；表格元素，包括多引脚芯片的引脚表、物料清单（BOM表）以及版本变更表；结构化数据，包括电路的连接关系和网络拓扑，需提取类似于公式或代码的结构化网表。
+
+\subsection{原生大语言模型的局限性}
+ 
+
+ 
+该思路的缺陷来自原生的、未微调的基座模型在技术文档中电路原理图文档识别中有严重的问题：在电路原理图的任务下，PaddleOCR-VL-0.9B并未进行有效的OCR识别，而是出现三种典型的失效模式——1. 输出重叠、重复的多单词拼接（如反复输出同一词元）；2. 模型生成训练数据中记忆的通用文本，而非根据输入图像进行识别（即“脑补”而非读图）；3. 偶尔输出部分正确的元件标签，但遗漏了主要元件名称。
+在未微调的情况下，我们进行了电路原理图基准测试（Benchmark），基座模型的输出为无意义的格式标记，在接收电路图输入时要么输出无价值的乱码，要么生成通用模板文本，要么陷入重复token的退化模式。
+ 
+
+
+
+
+
+\section{系统的数据集构建}
+
+\subsection{原始数据收集与来源}
+ 
+我们构建了第一个高质量且有效的多源数据库。我们数据集的一部分为Open Schematic开源大型数据集~\citep{openschematics2025}，真实场景包括8450张真实原理图和标准件，大小约0.7G（商用）。该数据集采用原版CC-BY-4.0署名协议，可自由开源和商用，完全为真实世界标准和命名，独立于标注坐标而非图像像素坐标。其标注中公式估计Bounding Box的准确度约为71.4%（存在PCB遮挡噪声）。该数据集将作为我们模型训练核心训练集，适合用来训练文本识别与网表提取模型，以此作为大样本训练集。
+ 
+第二部分为Masala-CHAI开源数据集~\citep{bhandari2025masalachai}，同样使用CC-BY-4.0署名协议，部分配套代码采用Apache-2.0。该数据集内容为电子课本、教材中搜集整理的电路图，每张图都直接配有标准Spice网表真值，直接契合“原理图-转网表”的任务，适合作为SFT的数据集，用于微调端到端图像生成Spice仿真网表。
+ 
+第三部分为我们的合成数据集~\citep{zhang2026circuitocr}。该数据集通过Python脚本生成，生成每个包含百个元件名称的复杂拓扑，100%绝对精确，且我们的合成引擎持续集成5种通用元件库（随迭代不断完善）。通过多点透视形变、手动涂鸦噪声等方式进行数据增强，这有助于解决Open Schematic的Bounding Box准确度问题和Open Schematic、Masala-CHAI这类开源产品问题。
+ 
+以上三个来源的数据集：Open schematics 和 Masala-CHAI 提供了真实世界的多套拓扑结构、海量真实芯片命名（如ATMEGA328P、TPS5430），而我们的合成数据集则提供了清晰的几何边界和完美的真值。多源数据的互补让模型既具备对真实元件符号的广泛理解，又具备极高像素定位精度，防止模型只认识一种画图软件的字库或布局。
+ 
+\subsection{筛选、去重与质量控制}
+ 
+- 开源数据集情况
+ 
+1. Open Schematics：约8450张，为实物原理图，规模大，覆盖真实世界多样元件
+2. Masala-CHAI：约7500张，物料标注图，配有标准Spice仿真网表
+ 
+- 合成数据集：迭代23版，应用35种透视噪声，总计14000张
+总规模已达30k+
+ 
+
+\subsubsection{数据清洗去重}
+ 
+为保证输入模型数据质量，我们构建了「原始数据→结构过滤→去重模块→人工复检」流水线。
+ 
+1. 去重规则
+ 
+原理图由于图像像素库的合成映射部分，存在重复，我们使用三组去重方案：
+ 
+- 文本哈希去重（纯文字）：对原始、kicad、eda文本渲染单张png图计算MD5/SHA256哈希值，直接剔除完全相同文本。
+- 拓扑哈希去重（逻辑去重）：不同的人绘制相同电路，其摆放位置不同，但电气拓扑一样。我们将图中元件类型、连接关系进行标准化顺序重连接，生成拓扑特征字符串，对其计算MD5，剔除电路逻辑中100%重复的样本。
+- 视觉感知哈希（phash/dhash）：使用感知哈希算法对整张png图进行对比，剔除视觉上仅有极小的差异（如仅修改右下角版本号或日期）的重复图。
+ 
+2. 样本严格规则
+ 
+- 多元元件过滤：剔除元件数量少于3个的图纸（很多是实验室工程、单纯PCB框图或单一封装库）
+- 边界与重叠文本清洗：检查标注Bounding Box是否超出图像边界（x<0 / width超界等）；对于文本框之间的IOU，如果两个不同文本的IOU>0.8，严重重叠无法辨认，则删除该样本。
+- 失真图纸剔除清洗：剔除含有pwr等kicad内部隐藏电路符号标注图（因为它们不在图像上强行加冗余会使模型产生幻觉）。
+ 
+质检流水线
+ 
+\subsubsection{大模型质量打分净化}
+ 
+引入视觉大模型对所有原理图图像进行自动打分（1–5分），评判维度包括：
+ 
+- 清晰画质：图纸文字是否能被人类肉眼辨别；剔除过度模糊、对比度低的退化图。
+- 多元元件密度：画面是否过密导致无法分辨、图纸拥挤。
+- 质量阈值：仅保留综合分≥3的样本。
+ 
+人工检验
+ 
+对于将用于评估的测试集与基准集样本，必须单独进行人工加框校验
+构建简单的Gradio可视化质检工具：将图像、预测Bbox框在图上画出，在右侧展示对应网表
+ 
+人工排查复查
+ 
+对质检工具初筛后漏检样本人工校验排查、修正。
+回滚机制：在大检验中发现的系统性、普遍性网表逻辑错误，会回滚修改我们的合成生成代码，重新渲染该部分数据。
+ 
+3.2.3 执行清洗
+ 
+数据清洗与多源质控统计
+ 
+清洗模块同时对 Masala-CHAI、Open Schematics 和合成数据集内的共计4万+样本进行多轮去重和质量筛查：
+ 
+1. 初始筛选样本：39947个
+2. 拓扑去重后剩余：14897个
+3. 视觉哈希、感知哈希过滤：9117个（过滤掉7千个拓扑相同但图片轻微改动的重复图纸案例）；逻辑去重：1580个（去掉拓扑相同但命名参数、标注重复的样本）；SFT（监督微调）样本自动筛选10240份，重复去重1100份；视觉打分评估：2530个（通过大模型评估过滤掉清晰度极低、细小模糊失真的真实原理图，共清除低于3分的异常样本0个，即该批次样本均通过质量筛查）
+ 
+数据集划分与 PaddleOCR-VL SFT 格式转换
+ 
+经过上述严苛清洗，最终得总量为24717个独立原理图样本，按照70% / 15% / 15%标准比例进行训练集、验证集和测试集划分：训练集20470个样本，验证集521个样本，测试集523个样本，并进行3轮命名完整性校验，验证所有结果的JSON文件合规。
+ 
+注：整轮人工校验没有进行，一方面由于时间和人手限制，另一方面由自动数据清洗流程和多源数据集原生规范，已最大程度确保数据集的正确性。
+ 
+数据集分层层面
+ 
+- 合成数据集：由电路生成算法在程序内直接绘制，无需标注（bbox），连接关系由程序逻辑直接输出，在标注字符和多值信息上有绝对精度。Masala-CHAI 和 Open Schematics 样本来自教材和 GitHub 的真实项目原理图，标注存在差异。
+- 清洗管线三重过滤：对于可能存在瑕疵噪声的真实世界原理图，我们采取了严格的自动化校验并使用大模型视觉自检，用AI替代人工初审。
+- 输出端格式一致性校验：对划分后的样本进行逐行校验，100%对齐。
+ 
+\subsection{数据分布与统计}
+
+\section{模型微调以及后训练}
+
+\subsection{模型微调}
+
+\subsection{后训练}
+
+\section{实验评估}
+
+\subsection{基线模型}
+
+\subsection{微调与后训练后的模型}
+
+\section{实证分析}
+
+\section{总结与局限性}
+
+
+ 
+
+
+
+
+
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}  %%% Uncomment this line and comment out the ``thebibliography'' section below to use the external .bib file (using bibtex) .
+
+
+%%% Uncomment this section and comment out the \bibliography{references} line above to use inline references.
+% \begin{thebibliography}{1}
+
+% 	\bibitem{kour2014real}
+% 	George Kour and Raid Saabne.
+% 	\newblock Real-time segmentation of on-line handwritten arabic script.
+% 	\newblock In {\em Frontiers in Handwriting Recognition (ICFHR), 2014 14th
+% 			International Conference on}, pages 417--422. IEEE, 2014.
+
+% 	\bibitem{kour2014fast}
+% 	George Kour and Raid Saabne.
+% 	\newblock Fast classification of handwritten on-line arabic characters.
+% 	\newblock In {\em Soft Computing and Pattern Recognition (SoCPaR), 2014 6th
+% 			International Conference of}, pages 312--318. IEEE, 2014.
+
+% 	\bibitem{keshet2016prediction}
+% 	Keshet, Renato, Alina Maor, and George Kour.
+% 	\newblock Prediction-Based, Prioritized Market-Share Insight Extraction.
+% 	\newblock In {\em Advanced Data Mining and Applications (ADMA), 2016 12th International 
+%                       Conference of}, pages 81--94,2016.
+
+% \end{thebibliography}
+
+
+\end{document}
