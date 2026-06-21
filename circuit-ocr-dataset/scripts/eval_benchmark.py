@@ -68,8 +68,10 @@ def apply_paddle_patches():
             sys.modules.setdefault('paddle.distributed.flex_checkpoint', dummy)
             sys.modules.setdefault('paddle.distributed.flex_checkpoint.dcp', dummy)
             sys.modules.setdefault('paddle.distributed.flex_checkpoint.dcp.sharded_weight', dummy)
-        paddle.float8_e4m3fn = paddle.float32
-        paddle.float8_e5m2 = paddle.float32
+        # NOTE: Do NOT alias float8 to float32 — PaddlePaddle 2.6.2 natively
+        # supports float8_e4m3fn/float8_e5m2.  Aliasing them breaks paddleformers'
+        # internal paddle_numpy_mapping (float32 tensors get routed through fp8
+        # numpy conversion, producing NaN).
         paddle.LongTensor = paddle.Tensor
         paddle.linalg.fp8_fp8_half_gemm_fused = None
         paddle.Tensor.long = lambda self: self.astype("int64")
@@ -418,7 +420,9 @@ def evaluate_paddleocr_vl(args):
         LORA_SCALE = 2.0  # alpha/r = 16/8
 
         # Load LoRA weights (float32 version)
-        lora_file = f"{args.paddle_lora_dir}/lora_weights_f32.pdparams"
+        lora_file = f"{args.paddle_lora_dir}/lora_final_fp16.pdparams"
+        if not Path(lora_file).exists():
+            lora_file = f"{args.paddle_lora_dir}/lora_weights_f32.pdparams"
         if not Path(lora_file).exists():
             lora_file = f"{args.paddle_lora_dir}/final_model_light.pdparams"
         print(f"  Source: {lora_file}")
@@ -439,8 +443,10 @@ def evaluate_paddleocr_vl(args):
                 lora_pairs.setdefault(clean_base, {})['B'] = v.numpy()
         print(f"  Found {len(lora_pairs)} LoRA adapter pairs")
 
-        # Get model state dict
-        base_sd = model.state_dict()
+        # Build param map from named_parameters (iterator, no 3.6GB copy)
+        base_params = {}
+        for n, p in model.named_parameters():
+            base_params[n] = p
         merged = 0
         skipped_no_match = 0
         skipped_shape = 0
@@ -448,30 +454,48 @@ def evaluate_paddleocr_vl(args):
             if 'A' not in adapters or 'B' not in adapters:
                 skipped_no_match += 1
                 continue
-            lora_A = adapters['A']  # numpy [hidden, r]
-            lora_B = adapters['B']  # numpy [r, hidden]
-            # Ensure matmul is valid
+            lora_A = adapters['A']
+            lora_B = adapters['B']  # shape: (r, H) where H = heads_total * hidden_dim
+            # Reshape lora_B from (r, heads*hidden) to (r*heads_used, hidden_out) based on weight shape
+            weight_key = f"{lora_base}.weight"
+            if weight_key not in base_params:
+                skipped_no_match += 1
+                continue
+            p = base_params[weight_key]
+            W = p.numpy()
+            hidden_in, hidden_out = W.shape  # e.g. (1152, 1152) or (1152, 2304)
+
             if lora_A.shape[-1] != lora_B.shape[0]:
                 skipped_shape += 1
-                if skipped_shape <= 3:
-                    print(f"  SKIP rank mismatch: {adapters.get('_orig_key','?')} A={lora_A.shape} B={lora_B.shape}")
                 continue
-            delta = lora_A @ lora_B * LORA_SCALE  # [hidden, hidden]
-
-            weight_key = f"{lora_base}.weight"
-            if weight_key in base_sd:
-                W = base_sd[weight_key].numpy()
-                if delta.shape == W.shape:
-                    base_sd[weight_key].set_value(paddle.to_tensor(W + delta.astype(np.float32), place=base_sd[weight_key].place))
-                    merged += 1
-                else:
-                    skipped_shape += 1
-                    if skipped_shape <= 3:
-                        print(f"  SKIP shape: {weight_key} delta={delta.shape} vs W={W.shape}")
+            # Paddle Linear: W = [in_features, out_features], A=[in,r], B=[r,out]
+            # delta = A@B = [in, out] — matches W directly
+            delta = lora_A @ lora_B * LORA_SCALE
+            if delta.shape == W.shape:
+                W_new = W + delta.astype('float32')
+            elif delta.shape[0] == W.shape[1] and delta.shape[1] == W.shape[0]:
+                # Transposed: (A@B).T would match
+                W_new = W + delta.T.astype('float32')
+            elif delta.shape[0] == W.shape[0] and delta.shape[1] > W.shape[1]:
+                # GQA: delta covers all heads, W only KV heads — truncate
+                W_new = W + delta[:, :W.shape[1]].astype('float32')
+            elif delta.shape[0] < W.shape[0] and W.shape[0] % delta.shape[0] == 0:
+                # Need to tile rows
+                rep = W.shape[0] // delta.shape[0]
+                W_new = W + np.tile(delta.astype('float32'), (rep, 1))
+            elif delta.shape[0] == W.shape[0] and delta.shape[1] < W.shape[1] and W.shape[1] % delta.shape[1] == 0:
+                # Need to tile columns
+                rep = W.shape[1] // delta.shape[1]
+                W_new = W + np.tile(delta.astype('float32'), (1, rep))
             else:
-                skipped_no_match += 1
-                if skipped_no_match <= 3:
-                    print(f"  SKIP key: {weight_key} not in model")
+                skipped_shape += 1
+                if skipped_shape <= 5:
+                    print(f"  SKIP shape: {weight_key} delta={delta.shape} vs W={W.shape}")
+                continue
+            # Match param dtype to avoid set_value dtype conversion bug
+            param_dtype = p.dtype  # float16 or bfloat16
+            p.set_value(paddle.to_tensor(W_new.astype('float16'), dtype=param_dtype, place=p.place))
+            merged += 1
 
         model.eval()
         print(f"  Merged {merged}/{len(lora_pairs)} LoRA adapters into base model params (no_match={skipped_no_match}, shape={skipped_shape})")
@@ -552,7 +576,14 @@ def evaluate_paddleocr_vl(args):
             try:
                 with paddle.no_grad():
                     outputs = model.generate(**inputs, generation_config=generation_config, max_new_tokens=args.max_length)
-                    output_ids = outputs[0].tolist()[0]
+                    # Handle tuple output (ids_tensor, ...) or direct tensor
+                    if isinstance(outputs, (list, tuple)):
+                        tok = outputs[0]
+                    else:
+                        tok = outputs
+                    # tok shape: [batch_size, seq_len]
+                    output_ids = tok[0].tolist() if hasattr(tok, 'tolist') else tok[0].numpy().tolist()
+                    output_ids = [int(x) for x in output_ids if int(x) > 0]
                     output_text = processor.decode(output_ids, skip_special_tokens=True)
             except Exception as gen_err:
                 print(f"  generate() failed: {gen_err}, falling back to manual decode", flush=True)
