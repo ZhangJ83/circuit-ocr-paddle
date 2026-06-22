@@ -239,7 +239,7 @@ During training, we apply the following online augmentations to each input image
 
 We employ LoRA (Low-Rank Adaptation)~\citep{hu2021lora} for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B.
 
-\subsection{Performance Improvement Roadmap: from 3.8\% to a Usable System}
+\subsection{Performance Improvement Roadmap: from 3.8\% to 9.6\% Validated}
 
 The original LoRA fine-tuning achieves a 3.8\% Avg.\ NED improvement (0.8895 $\to$ 0.8554). After identifying the Projector bottleneck through E1--E4 experiments, adding Projector LoRA brought the improvement to 7.0\% (0.8271). 3-epoch training achieved 7.8\% (0.8197). Increasing LoRA rank to $r=16$ further achieved 9.6\% (0.8044). Below we summarize the identified bottlenecks, validated improvements, and future directions.
 
@@ -247,12 +247,12 @@ The original LoRA fine-tuning achieves a 3.8\% Avg.\ NED improvement (0.8895 $\t
 
 \begin{enumerate}
     \item \textbf{Projector frozen (Core bottleneck).} PaddleOCR-VL's vision-language projection layer (\texttt{mlp\_AR}, 25.9M parameters) is responsible for mapping image features output by the vision encoder to the language model's embedding space. The current LoRA only covers the q/k/v/o projections of self-attention layers; the Projector's \texttt{linear\_1} (4608$\times$4608) and \texttt{linear\_2} (4608$\times$1024) are completely frozen. This means the mapping from visual features to language space remains unchanged throughout training, preventing the model from learning visual-semantic correspondences of circuit symbols. Experiment E4 confirmed this bottleneck, but adding Projector LoRA caused OOM under the current 8\,GB VRAM constraint.
-    \item \textbf{Insufficient training.} Currently only 1 epoch, max\_dim=168px, batch\_size=1. Loss decreased from 3.0 to 1.2 but has not yet converged, indicating substantial room for optimization. The class collapse at 100 samples and partialmitigation at 2,433 samples demonstrates that data volume is critical for maintaining output diversity, but 2,433 samples may still be insufficient to cover the full vocabulary distribution of circuit OCR.
+    \item \textbf{Insufficient training.} Initial experiments used only 1 epoch, max\_dim=168px, batch\_size=1. Loss decreased from 3.0 to 1.2 but had not yet converged, indicating substantial room for optimization. The class collapse at 100 samples and partial mitigation at 2,433 samples demonstrated that data volume is critical for maintaining output diversity, but 2,433 samples may still be insufficient to cover the full vocabulary distribution of circuit OCR. Subsequent 3-epoch training and $r=16$ rank expansion have partially alleviated this issue.
     \item \textbf{Inferenceconstraints.} Flash Attention is unavailable on Windows + RTX 4060, requiring manual fallback implementation. The 8\,GB VRAM limits max\_length to 30 tokens, far insufficient for outputting complete SPICE netlists (typically requiring 100--500 tokens). The 47/50 sample completion rate indicates the currentapproaches isnear the VRAM limit.
     \item \textbf{Limitations of pure text NED as the sole metric.} NED cannot distinguish between circuit semantic correctness and character-level similarity, nor reflect the correctness of topological connections. The topology evaluation framework (component F1, pin accuracy) has been designed but not yet implemented.
 \end{enumerate}
 
-\subsubsection{Near-term Improvement Plan (Executable on Current Hardware)}
+\subsubsection{Improvement Plan (Mostly Validated on Current Hardware)}
 
 \textbf{Step 1: Unlock the Projector bottleneck (Validated).} The Projector's LoRA parameter count is only approximately 120K (\texttt{linear\_1} + \texttt{linear\_2}), and will not significantly increase VRAM during training. The OOM in Experiment E4 occurred during inference (full attention computation during generation), not during training. Therefore, Projector LoRA can be added during training, with inferenceverification by further reducing max\_length (e.g., 15--20 tokens) or image dimensions. If Projector LoRA yields a substantial NED improvement (e.g., $>$ 1\%), it will prove that this bottleneck is worth investing in on GPUs with larger VRAM.
 
@@ -274,7 +274,7 @@ If the near-term improvements raise NED to a practically useful level (e.g., $<$
     \item \textbf{Larger base models:} Transfer the current LoRA fine-tuning approach to larger-scale vision-language models in the PaddlePaddle ecosystem, exploring the impact of model capacity on circuit schematic understanding tasks. Larger vision encoders can extract finer-grained circuit symbol features.
 \end{itemize}
 
-All of the above near-termapproaches are low-risk improvements directly executable on current hardware. The long-term directions require additional computational and engineering resources and are discussed here only as directional guidance.
+Among the above approaches, Steps 1/2/2.5 have been validated (cumulative +9.6\%), Step 3 was attempted but showed limited effect due to distribution collapse, and Step 4 remains to be implemented. The long-term directions require additional computational and engineering resources and are discussed here only as directional guidance.
 
 
 \section{Experimental Evaluation}
