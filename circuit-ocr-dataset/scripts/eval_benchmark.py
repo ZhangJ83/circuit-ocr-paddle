@@ -312,6 +312,14 @@ def parse_args():
     parser.add_argument("--limit", type=int, default=None, help="Limit number of processed samples (for dry run)")
     parser.add_argument("--resume", action="store_true", default=False,
                         help="Resume from existing output file; skip already-processed samples")
+    parser.add_argument("--do_sample", action="store_true", default=False,
+                        help="Enable sampling (instead of greedy decode)")
+    parser.add_argument("--temperature", type=float, default=0.7,
+                        help="Temperature for sampling (default 0.7, only used with --do_sample)")
+    parser.add_argument("--top_p", type=float, default=0.9,
+                        help="Top-p (nucleus) sampling threshold (default 0.9)")
+    parser.add_argument("--top_k", type=int, default=50,
+                        help="Top-k sampling threshold (default 50)")
     return parser.parse_args()
 
 
@@ -374,6 +382,103 @@ def _manual_greedy_decode(model, inputs, processor, max_new_tokens=512, eos_toke
         )
 
     # Decode only generated tokens
+    full_ids = paddle.concat(
+        [inputs["input_ids"][:, :input_len],
+         paddle.to_tensor([generated_ids], dtype=inputs["input_ids"].dtype)],
+        axis=1
+    ) if generated_ids else inputs["input_ids"][:, :input_len]
+    return processor.decode(full_ids[0][input_len:], skip_special_tokens=True)
+
+
+def _manual_sample_decode(model, inputs, processor, max_new_tokens=512, eos_token_id=2,
+                          temperature=0.7, top_p=0.9, top_k=50):
+    """Manual token-by-token decode with temperature, top-p, and top-k sampling.
+
+    Bypasses model.generate() which segfaults on Windows Paddle 2.6.2.
+    Uses multinomial sampling after filtering.
+    """
+    import paddle
+    import numpy as np
+    current_ids = inputs["input_ids"]
+    pixel_values = inputs.get("pixel_values")
+    image_grid_thw = inputs.get("image_grid_thw")
+
+    fwd_kwargs = {"use_cache": False}
+    if pixel_values is not None:
+        fwd_kwargs["pixel_values"] = pixel_values
+    if image_grid_thw is not None:
+        fwd_kwargs["image_grid_thw"] = image_grid_thw
+
+    input_len = current_ids.shape[1]
+    generated_ids = []
+
+    for _ in range(max_new_tokens):
+        fwd_kwargs["input_ids"] = current_ids
+        outputs = model(**fwd_kwargs)
+        logits = outputs[0] if isinstance(outputs, (tuple, list)) else outputs.logits
+        # Get last token logits as numpy for reliable filtering
+        logits_np = logits[0, -1, :].astype("float32").numpy()
+
+        # Apply temperature
+        if temperature > 0:
+            logits_np = logits_np / temperature
+
+        # Top-k filter
+        if top_k > 0 and top_k < len(logits_np):
+            k = min(top_k, len(logits_np))
+            top_indices = np.argpartition(logits_np, -k)[-k:]
+            mask = np.full_like(logits_np, float('-inf'))
+            mask[top_indices] = logits_np[top_indices]
+            logits_np = mask
+
+        # Top-p (nucleus) filter
+        if top_p < 1.0:
+            sorted_indices = np.argsort(logits_np)[::-1]
+            sorted_logits = logits_np[sorted_indices]
+            sorted_probs = np.exp(sorted_logits - np.max(sorted_logits))
+            sorted_probs = sorted_probs / sorted_probs.sum()
+            cumsum = np.cumsum(sorted_probs)
+            # Keep tokens with cumulative probability <= top_p, plus at least 1 token
+            cutoff = int(np.searchsorted(cumsum, top_p, side='right')) + 1
+            cutoff = min(cutoff, len(sorted_logits))
+            mask = np.full_like(logits_np, float('-inf'))
+            keep_indices = sorted_indices[:cutoff]
+            mask[keep_indices] = logits_np[keep_indices]
+            logits_np = mask
+
+        # Convert to probabilities and sample
+        # Handle edge case: all logits are -inf (shouldn't happen with top-k)
+        finite_mask = ~np.isneginf(logits_np)
+        if not finite_mask.any():
+            # Fall back to argmax of original logits
+            logits_np = logits[0, -1, :].astype("float32").numpy()
+            next_token_id = int(np.argmax(logits_np))
+        else:
+            # Stable softmax over finite logits only
+            max_val = np.max(logits_np[finite_mask])
+            logits_np = logits_np - max_val
+            probs = np.exp(logits_np)
+            probs[~finite_mask] = 0.0
+            total = float(probs.sum())
+            if total > 0:
+                probs = probs / total
+            else:
+                # All zeros, uniform over finite positions
+                probs[finite_mask] = 1.0 / finite_mask.sum()
+            # Use argmax of Gumbel-perturbed probs (equivalent to sampling, avoids multinomial)
+            # Add Gumbel noise: -log(-log(U+eps))
+            gumbel = -np.log(-np.log(np.random.uniform(1e-15, 1.0, len(probs))))
+            next_token_id = int(np.argmax(np.log(np.maximum(probs, 1e-300)) + gumbel))
+
+        if next_token_id == eos_token_id:
+            break
+
+        generated_ids.append(next_token_id)
+        current_ids = paddle.concat(
+            [current_ids, paddle.to_tensor([[next_token_id]], dtype=current_ids.dtype)],
+            axis=1
+        )
+
     full_ids = paddle.concat(
         [inputs["input_ids"][:, :input_len],
          paddle.to_tensor([generated_ids], dtype=inputs["input_ids"].dtype)],
@@ -502,13 +607,21 @@ def evaluate_paddleocr_vl(args):
         total = sum(p.size for p in model.parameters())
         print(f"  Total params: {total:,}")
 
-    generation_config = GenerationConfig(
-        do_sample=False,
-        bos_token_id=1,
-        eos_token_id=2,
-        pad_token_id=0,
-        use_cache=True  # Try True: old runs got 100+ samples with this
-    )
+    gen_kwargs = {
+        "bos_token_id": 1,
+        "eos_token_id": 2,
+        "pad_token_id": 0,
+        "use_cache": True,
+    }
+    if args.do_sample:
+        gen_kwargs["do_sample"] = True
+        gen_kwargs["temperature"] = args.temperature
+        gen_kwargs["top_p"] = args.top_p
+        gen_kwargs["top_k"] = args.top_k
+        print(f"Sampling mode: temperature={args.temperature}, top_p={args.top_p}, top_k={args.top_k}")
+    else:
+        gen_kwargs["do_sample"] = False
+    generation_config = GenerationConfig(**gen_kwargs)
 
     samples = []
     with open(args.data_path, "r", encoding="utf-8") as f:
@@ -573,6 +686,10 @@ def evaluate_paddleocr_vl(args):
             )
 
             # Try model.generate() first, fall back to manual decode
+            # When sampling, skip model.generate() — PaddleFormers may not
+            # properly support do_sample/temperature; use manual path directly.
+            if args.do_sample:
+                raise RuntimeError("use manual sample path")
             try:
                 with paddle.no_grad():
                     outputs = model.generate(**inputs, generation_config=generation_config, max_new_tokens=args.max_length)
@@ -586,13 +703,25 @@ def evaluate_paddleocr_vl(args):
                     output_ids = [int(x) for x in output_ids if int(x) > 0]
                     output_text = processor.decode(output_ids, skip_special_tokens=True)
             except Exception as gen_err:
-                print(f"  generate() failed: {gen_err}, falling back to manual decode", flush=True)
-                with paddle.no_grad():
-                    output_text = _manual_greedy_decode(
-                        model, inputs, processor,
-                        max_new_tokens=args.max_length,
-                        eos_token_id=2
-                    )
+                if args.do_sample:
+                    print(f"  generate() failed: {gen_err}, falling back to manual sample decode", flush=True)
+                    with paddle.no_grad():
+                        output_text = _manual_sample_decode(
+                            model, inputs, processor,
+                            max_new_tokens=args.max_length,
+                            eos_token_id=2,
+                            temperature=args.temperature,
+                            top_p=args.top_p,
+                            top_k=args.top_k
+                        )
+                else:
+                    print(f"  generate() failed: {gen_err}, falling back to manual decode", flush=True)
+                    with paddle.no_grad():
+                        output_text = _manual_greedy_decode(
+                            model, inputs, processor,
+                            max_new_tokens=args.max_length,
+                            eos_token_id=2
+                        )
 
             sample["prediction"] = output_text
             sample["label"] = sample["messages"][1]["content"]
