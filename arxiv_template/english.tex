@@ -293,7 +293,7 @@ where $p$ is the model prediction text and $g$ is the ground truth annotation. N
 
 \subsection{Baseline Benchmark Results}
 
-The unfine-tuned PaddleOCR-VL-0.9B base model performs extremely poorly on the circuit schematic OCR task. As shown in Table~\ref{tab:baseline}, the base model achieves Avg.\ NED = 0.8895 on the easy50 test set, with outputs primarily exhibiting three failure modes: (1) degenerate repetition of a single token (e.g., continuously outputting ``GND''); (2) generation of generic text memorized from training data rather than image-conditioned recognition (e.g., outputting Arduino tutorial fragments); (3) outputting partially circuit-relevant symbols unrelated to the input image content.
+The unfine-tuned PaddleOCR-VL-0.9B base model performs extremely poorly on the circuit schematic OCR task. Its baseline scores across test tiers are: easy50 NED = 0.8895, easy100 NED = 0.8999, easy200 NED = 0.9139. Table~\ref{tab:baseline} shows the detailed comparison on the easy50 tier. Base model outputs primarily exhibit three failure modes: (1) degenerate repetition of a single token (e.g., continuously outputting ``GND''); (2) generation of generic text memorized from training data rather than image-conditioned recognition (e.g., outputting Arduino tutorial fragments); (3) outputting partially circuit-relevant symbols unrelated to the input image content.
 
 \begin{table}[h]
 \centering
@@ -422,19 +422,19 @@ Based on the Projector bottleneck identified in E4, we added the vision-language
 
 After 3-epoch Projector LoRA training, the NED further decreased from 0.8271 to 0.8197 (cumulative +7.8\% vs. baseline), confirming the gain from multi-epoch training.
 
-\textbf{Effect of larger LoRA rank.} Increasing the LoRA rank from $r=8$ to $r=16$ ($\alpha=32$), 3-epoch Projector LoRA training took 53 min. The $r=16$ configuration achieved the best Avg.\ NED = 0.8044 on easy50 (cumulative +9.6\% vs.\ baseline), with 0.8291 on easy100 and 0.8624 on easy200. Compared to $r=8$ (easy50 NED 0.8197), $r=16$ provides an additional 1.9\% improvement, and training time is shorter (53 vs.\ 77 min), suggesting that larger rank may accelerate convergence. Performance across the three test tiers is shown in Table~\ref{tab:tiers}.
+\textbf{Effect of larger LoRA rank.} Increasing the LoRA rank from $r=8$ to $r=16$ ($\alpha=32$), 3-epoch Projector LoRA training took 53 min. The $r=16$ configuration achieved the best Avg.\ NED = 0.8044 on easy50 (+9.6\% vs.\ base 0.8895), 0.8291 on easy100 (+7.9\% vs.\ base 0.8999), and 0.8624 on easy200 (+5.6\% vs.\ base 0.9139). Compared to $r=8$ (easy50 NED 0.8197), $r=16$ provides an additional 1.9\% improvement, and training time is shorter (53 vs.\ 77 min), suggesting that larger rank may accelerate convergence. The diminishing improvement across tiers is expected as circuit complexity increases. Cross-tier performance is shown in Table~\ref{tab:tiers}.
 
 \begin{table}[h]
 \centering
-\caption{$r=16$ Projector LoRA performance across test tiers}
+\caption{$r=16$ Projector LoRA vs.\ base model across test tiers}
 \label{tab:tiers}
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Test Tier} & \textbf{Samples} & \textbf{Avg.\ NED} & \textbf{vs.\ Base (easy50)} \\
+\textbf{Test Tier} & \textbf{Samples} & \textbf{Base NED} & \textbf{$r=16$ NED} & \textbf{Improvement} \\
 \midrule
-easy50  & 50  & 0.8044 & +9.6\% \\
-easy100 & 100 & 0.8291 & --- \\
-easy200 & 200 & 0.8624 & --- \\
+easy50  & 50  & 0.8895 & 0.8044 & +9.6\% \\
+easy100 & 100 & 0.8999 & 0.8291 & +7.9\% \\
+easy200 & 200 & 0.9139 & 0.8624 & +5.6\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -454,7 +454,7 @@ This paper presents CircuitOCR, a complete solution for circuit schematic OCR an
 
 \begin{enumerate}[label=\arabic*.]
     \item \textbf{Multi-source hybrid dataset (Completed):} Constructed the first large-scale circuit schematic dataset integrating real open-source projects, textbook circuits, and procedurally generated synthetic data. After three rounds of deduplication (text hash, topology hash, visual perceptual hash) and LLM-based quality scoring, approximately 24,717 independent samples were retained.
-    \item \textbf{LoRA fine-tuning scheme (Completed):} Original LoRA (q/k/v/o) achieved Avg.\ NED 0.8554 (+3.8\%) on easy50. Adding Projector LoRA further reduced NED to 0.8271 (+7.0\%). 3-epoch training achieved 0.8197 (+7.8\%). Increasing rank to $r=16$ achieved the best NED of 0.8044 (+9.6\%) on easy50, with 0.8291 on easy100 and 0.8624 on easy200, validating the contribution of larger rank capacity. Class collapse at low sample counts was mitigated by full training and larger rank.
+    \item \textbf{LoRA fine-tuning scheme (Completed):} Original LoRA (q/k/v/o) achieved Avg.\ NED 0.8554 (+3.8\%) on easy50. Adding Projector LoRA further reduced NED to 0.8271 (+7.0\%). 3-epoch training achieved 0.8197 (+7.8\%). Increasing rank to $r=16$ achieved the following across three test tiers: easy50 NED 0.8044 (base 0.8895, +9.6\%), easy100 NED 0.8291 (base 0.8999, +7.9\%), easy200 NED 0.8624 (base 0.9139, +5.6\%). Class collapse at low sample counts was mitigated by full training and larger rank.
     \item \textbf{Performance improvement roadmap (Planning stage):} Based on diagnostic experiment conclusions, four near-term actionable improvement directions are planned: Projector LoRA, multi-epoch training, diverse decoding, and topology evaluation; as well as three long-term exploration directions: multi-task decoupling, simulation verification, and larger base models.
     \item \textbf{Multi-dimensional evaluation framework (Partially completed):} Established a dual-layer protocol of text NED and topology evaluation, but the full implementation of topology evaluation (component F1, pin accuracy) remains to be completed.
 \end{enumerate}
