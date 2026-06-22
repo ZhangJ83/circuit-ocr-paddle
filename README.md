@@ -15,7 +15,7 @@
 
 - 构建了首个多源混合电路原理图数据集（~30,000 样本）
 - 基于 PaddleOCR-VL-0.9B + LoRA 实现参数高效微调
-- 设计了 slime 多专家 Rollout + Critic-based PPO 后训练框架
+- 设计了 Critic-based PPO 后训练框架
 
 ## 快速链接
 
