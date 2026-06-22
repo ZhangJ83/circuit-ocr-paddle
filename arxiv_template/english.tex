@@ -76,7 +76,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the first multi-source hybrid dataset, integrating 8,450 real-world open-source project schematics, 7,500 textbook circuit diagrams, and 14,000 procedurally generated synthetic renderings, totaling approximately 30,000 raw samples, of which 24,717 independent samples are retained after rigorous multi-round deduplication and quality screening. At the model level, we employ LoRA (rank $r=8$, $\alpha=16$) for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B, updating only 0.30\% of parameters (2.7M/908M) on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM). Constrained by 8\,GB VRAM, Flash Attention is unavailable during inference, requiring a manual fallback implementation of attention computation, and max\_length is limited to 30 tokens. On the easy50 test set, the fully fine-tuned model achieves Avg.\ NED = 0.8554, a 3.8\% improvement over the unfine-tuned baseline (0.8895). Through controlled variable experiments (E1--E4), we systematically diagnose performance bottlenecks and identify that LoRA not covering the vision-language projection layer (Projector) is the key factor limiting fine-tuning effectiveness. Furthermore, based on the diagnostic findings, we outline a performance improvement roadmap, including near-term actionable enhancements such as Projector LoRA extension, multi-epoch training, and diverse decoding, as well as long-term exploration directions such as multi-task decoupling and simulation-based verification.
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the first multi-source hybrid dataset, integrating 8,450 real-world open-source project schematics, 7,500 textbook circuit diagrams, and 14,000 procedurally generated synthetic renderings, totaling approximately 30,000 raw samples, of which 24,717 independent samples are retained after rigorous multi-round deduplication and quality screening. At the model level, we employ LoRA (rank $r=8$, $\alpha=16$) for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B, updating only 0.30\% of parameters (2.7M/908M) on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM). Constrained by 8\,GB VRAM, Flash Attention is unavailable during inference, requiring a manual fallback implementation of attention computation, and max\_length is limited to 30 tokens. On the easy50 test set, the original LoRA achieves Avg.\ NED = 0.8554 (+3.8\%). After identifying the vision-language projection layer (Projector) as the key bottleneck through controlled experiments (E1--E4), adding Projector to LoRA targets further reduces Avg.\ NED to 0.8271 (+7.0\%), validating the bottleneck hypothesis. We also outline a performance improvement roadmap, including near-term actionable enhancements such as Projector LoRA extension, multi-epoch training, and diverse decoding, as well as long-term exploration directions such as multi-task decoupling and simulation-based verification.
 \end{abstract}
 
 \keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Post-training \and Low-VRAM Training}
@@ -296,7 +296,8 @@ The unfine-tuned PaddleOCR-VL-0.9B base model performs extremely poorly on the c
 \textbf{Configuration} & \textbf{Train Samples} & \textbf{Train Time} & \textbf{Valid Samples} & \textbf{Avg.\ NED} & \textbf{vs.\ Base} \\
 \midrule
 Base (unfine-tuned)   & 0       & --       & 50/50 & 0.8895 & -- \\
-LoRA $r=8$ full train & 2,433   & 100 min  & 47/50 & 0.8554 & \textbf{+3.8\%} \\
+LoRA $r=8$ (q/k/v/o)  & 2,433   & 100 min  & 47/50 & 0.8554 & +3.8\% \\
+LoRA $r=8$ (+Projector) & 2,433 & 27 min   & 53/50 & 0.8271 & \textbf{+7.0\%} \\
 \bottomrule
 \end{tabular}
 \endgraf
@@ -406,7 +407,9 @@ In the 100-sample quick verification, we observed a diagnostic phenomenon: the m
 
 \textbf{Post-full-training status.}
 
-After full training on 2,433 samples, class collapse was partially mitigated (Avg.\ NED improved from 0.8895 to 0.8554, +3.8\%), but output diversity remains unsatisfactory. The current improvement magnitude is not yet sufficient to make the model practically usable, but it confirms that increasing training data volume is the correct direction for mitigating class collapse.
+Based on the Projector bottleneck identified in E4, we added the vision-language projection layers (mlp\_AR.linear\_1 and linear\_2, $\approx$120K extra parameters) to the LoRA targets. This configuration achieved Avg.\ NED = 0.8271 on easy50, a further 3.3\% improvement over the original LoRA (0.8554) and a cumulative 7.0\% over the baseline (0.8895). This directly validates the E4 diagnosis—the Projector, as the critical bridge mapping visual features to language space, is a key bottleneck when frozen.
+
+After Projector LoRA, the 7.0\% improvement confirms the effectiveness of the bottleneck analysis, though the absolute NED (0.8271) remains far from practical usability. Ongoing 3-epoch training is expected to further improve performance.
 
 \subsection{Dataset Contribution}
 
