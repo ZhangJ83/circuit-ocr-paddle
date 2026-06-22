@@ -115,7 +115,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-电路原理图自动识别是电子设计自动化（EDA）领域的一项核心挑战，涉及视觉文字提取与拓扑图论追踪两大异构任务。本文提出 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 与网表提取系统。我们构建了首个多源混合数据集，整合 8,450 张真实开源项目原理图、7,500 张教材电路图以及 14,000 张程序化合成渲染图，总计约 30,000 个原始样本，经严格多轮去重与质量筛查后保留 24,717 个独立样本。在模型层面，我们采用 LoRA（rank $r=8$, $\alpha=16$）对 PaddleOCR-VL-0.9B 进行参数高效微调，仅更新 0.30\% 参数（2.7M/908M），在单卡 NVIDIA RTX 4060 笔记本 GPU（8GB 显存）上完成训练。受限于 8GB 显存，推理阶段无法使用 Flash Attention，需手工降级实现注意力计算，且 max\_length 被限制为 30 tokens。在 easy50 测试集上，原始 LoRA 微调取得 Avg. NED = 0.8554（+3.8\%）。通过控制变量实验（E1--E4）定位到视觉-语言投影层（Projector）为关键瓶颈后，将 Projector 加入 LoRA 目标使 Avg. NED 降至 0.8271（+7.0\%），进一步通过 3-epoch 训练将 NED 降至 0.8197（+7.8\%），验证了 Projector 瓶颈假设和多 epoch 训练的增益。此外，我们通过 3-epoch 训练和多 epoch 验证确认了改进路线的有效性，并规划了多样化解码和拓扑评估等后续方向。
+电路原理图自动识别是电子设计自动化（EDA）领域的一项核心挑战，涉及视觉文字提取与拓扑图论追踪两大异构任务。本文提出 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 与网表提取系统。我们构建了首个多源混合数据集，整合 8,450 张真实开源项目原理图、7,500 张教材电路图以及 14,000 张程序化合成渲染图，总计约 30,000 个原始样本，经严格多轮去重与质量筛查后保留 24,717 个独立样本。在模型层面，我们采用 LoRA（rank $r=8$, $\alpha=16$）对 PaddleOCR-VL-0.9B 进行参数高效微调，仅更新 0.30\% 参数（2.7M/908M），在单卡 NVIDIA RTX 4060 笔记本 GPU（8GB 显存）上完成训练。受限于 8GB 显存，推理阶段无法使用 Flash Attention，需手工降级实现注意力计算，且 max\_length 被限制为 30 tokens。在 easy50 测试集上，原始 LoRA 微调取得 Avg. NED = 0.8554（+3.8\%）。通过控制变量实验（E1--E4）定位到视觉-语言投影层（Projector）为关键瓶颈后，将 Projector 加入 LoRA 目标使 Avg. NED 降至 0.8271（+7.0\%），进一步通过 3-epoch 训练将 NED 降至 0.8197（+7.8\%），验证了 Projector 瓶颈假设和多 epoch 训练的增益。当前绝对分数受限于笔记本 GPU 算力，本文贡献主要在于方法验证与瓶颈分析。
 \end{abstract}
 
 \keywords{电路原理图 \and OCR \and PaddleOCR-VL \and LoRA微调 \and 网表提取 \and 后训练 \and 低显存训练}
