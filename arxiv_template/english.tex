@@ -90,7 +90,24 @@ Automatic recognition of circuit schematic diagrams is a core challenge in Elect
 
 \section{Introduction}
 
+\subsection{Research Background and Scarcity}
+
 Vision-Language Models (VLMs) have substantially expanded the application boundaries of traditional large language models, demonstrating significant advantages in scenarios requiring visual understanding, such as robotic navigation and document parsing tasks. Compared to traditional OCR pipelines that rely on multi-stage processing and substantial memory overhead, VLMs can directly output structured text from images in an end-to-end manner, eliminating cumbersome intermediate processing steps.
+
+However, in the Electronic Design Automation (EDA) domain, automatic recognition and parsing of circuit schematic diagrams remains a research-scarce direction. Currently, numerous general-purpose OCR benchmark datasets exist in academia and industry (e.g., ICDAR series, SROIE, FUNSD), covering natural scene text, documents, receipts, forms, and more, yet no dedicated public benchmark dataset exists for circuit schematic OCR. Existing circuit-related datasets such as Open Schematics~\citep{openschematics2025} and Masala-CHAI~\citep{bhandari2025masalachai} provide circuit diagrams and netlist data, but lack standardized evaluation protocols and difficulty-tiered systems. CircuitOCR fills this gap by constructing the first multi-source hybrid circuit schematic OCR benchmark, comprising 24,717 training samples and a 4-tier difficulty evaluation system.
+
+\subsection{Industry Demand Value}
+
+Automatic circuit schematic recognition is a core requirement in the EDA industry. According to SEMI and WSTS statistics, the global semiconductor market exceeded \$600 billion in 2025, while the PCB design tools market (Cadence, Altium, KiCad, etc.) is approximately \$4 billion. In actual engineering workflows, there exists substantial demand for converting schematic diagrams from paper or image format into digital netlists:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Reverse Engineering}: Hardware security audits and compatibility design require recovering original netlists from physical PCBs or images;
+    \item \textbf{Legacy Document Digitization}: Large volumes of paper schematics from the 1980s--2000s require digital archiving;
+    \item \textbf{Cross-Tool Migration}: Schematic formats across different EDA tools are mutually incompatible; image-level OCR can serve as a universal migration bridge;
+    \item \textbf{Open-Source Hardware Community}: Over 500,000 KiCad/EAGLE projects exist on GitHub, many lacking structured netlist exports.
+\end{enumerate}
+
+Currently, these tasks primarily rely on manual image-by-image reading and entry, which is extremely inefficient and error-prone. A sufficiently accurate circuit OCR system can dramatically reduce labor costs and time overhead in this pipeline. Industry estimates suggest the PCB reverse engineering outsourcing market alone exceeds \$500 million annually, with approximately 30\% of time spent on schematic reconstruction.
 
 
 \section{Background and System Setup}
