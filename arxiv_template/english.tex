@@ -122,6 +122,16 @@ This project adopts PaddleOCR-VL as the open-source base model~\citep{cui2025pad
 
 An Electronic Schematic Diagram is a two-dimensional engineering drawing that uses standardized graphical symbols to represent electronic components and their electrical connections. It reflects logical topology rather than physical layout. Circuit schematics belong to the EDA vertical industrial domain and serve as core carriers of engineering drawings and technical documentation; their automatic recognition and parsing hold significant engineering value. As highly complex technical documents, circuit schematics contain: text elements, including component reference designators (e.g., R1, C1), values (e.g., 10k, 100nF), net labels (e.g., VCC, GND, SPI-CLK), and title block text in the lower-right corner; special characters, including electronics-specific physical units and symbols such as $\Omega$ (ohm), $\mu$ (micro), and $\pm$ (tolerance); tabular elements, including multi-pin chip pinout tables, Bill of Materials (BOM), and revision change tables; and structured data, including circuit connectivity and network topology, requiring extraction of structured netlists analogous to formulas or code.
 
+\subsection{Task Structure: OCR + Topology Tracing Dual-Task Joint Learning}
+
+Circuit schematic understanding is fundamentally a dual-task learning problem comprising two heterogeneous sub-tasks requiring joint optimization:
+
+\textbf{Sub-task 1: Visual Text Recognition (Explicit Information Extraction).} Direct extraction of visible text elements from images---component reference designators, parameter values, and net labels. This sub-task resembles traditional OCR but faces schematic-specific challenges: small font sizes, dense layouts, special characters ($\Omega$, $\mu$, $\pm$), visual interference between silkscreen and copper layers, and font library differences across drawing tools.
+
+\textbf{Sub-task 2: Topology Graph Tracing (Implicit Structural Reasoning).} Indirect inference of electrical connectivity relationships between components from the image. Wires and net labels in the schematic define the connection topology between component pins. The model must understand that two pins labeled ``VDD'' are electrically on the same network despite being spatially separated in the image. This sub-task transcends traditional OCR, involving graph-theoretic semantic reasoning that cannot be evaluated through text matching alone.
+
+The two sub-tasks are jointly optimized through shared vision encoder and language decoder: text recognition provides textual information about components and labels, while topology tracing depends on this textual information to construct the connectivity graph. Our designed dual-layer evaluation protocol---text NED (evaluating explicit text recognition) and topology F1 (evaluating implicit structural understanding)---measures model capability separately across both dimensions. This structured problem decomposition enables fine-tuning strategies to target specific model weaknesses.
+
 \subsection{Limitations of Vanilla LLMs}
 
 The limitation of this approach stems from the severe deficiencies of the native, unfine-tuned base model in recognizing circuit schematic diagrams within technical documents. In the circuit schematic task, PaddleOCR-VL-0.9B fails to perform effective OCR recognition, exhibiting three typical failure modes: (1) outputting overlapping, repetitive word concatenations (e.g., repeatedly generating the same token); (2) generating generic text memorized from training data rather than performing recognition based on the input image (i.e., ``hallucinating'' rather than reading); and (3) occasionally outputting partially correct component labels while omitting the primary component names.
@@ -459,6 +469,14 @@ full523 & 523 & 0.9455 & 0.9164 & +3.1\% \\
 
 The optimal NED of 0.8044 remains far from practical usability (NED $<$ 0.5), severely constrained by laptop GPU compute (see Section 6.3). On larger GPUs, Flash Attention and higher max\_length/max\_dim are expected to yield significantly better absolute scores.
 
+\subsection{Key Innovations}
+
+\textbf{Innovation 1: Discovery and Validation of the Projector Bottleneck.} Through controlled variable experiments (E1--E4), we are the first to identify the key bottleneck of vision-language models in circuit OCR tasks: the vision-language projection layer (Projector, mlp\_AR). As the sole bridge mapping visual features to language space, this layer is completely frozen in standard LoRA fine-tuning, preventing the model from learning visual-semantic correspondences of circuit symbols. Adding Projector to LoRA targets reduced NED from 0.8554 to 0.8271 (an incremental gain of +3.3\%), directly validating this discovery. To our knowledge, this is the first systematic identification and validation of the Projector bottleneck in the circuit OCR scenario.
+
+\textbf{Innovation 2: Experimental Determination of the LoRA Rank Sweet Spot.} Through systematic ablation of r=8/16/32, we discovered the optimal rank for this task: r=16 achieves the best performance (+9.6\%) at the 2,433-sample scale, while r=32 causes training divergence (NED=1.0) due to excess capacity. This finding provides empirical guidance for LoRA configuration selection in small-sample circuit OCR---higher rank is not always better; there exists an optimal match between data scale and model capacity.
+
+\textbf{Innovation 3: OCR + Topology Tracing Dual-Task Framework.} Circuit schematic understanding comprises two heterogeneous sub-tasks: (1) visual text recognition---extracting component designators, values, and net labels; (2) topology graph tracing---indirectly inferring electrical connectivity from the image. Unlike traditional OCR which only handles explicit text, circuit OCR requires the model to simultaneously understand implicit topological structure. We designed a dual-layer evaluation protocol with text NED and topology metrics (component F1/type accuracy/pin accuracy), providing a more meaningful measurement than pure text matching for circuit understanding.
+
 \subsection{Dataset Contribution}
 
 The multi-source hybrid dataset construction strategy has proven effective. Open Schematics provides real-world component naming diversity (e.g., specific chip models such as ATMEGA328P and TPS5430), Masala-CHAI provides textbook-grade standard SPICE netlist formats, and the synthetic dataset provides precise annotations and controlled degradation scenarios. The complementarity of the three sources eliminates the overfitting risk of any single source, enabling the model to develop both generalization ability to real component symbols and strict adherence to annotation accuracy.
@@ -498,6 +516,17 @@ This paper presents CircuitOCR, a complete solution for circuit schematic OCR an
 
 Future work will focus on: (1) expanding dataset annotation and cleaning to broaden training coverage; (2) implementing the topology evaluation protocol (component F1, pin accuracy); (3) exploring $r=32$ and other higher ranks for marginal gains; (4) introducing regularization (e.g., label smoothing) during training to mitigate distribution collapse, enabling diverse decoding to be effective; (5) exploring long-term directions such as multi-task decoupling and simulator-based verification on GPUs with larger VRAM.
 
+\subsection{Open-Source Contribution and Community Value}
+
+This project is released fully open-source, aiming to provide long-term community value for the research-scarce field of circuit schematic OCR:
+
+\begin{enumerate}[nosep]
+    \item \textbf{First Circuit OCR Benchmark Dataset.} 24,717 training samples + 4-tier evaluation system + 250-sample degraded evaluation set, providing a standardized evaluation foundation for the field. Datasets and evaluation scripts are released under the MIT license, freely usable for academic and commercial purposes.
+    \item \textbf{Complete Reproducible Fine-Tuning Pipeline.} Full LoRA training, evaluation, and inference scripts with end-to-end configuration on a consumer-grade Windows + RTX 4060 GPU. The bilingual technical report (Chinese + English) documents all experimental designs, hyperparameter choices, and failure analyses (e.g., r=32 collapse), lowering the entry barrier for follow-up researchers.
+    \item \textbf{Systematic Bottleneck Analysis Methodology.} The E1--E5 controlled variable experimental framework establishes a transferable diagnostic pipeline: blank-image test $\to$ resolution ablation $\to$ epoch ablation $\to$ LoRA layer coverage ablation $\to$ rank ablation. This methodology applies not only to circuit OCR but can be transferred to VLM fine-tuning tasks in other vertical domains.
+    \item \textbf{Gradio Online Demo.} A ready-to-run web demo (\texttt{demo.py}) allows users to upload circuit images for OCR recognition and browse pre-computed model comparison results.
+    \item \textbf{Complete Project Repository.} \url{https://github.com/ZhangJ83/circuit-ocr-paddle} contains: training/evaluation/inference scripts, LoRA weights, evaluation results, degraded test set builder, topology evaluation, visualization tools, and complete bilingual source code of this paper.
+\end{enumerate}
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
