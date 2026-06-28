@@ -1,0 +1,3 @@
+{"messages": [{"role": "user", "content": "<image>OCR:"}, {"role": "assistant", "content": "M0\nnmos4\nVDD\nVDD\nVIN1\nVSS"}], "images": ["./data/test/11.jpg"], "prediction": "", "label": "M0\nnmos4\nVDD\nVDD\nVIN1\nVSS"}
+{"messages": [{"role": "user", "content": "<image>OCR:"}, {"role": "assistant", "content": "U2\n~\nA1\nArduino_USB\nR4\n3K\nU3\n~\nR3\n7K"}], "images": ["./data/test/Mark-MDO47_Skull-Project.png"], "prediction": "", "label": "U2\n~\nA1\nArduino_USB\nR4\n3K\nU3\n~\nR3\n7K"}
+{"messages": [{"role": "user", "content": "<image>OCR:"}, {"role": "assistant", "content": "C1\n10uF\nC2\n1uF\nR1\n100\nF1\n2A\nC3\n100nF"}], "images": ["./data/test/digital_simple_0000.png"], "prediction": "", "label": "C1\n10uF\nC2\n1uF\nR1\n100\nF1\n2A\nC3\n100nF"}
