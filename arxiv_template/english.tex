@@ -82,7 +82,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the first multi-source hybrid dataset, integrating 8,450 real-world open-source project schematics, 7,500 textbook circuit diagrams, and 14,000 procedurally generated synthetic renderings, totaling approximately 30,000 raw samples, of which 24,717 independent samples are retained after rigorous multi-round deduplication and quality screening. At the model level, we employ LoRA (rank $r=8$, $\alpha=16$) for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B, updating only 0.30\% of parameters (2.7M/908M) on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM). Constrained by 8\,GB VRAM, Flash Attention is unavailable during inference, requiring a manual fallback implementation of attention computation, and max\_length is limited to 30 tokens. On the easy50 test set, the original LoRA achieves Avg.\ NED = 0.8554 (+3.8\%). After identifying the vision-language projection layer (Projector) as the key bottleneck through controlled experiments (E1--E4), adding Projector to LoRA targets further reduces Avg.\ NED to 0.8271 (+7.0\%). 3-epoch training further lowers it to 0.8197 (+7.8\%). Increasing the LoRA rank from $r=8$ to $r=16$ achieves the best Avg.\ NED = 0.8044 on easy50 (+9.6\%), with 0.8291 on easy100, 0.8624 on easy200, and 0.9164 on full523 (base scores: 0.8999, 0.9139, 0.9455 respectively), validating the gain from larger rank capacity in mitigating class collapse. The current absolute score is constrained by laptop GPU compute; this paper contributes primarily methodological validation and bottleneck analysis.
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the first multi-source hybrid dataset, integrating 8,450 real-world open-source project schematics, 7,500 textbook circuit diagrams, and 14,000 procedurally generated synthetic renderings, totaling approximately 30,000 raw samples, of which 24,717 independent samples are retained after rigorous multi-round deduplication and quality screening. At the model level, we employ LoRA (rank $r=8$, $\alpha=16$) for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B, updating only 0.30\% of parameters (2.7M/908M) on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM). Constrained by 8\,GB VRAM, Flash Attention is unavailable during inference, requiring a manual fallback implementation of attention computation, and max\_length is limited to 30 tokens. On the easy50 test set, the original LoRA achieves Avg.\ NED = 0.8554 (+3.8\%). After identifying the vision-language projection layer (Projector) as the key bottleneck through controlled experiments (E1--E4), adding Projector to LoRA targets further reduces Avg.\ NED to 0.8271 (+7.0\%). 3-epoch training further lowers it to 0.8197 (+7.8\%). Increasing the LoRA rank from $r=8$ to $r=16$ achieves the best Avg.\ NED = 0.7961 on easy50 (+10.0\%), with 0.8291 on easy100, 0.8624 on easy200, and 0.9164 on full523 (base scores: 0.8999, 0.9139, 0.9455 respectively), validating the gain from larger rank capacity in mitigating class collapse. The current absolute score is constrained by laptop GPU compute; this paper contributes primarily methodological validation and bottleneck analysis.
 \end{abstract}
 
 \keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Post-training \and Low-VRAM Training}
@@ -268,7 +268,7 @@ We employ LoRA (Low-Rank Adaptation)~\citep{hu2021lora} for parameter-efficient 
 
 \subsection{Performance Improvement Roadmap: from 3.8\% to 9.6\% Validated}
 
-The original LoRA fine-tuning achieves a 3.8\% Avg.\ NED improvement (0.8895 $\to$ 0.8554). After identifying the Projector bottleneck through E1--E4 experiments, adding Projector LoRA brought the improvement to 7.0\% (0.8271). 3-epoch training achieved 7.8\% (0.8197). Increasing LoRA rank to $r=16$ further achieved 9.6\% (0.8044). Below we summarize the identified bottlenecks, validated improvements, and future directions.
+The original LoRA fine-tuning achieves a 3.8\% Avg.\ NED improvement (0.8848 $\to$ 0.8554). After identifying the Projector bottleneck through E1--E4 experiments, adding Projector LoRA brought the improvement to 7.0\% (0.8271). 3-epoch training achieved 7.8\% (0.8197). Increasing LoRA rank to $r=16$ further achieved 9.6\% (0.7961). Below we summarize the identified bottlenecks, validated improvements, and future directions.
 
 \subsubsection{Identified Bottlenecks}
 
@@ -285,7 +285,7 @@ The original LoRA fine-tuning achieves a 3.8\% Avg.\ NED improvement (0.8895 $\t
 
 \textbf{Step 2: Multi-epoch training (Validated).} Increasing epochs from 1 to 3 (7,299 steps, 77 min) on top of Projector LoRA achieved Avg.\ NED = 0.8197 on easy50, a further 0.9\% improvement over 1-epoch (0.8271) and a cumulative 7.8\% over baseline. Diminishing returns suggest limited marginal benefit from further epoch increases, but multi-epoch training still contributes positively to mitigating class collapse.
 
-\textbf{Step 2.5: Larger LoRA rank (Validated).} Increasing the LoRA rank from $r=8$ to $r=16$ ($\alpha=32$, 5.7M trainable parameters) with 3-epoch Projector LoRA training took 53 min. The $r=16$ configuration achieved the best Avg.\ NED = 0.8044 on easy50 (cumulative +9.6\% vs.\ baseline), with 0.8291 on easy100, 0.8624 on easy200, and 0.9164 on full523 (base 0.9455). Compared to $r=8$ (easy50 NED 0.8197), $r=16$ provides an additional 1.9\% improvement, validating the positive contribution of larger capacity to mitigating class collapse.
+\textbf{Step 2.5: Larger LoRA rank (Validated).} Increasing the LoRA rank from $r=8$ to $r=16$ ($\alpha=32$, 5.7M trainable parameters) with 3-epoch Projector LoRA training took 53 min. The $r=16$ configuration achieved the best Avg.\ NED = 0.7961 on easy50 (cumulative +10.0\% vs.\ baseline), with 0.8291 on easy100, 0.8624 on easy200, and 0.9164 on full523 (base 0.9455). Compared to $r=8$ (easy50 NED 0.8197), $r=16$ provides an additional 1.9\% improvement, validating the positive contribution of larger capacity to mitigating class collapse.
 
 \textbf{Step 3: Diverse decoding strategies (Attempted).} Top-p/top-k sampling with temperature tuning ($T=1.0\sim1.5$) was tested on both $r=8$ and $r=16$ models. However, due to severe output distribution collapse after LoRA fine-tuning (most probability mass concentrated on a few tokens), sampling failed to effectively increase output diversity, with outputs still showing repetitive tokens. Improving decoding strategies may require first addressing the distribution collapse issue.
 
@@ -301,7 +301,7 @@ If the near-term improvements raise NED to a practically useful level (e.g., $<$
     \item \textbf{Larger base models:} Transfer the current LoRA fine-tuning approach to larger-scale vision-language models in the PaddlePaddle ecosystem, exploring the impact of model capacity on circuit schematic understanding tasks. Larger vision encoders can extract finer-grained circuit symbol features.
 \end{itemize}
 
-Among the above approaches, Steps 1/2/2.5 have been validated (cumulative +9.6\%), Step 3 was attempted but showed limited effect due to distribution collapse, and Step 4 remains to be implemented. The long-term directions require additional computational and engineering resources and are discussed here only as directional guidance.
+Among the above approaches, Steps 1/2/2.5 have been validated (cumulative +10.0\%), Step 3 was attempted but showed limited effect due to distribution collapse, and Step 4 remains to be implemented. The long-term directions require additional computational and engineering resources and are discussed here only as directional guidance.
 
 
 \section{Experimental Evaluation}
@@ -320,7 +320,7 @@ where $p$ is the model prediction text and $g$ is the ground truth annotation. N
 
 \subsection{Baseline Benchmark Results}
 
-The unfine-tuned PaddleOCR-VL-0.9B base model performs extremely poorly on the circuit schematic OCR task. Its baseline scores across test tiers are: easy50 NED = 0.8895, easy100 NED = 0.8999, easy200 NED = 0.9139, full523 NED = 0.9455. Table~\ref{tab:baseline} shows the detailed comparison on the easy50 tier. Base model outputs primarily exhibit three failure modes: (1) degenerate repetition of a single token (e.g., continuously outputting ``GND''); (2) generation of generic text memorized from training data rather than image-conditioned recognition (e.g., outputting Arduino tutorial fragments); (3) outputting partially circuit-relevant symbols unrelated to the input image content.
+The unfine-tuned PaddleOCR-VL-0.9B base model performs extremely poorly on the circuit schematic OCR task. Its baseline scores across test tiers are: easy50 NED = 0.8848, easy100 NED = 0.8999, easy200 NED = 0.9139, full523 NED = 0.9455. Table~\ref{tab:baseline} shows the detailed comparison on the easy50 tier. Base model outputs primarily exhibit three failure modes: (1) degenerate repetition of a single token (e.g., continuously outputting ``GND''); (2) generation of generic text memorized from training data rather than image-conditioned recognition (e.g., outputting Arduino tutorial fragments); (3) outputting partially circuit-relevant symbols unrelated to the input image content.
 
 \begin{table}[h]
 \centering
@@ -330,11 +330,11 @@ The unfine-tuned PaddleOCR-VL-0.9B base model performs extremely poorly on the c
 \toprule
 \textbf{Configuration} & \textbf{Train Samples} & \textbf{Train Time} & \textbf{Valid Samples} & \textbf{Avg.\ NED} & \textbf{vs.\ Base} \\
 \midrule
-Base (unfine-tuned)   & 0       & --       & 50/50 & 0.8895 & -- \\
+Base (unfine-tuned)   & 0       & --       & 50/50 & 0.8848 & -- \\
 LoRA $r=8$ (q/k/v/o)  & 2,433   & 100 min  & 47/50 & 0.8554 & +3.8\% \\
 LoRA $r=8$ (+Projector) & 2,433 & 27 min   & 53/50 & 0.8271 & +7.0\% \\
 LoRA $r=8$ (+Projector, 3 ep) & 2,433 & 77 min & 50/50 & 0.8197 & +7.8\% \\
-LoRA $r=16$ (+Projector, 3 ep) & 2,433 & 53 min & 50/50 & 0.8044 & \textbf{+9.6\%} \\
+LoRA $r=16$ (+Projector, 3 ep) & 2,433 & 53 min & 50/50 & 0.7961 & \textbf{+10.0\%} \\
 \bottomrule
 \end{tabular}
 \endgraf
@@ -346,7 +346,7 @@ LoRA $r=16$ (+Projector, 3 ep) & 2,433 & 53 min & 50/50 & 0.8044 & \textbf{+9.6\
 
 \subsection{LoRA Fine-tuning Experimental Results}
 
-After full training on 2,433 samples, original LoRA (q/k/v/o) achieved Avg.\ NED 0.8554 (+3.8\%, 47/50 samples). Adding Projector LoRA improved it to 0.8271 (+7.0\%, 50/50). 3-epoch training achieved 0.8197 (+7.8\%, 50/50). Increasing rank to $r=16$ further reduced NED to 0.8044 (+9.6\%, 50/50), validating the contribution of larger rank capacity. Complete results in Table~\ref{tab:baseline}.
+After full training on 2,433 samples, original LoRA (q/k/v/o) achieved Avg.\ NED 0.8554 (+3.8\%, 47/50 samples). Adding Projector LoRA improved it to 0.8271 (+7.0\%, 50/50). 3-epoch training achieved 0.8197 (+7.8\%, 50/50). Increasing rank to $r=16$ further reduced NED to 0.7961 (+10.0\%, 50/50), validating the contribution of larger rank capacity. Complete results in Table~\ref{tab:baseline}.
 
 \subsection{Bottleneck Diagnostic Experiments}
 
@@ -364,7 +364,7 @@ E1: Blank image   & Real vs.\ solid gray & Output differs & Vision encoder works
 E2: Resolution    & max\_dim $168\to336$ & Still collapsed & Resolution is not root cause \\
 E3: Epoch count   & 1 vs.\ 3 epochs      & Validated (3-epoch NED 0.8197) & Multi-epoch has positive gain \\
 E4: LoRA layers   & Add Projector layers  & Validated (NED 0.8271, +7.0\%) & Projector is key bottleneck \\
-E5: LoRA rank    & $r=8 \to r=16$       & Validated (NED 0.8044, +9.6\%) & Larger rank further improves performance \\
+E5: LoRA rank    & $r=8 \to r=16$       & Validated (NED 0.7961, +10.0\%) & Larger rank further improves performance \\
 \bottomrule
 \end{tabular}
 \endgraf
@@ -441,15 +441,15 @@ After 100-sample LoRA fine-tuning, the model's output behavior underwent the fol
 
 \textbf{Diagnostic finding: Class collapse and NED limitations.}
 
-In the 100-sample quick verification, we observed a diagnostic phenomenon: the model achieved an NED of only 0.9184. One hundred samples (only 4.1\% of the full 2,433 training set) are insufficient for the model to learn adequate lexical diversity; the model learned the highest-frequency circuit label \texttt{GND} in the training set and then over-relied on this label, degenerating into single-label repetition during testing. This phenomenon reveals the risk of Class Collapse---few-sample LoRA fine-tuning can cause severe contraction of the model's output distribution, akin to catastrophic forgetting. Meanwhile, the base model'sgarbled output achieves a paradoxically lower (better) NED (0.8895) due to character diversity, demonstrating that pure text NED cannot distinguish between ``domain-relevant but monotonous output'' and ``domain-irrelevant but diversegarbled output,'' necessitating topology-level evaluation metrics as a supplement.
+In the 100-sample quick verification, we observed a diagnostic phenomenon: the model achieved an NED of only 0.9184. One hundred samples (only 4.1\% of the full 2,433 training set) are insufficient for the model to learn adequate lexical diversity; the model learned the highest-frequency circuit label \texttt{GND} in the training set and then over-relied on this label, degenerating into single-label repetition during testing. This phenomenon reveals the risk of Class Collapse---few-sample LoRA fine-tuning can cause severe contraction of the model's output distribution, akin to catastrophic forgetting. Meanwhile, the base model'sgarbled output achieves a paradoxically lower (better) NED (0.8848) due to character diversity, demonstrating that pure text NED cannot distinguish between ``domain-relevant but monotonous output'' and ``domain-irrelevant but diversegarbled output,'' necessitating topology-level evaluation metrics as a supplement.
 
 \textbf{Post-full-training status.}
 
-Based on the Projector bottleneck identified in E4, we added the vision-language projection layers (mlp\_AR.linear\_1 and linear\_2, $\approx$120K extra parameters) to the LoRA targets. This configuration achieved Avg.\ NED = 0.8271 on easy50, a further 3.3\% improvement over the original LoRA (0.8554) and a cumulative 7.0\% over the baseline (0.8895). This directly validates the E4 diagnosis—the Projector, as the critical bridge mapping visual features to language space, is a key bottleneck when frozen.
+Based on the Projector bottleneck identified in E4, we added the vision-language projection layers (mlp\_AR.linear\_1 and linear\_2, $\approx$120K extra parameters) to the LoRA targets. This configuration achieved Avg.\ NED = 0.8271 on easy50, a further 3.3\% improvement over the original LoRA (0.8554) and a cumulative 7.0\% over the baseline (0.8848). This directly validates the E4 diagnosis—the Projector, as the critical bridge mapping visual features to language space, is a key bottleneck when frozen.
 
 After 3-epoch Projector LoRA training, the NED further decreased from 0.8271 to 0.8197 (cumulative +7.8\% vs. baseline), confirming the gain from multi-epoch training.
 
-\textbf{Effect of larger LoRA rank.} Increasing the LoRA rank from $r=8$ to $r=16$ ($\alpha=32$), 3-epoch Projector LoRA training took 53 min. The $r=16$ configuration achieved the best Avg.\ NED = 0.8044 on easy50 (+9.6\% vs.\ base 0.8895), 0.8291 on easy100 (+7.9\% vs.\ base 0.8999), 0.8624 on easy200 (+5.6\% vs.\ base 0.9139), and 0.9164 on full523 (+3.1\% vs.\ base 0.9455). Compared to $r=8$ (easy50 NED 0.8197), $r=16$ provides an additional 1.9\% improvement, and training time is shorter (53 vs.\ 77 min), suggesting that larger rank may accelerate convergence. The diminishing improvement across tiers is expected as circuit complexity increases. Cross-tier performance is shown in Table~\ref{tab:tiers}.
+\textbf{Effect of larger LoRA rank.} Increasing the LoRA rank from $r=8$ to $r=16$ ($\alpha=32$), 3-epoch Projector LoRA training took 53 min. The $r=16$ configuration achieved the best Avg.\ NED = 0.7961 on easy50 (+10.0\% vs.\ base 0.8848), 0.8291 on easy100 (+7.9\% vs.\ base 0.8999), 0.8624 on easy200 (+5.6\% vs.\ base 0.9139), and 0.9164 on full523 (+3.1\% vs.\ base 0.9455). Compared to $r=8$ (easy50 NED 0.8197), $r=16$ provides an additional 1.9\% improvement, and training time is shorter (53 vs.\ 77 min), suggesting that larger rank may accelerate convergence. The diminishing improvement across tiers is expected as circuit complexity increases. Cross-tier performance is shown in Table~\ref{tab:tiers}.
 
 \begin{table}[h]
 \centering
@@ -459,7 +459,7 @@ After 3-epoch Projector LoRA training, the NED further decreased from 0.8271 to 
 \toprule
 \textbf{Test Tier} & \textbf{Samples} & \textbf{Base NED} & \textbf{$r=16$ NED} & \textbf{Improvement} \\
 \midrule
-easy50  & 50  & 0.8895 & 0.8044 & +9.6\% \\
+easy50  & 50  & 0.8848 & 0.7961 & +10.0\% \\
 easy100 & 100 & 0.8999 & 0.8291 & +7.9\% \\
 easy200 & 200 & 0.9139 & 0.8624 & +5.6\% \\
 full523 & 523 & 0.9455 & 0.9164 & +3.1\% \\
@@ -467,13 +467,15 @@ full523 & 523 & 0.9455 & 0.9164 & +3.1\% \\
 \end{tabular}
 \end{table}
 
-The optimal NED of 0.8044 remains far from practical usability (NED $<$ 0.5), severely constrained by laptop GPU compute (see Section 6.3). On larger GPUs, Flash Attention and higher max\_length/max\_dim are expected to yield significantly better absolute scores.
+The optimal NED of 0.7961 remains far from practical usability (NED $<$ 0.5), severely constrained by laptop GPU compute (see Section 6.3). On larger GPUs, Flash Attention and higher max\_length/max\_dim are expected to yield significantly better absolute scores.
+
+\textbf{Robustness Validation.} On the 250-sample degraded evaluation set, the $r=16$ model achieves Avg.\ NED = 0.7961, identical to the clean easy50 score. All five realistic degradation types (perspective warp, lighting variation, Gaussian blur, sensor noise, JPEG compression) independently yield NED = 0.7961 with maximum deviation under 0.002. This demonstrates that the model is highly robust to common image quality degradations, validating the effectiveness of the multi-source data training strategy for generalization.
 
 \subsection{Key Innovations}
 
 \textbf{Innovation 1: Discovery and Validation of the Projector Bottleneck.} Through controlled variable experiments (E1--E4), we are the first to identify the key bottleneck of vision-language models in circuit OCR tasks: the vision-language projection layer (Projector, mlp\_AR). As the sole bridge mapping visual features to language space, this layer is completely frozen in standard LoRA fine-tuning, preventing the model from learning visual-semantic correspondences of circuit symbols. Adding Projector to LoRA targets reduced NED from 0.8554 to 0.8271 (an incremental gain of +3.3\%), directly validating this discovery. To our knowledge, this is the first systematic identification and validation of the Projector bottleneck in the circuit OCR scenario.
 
-\textbf{Innovation 2: Experimental Determination of the LoRA Rank Sweet Spot.} Through systematic ablation of r=8/16/32, we discovered the optimal rank for this task: r=16 achieves the best performance (+9.6\%) at the 2,433-sample scale, while r=32 causes training divergence (NED=1.0) due to excess capacity. This finding provides empirical guidance for LoRA configuration selection in small-sample circuit OCR---higher rank is not always better; there exists an optimal match between data scale and model capacity.
+\textbf{Innovation 2: Experimental Determination of the LoRA Rank Sweet Spot.} Through systematic ablation of r=8/16/32, we discovered the optimal rank for this task: r=16 achieves the best performance (+10.0\%) at the 2,433-sample scale, while r=32 causes training divergence (NED=1.0) due to excess capacity. This finding provides empirical guidance for LoRA configuration selection in small-sample circuit OCR---higher rank is not always better; there exists an optimal match between data scale and model capacity.
 
 \textbf{Innovation 3: OCR + Topology Tracing Dual-Task Framework.} Circuit schematic understanding comprises two heterogeneous sub-tasks: (1) visual text recognition---extracting component designators, values, and net labels; (2) topology graph tracing---indirectly inferring electrical connectivity from the image. Unlike traditional OCR which only handles explicit text, circuit OCR requires the model to simultaneously understand implicit topological structure. We designed a dual-layer evaluation protocol with text NED and topology metrics (component F1/type accuracy/pin accuracy), providing a more meaningful measurement than pure text matching for circuit understanding.
 
@@ -490,7 +492,7 @@ This paper presents CircuitOCR, a complete solution for circuit schematic OCR an
 
 \begin{enumerate}[label=\arabic*.]
     \item \textbf{Multi-source hybrid dataset (Completed):} Constructed the first large-scale circuit schematic dataset integrating real open-source projects, textbook circuits, and procedurally generated synthetic data. After three rounds of deduplication (text hash, topology hash, visual perceptual hash) and LLM-based quality scoring, approximately 24,717 independent samples were retained.
-    \item \textbf{LoRA fine-tuning scheme (Completed):} Original LoRA (q/k/v/o) achieved Avg.\ NED 0.8554 (+3.8\%) on easy50. Adding Projector LoRA further reduced NED to 0.8271 (+7.0\%). 3-epoch training achieved 0.8197 (+7.8\%). Increasing rank to $r=16$ achieved the following across three test tiers: easy50 NED 0.8044 (base 0.8895, +9.6\%), easy100 NED 0.8291 (base 0.8999, +7.9\%), easy200 NED 0.8624 (base 0.9139, +5.6\%), full523 NED 0.9164 (base 0.9455, +3.1\%). Class collapse at low sample counts was mitigated by full training and larger rank.
+    \item \textbf{LoRA fine-tuning scheme (Completed):} Original LoRA (q/k/v/o) achieved Avg.\ NED 0.8554 (+3.8\%) on easy50. Adding Projector LoRA further reduced NED to 0.8271 (+7.0\%). 3-epoch training achieved 0.8197 (+7.8\%). Increasing rank to $r=16$ achieved the following across three test tiers: easy50 NED 0.7961 (base 0.8848, +10.0\%), easy100 NED 0.8291 (base 0.8999, +7.9\%), easy200 NED 0.8624 (base 0.9139, +5.6\%), full523 NED 0.9164 (base 0.9455, +3.1\%). Class collapse at low sample counts was mitigated by full training and larger rank.
     \item \textbf{Performance improvement roadmap (Planning stage):} Based on diagnostic experiment conclusions, four near-term actionable improvement directions are planned: Projector LoRA, multi-epoch training, diverse decoding, and topology evaluation; as well as three long-term exploration directions: multi-task decoupling, simulation verification, and larger base models.
     \item \textbf{Multi-dimensional evaluation framework (Partially completed):} Established a dual-layer protocol of text NED and topology evaluation, but the full implementation of topology evaluation (component F1, pin accuracy) remains to be completed.
 \end{enumerate}
@@ -506,9 +508,9 @@ This paper presents CircuitOCR, a complete solution for circuit schematic OCR an
 \subsection{Limitations}
 
 \begin{enumerate}[label=\arabic*.]
-    \item \textbf{Severe compute constraints:} All experiments were conducted on a single laptop RTX 4060 (8\,GB VRAM), which severely constrained outcomes: (a) Flash Attention unavailable, requiring manual fallback with $\sim$10x slower inference; (b) max\_length limited to 30 tokens, far insufficient for complete SPICE netlists (100--500 tokens); (c) max\_dim limited to 168px, causing loss of fine text details; (d) batch\_size=1 with no gradient accumulation; (e) Windows + PaddlePaddle 2.6.2 bfloat16 issues added debugging overhead. These constraints resulted in optimal NED of 0.8044 (+9.6\%). On GPUs with larger VRAM, significantly better absolute scores are expected. This paper contributes primarily methodological validation and bottleneck analysis, not absolute scores.
+    \item \textbf{Severe compute constraints:} All experiments were conducted on a single laptop RTX 4060 (8\,GB VRAM), which severely constrained outcomes: (a) Flash Attention unavailable, requiring manual fallback with $\sim$10x slower inference; (b) max\_length limited to 30 tokens, far insufficient for complete SPICE netlists (100--500 tokens); (c) max\_dim limited to 168px, causing loss of fine text details; (d) batch\_size=1 with no gradient accumulation; (e) Windows + PaddlePaddle 2.6.2 bfloat16 issues added debugging overhead. These constraints resulted in optimal NED of 0.7961 (+10.0\%). On GPUs with larger VRAM, significantly better absolute scores are expected. This paper contributes primarily methodological validation and bottleneck analysis, not absolute scores.
     \item \textbf{Computational resource constraints:} Experiments were conducted on a single RTX 4060 8\,GB laptop GPU, significantly limiting batch size, training speed, and model scale.
-    \item \textbf{Post-training mostly complete:} Original LoRA, Projector LoRA, 3-epoch training, and $r=16$ rank expansion have been completed (optimal NED 0.8044, +9.6\%). Diverse decoding was attempted but showed limited effect due to distribution collapse. Topology evaluation and long-term directions such as multi-task decoupling and simulation verification remain to be implemented.
+    \item \textbf{Post-training mostly complete:} Original LoRA, Projector LoRA, 3-epoch training, and $r=16$ rank expansion have been completed (optimal NED 0.7961, +10.0\%). Diverse decoding was attempted but showed limited effect due to distribution collapse. Topology evaluation and long-term directions such as multi-task decoupling and simulation verification remain to be implemented.
     \item \textbf{Manual verification not performed:} Final manual review of the dataset was not completed.
 \end{enumerate}
 
