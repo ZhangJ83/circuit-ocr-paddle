@@ -33,45 +33,59 @@
 \@writefile{toc}{\contentsline {paragraph}{数据集划分与 PaddleOCR-VL SFT 格式转换}{5}{section*.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{数据集分层层面}{5}{section*.7}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}数据分布与统计}{5}{subsection.3.3}\protected@file@percent }
-\citation{hu2021lora}
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces 数据集构成与来源统计}}{6}{table.caption.8}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
 \newlabel{tab:dataset}{{1}{6}{数据集构成与来源统计}{table.caption.8}{}}
 \newlabel{tab:dataset@cref}{{[table][1][]1}{[1][5][]6}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}数据增强策略}{6}{subsection.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}模型微调与性能提升路线}{6}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}模型微调}{6}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}性能提升路线：从 3.8\% 到 9.6\% 的验证与后续方向}{6}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}已识别的瓶颈}{6}{subsubsection.4.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}改进方案（在当前硬件上已大部分验证）}{7}{subsubsection.4.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.3}长期方向（需要更多资源）}{7}{subsubsection.4.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}实验评估}{8}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}实验设置}{8}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}基座模型基准测试}{8}{subsection.5.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces easy50 基准测试完整对比（max\_length=30）}}{8}{table.caption.9}\protected@file@percent }
-\newlabel{tab:baseline}{{2}{8}{easy50 基准测试完整对比（max\_length=30）}{table.caption.9}{}}
-\newlabel{tab:baseline@cref}{{[table][2][]2}{[1][8][]8}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}LoRA 微调实验结果}{9}{subsection.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}性能瓶颈排查实验}{9}{subsection.5.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 性能瓶颈排查实验设计与结果}}{9}{table.caption.10}\protected@file@percent }
-\newlabel{tab:ablation}{{3}{9}{性能瓶颈排查实验设计与结果}{table.caption.10}{}}
-\newlabel{tab:ablation@cref}{{[table][3][]3}{[1][9][]9}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}拓扑评估（设计阶段）}{9}{subsection.5.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 训练超参数与系统配置}}{10}{table.caption.11}\protected@file@percent }
-\newlabel{tab:hparams}{{4}{10}{训练超参数与系统配置}{table.caption.11}{}}
-\newlabel{tab:hparams@cref}{{[table][4][]4}{[1][9][]10}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}实证分析}{10}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}基座模型失效模式分析}{10}{subsection.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}微调对输出的改变——正面效果与当前局限}{10}{subsection.6.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces $r=16$ Projector LoRA 与基座模型在各测试层级的对比}}{11}{table.caption.12}\protected@file@percent }
-\newlabel{tab:tiers}{{5}{11}{$r=16$ Projector LoRA 与基座模型在各测试层级的对比}{table.caption.12}{}}
-\newlabel{tab:tiers@cref}{{[table][5][]5}{[1][11][]11}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}主要创新点}{12}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}数据集的贡献}{12}{subsection.6.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}总结与局限性}{12}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}主要贡献与当前进展}{12}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}已识别的问题与教训}{13}{subsection.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}局限性}{13}{subsection.7.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces 数据集来源一：Open Schematics——真实开源硬件项目原理图。来自 GitHub/KiCad 社区的 8,450 张实物原理图，涵盖消费电子、工控、开源硬件等多样化设计，采用真实世界元件命名（如 ATMEGA328P、TPS5430）。}}{6}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:dataset_oss}{{1}{6}{数据集来源一：Open Schematics——真实开源硬件项目原理图。来自 GitHub/KiCad 社区的 8,450 张实物原理图，涵盖消费电子、工控、开源硬件等多样化设计，采用真实世界元件命名（如 ATMEGA328P、TPS5430）。}{figure.caption.9}{}}
+\newlabel{fig:dataset_oss@cref}{{[figure][1][]1}{[1][5][]6}{}{}{}}
+\citation{hu2021lora}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces 数据集来源二：Masala-CHAI——电子教材电路图。来自教科书和教学材料的 7,500 张电路图，每张直接配有标准 Spice 网表真值，覆盖模拟、数字、混合信号等教学场景。}}{7}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:dataset_masala}{{2}{7}{数据集来源二：Masala-CHAI——电子教材电路图。来自教科书和教学材料的 7,500 张电路图，每张直接配有标准 Spice 网表真值，覆盖模拟、数字、混合信号等教学场景。}{figure.caption.10}{}}
+\newlabel{fig:dataset_masala@cref}{{[figure][2][]2}{[1][5][]7}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}数据增强策略}{7}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}模型微调与性能提升路线}{7}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}模型微调}{7}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}性能提升路线：从 3.8\% 到 9.6\% 的验证与后续方向}{7}{subsection.4.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces 数据集来源三：程序化合成渲染图。通过 Python 脚本随机生成约 14,000 张原理图渲染图，覆盖模拟/数字/混合/电源四大类电路。每张图施加 5 种退化增强（纸张老化、扫描噪点、透视变形、手写标注、低分辨率），标注精度 100\%。}}{8}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:dataset_synth}{{3}{8}{数据集来源三：程序化合成渲染图。通过 Python 脚本随机生成约 14,000 张原理图渲染图，覆盖模拟/数字/混合/电源四大类电路。每张图施加 5 种退化增强（纸张老化、扫描噪点、透视变形、手写标注、低分辨率），标注精度 100\%。}{figure.caption.11}{}}
+\newlabel{fig:dataset_synth@cref}{{[figure][3][]3}{[1][5][]8}{}{}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}已识别的瓶颈}{8}{subsubsection.4.2.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces 测试集样本。从 3,707 个测试样本中按标注长度划分为四个梯度层级：easy50（27--109 字符）、easy100（27--163 字符）、easy200（27--296 字符）和 full523（全部 523 样本），支持系统性的模型能力评估。}}{9}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:dataset_test}{{4}{9}{测试集样本。从 3,707 个测试样本中按标注长度划分为四个梯度层级：easy50（27--109 字符）、easy100（27--163 字符）、easy200（27--296 字符）和 full523（全部 523 样本），支持系统性的模型能力评估。}{figure.caption.12}{}}
+\newlabel{fig:dataset_test@cref}{{[figure][4][]4}{[1][5][]9}{}{}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}改进方案（在当前硬件上已大部分验证）}{9}{subsubsection.4.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.3}长期方向（需要更多资源）}{10}{subsubsection.4.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}实验评估}{10}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}实验设置}{10}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}基座模型基准测试}{10}{subsection.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces easy50 基准测试完整对比（max\_length=30）}}{11}{table.caption.13}\protected@file@percent }
+\newlabel{tab:baseline}{{2}{11}{easy50 基准测试完整对比（max\_length=30）}{table.caption.13}{}}
+\newlabel{tab:baseline@cref}{{[table][2][]2}{[1][10][]11}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}LoRA 微调实验结果}{11}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}性能瓶颈排查实验}{11}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}拓扑评估（设计阶段）}{11}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}实证分析}{11}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}基座模型失效模式分析}{11}{subsection.6.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 性能瓶颈排查实验设计与结果}}{12}{table.caption.15}\protected@file@percent }
+\newlabel{tab:ablation}{{3}{12}{性能瓶颈排查实验设计与结果}{table.caption.15}{}}
+\newlabel{tab:ablation@cref}{{[table][3][]3}{[1][11][]12}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}微调对输出的改变——正面效果与当前局限}{12}{subsection.6.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 训练超参数与系统配置}}{13}{table.caption.16}\protected@file@percent }
+\newlabel{tab:hparams}{{4}{13}{训练超参数与系统配置}{table.caption.16}{}}
+\newlabel{tab:hparams@cref}{{[table][4][]4}{[1][11][]13}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces $r=16$ Projector LoRA 与基座模型在各测试层级的对比}}{14}{table.caption.17}\protected@file@percent }
+\newlabel{tab:tiers}{{5}{14}{$r=16$ Projector LoRA 与基座模型在各测试层级的对比}{table.caption.17}{}}
+\newlabel{tab:tiers@cref}{{[table][5][]5}{[1][14][]14}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}主要创新点}{14}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}数据集的贡献}{15}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}总结与局限性}{15}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}主要贡献与当前进展}{15}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}已识别的问题与教训}{15}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}局限性}{16}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}展望}{16}{subsection.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}开源贡献与社区价值}{16}{subsection.7.5}\protected@file@percent }
 \bibstyle{unsrtnat}
 \bibdata{references}
 \bibcite{cui2025paddleocrvl}{{1}{2025}{{Cui et~al.}}{{Cui, Sun, Liang, Gao, Zhang, Liu, Wang, Zhou, Liu, Lin, Zhang, Zhang, Zheng, Zhang, Zhang, Liu, Yu, and Ma}}}
@@ -79,8 +93,9 @@
 \bibcite{zhang2026circuitocrfinal}{{3}{2026}{{Zhang}}{{}}}
 \bibcite{openschematics2025}{{4}{2025}{{bshada}}{{}}}
 \bibcite{bhandari2025masalachai}{{5}{2025}{{Bhandari et~al.}}{{Bhandari, Bhat, He, Rahmani, Garg, and Karri}}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}展望}{14}{subsection.7.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}开源贡献与社区价值}{14}{subsection.7.5}\protected@file@percent }
 \bibcite{zhang2026circuitocr}{{6}{2026}{{Zhang and Chen}}{{}}}
 \bibcite{hu2021lora}{{7}{2021}{{Hu et~al.}}{{Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and Chen}}}
-\gdef \@abspage@last{15}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces 模型对比可视化。每行一个样本，从左至右依次为：原始原理图、标注真值（Ground Truth）、基座模型识别结果、$r=16$ LoRA微调后识别结果。基座模型输出为通用文本或重复token，LoRA微调后输出聚焦于电路域标签但存在塌缩现象。}}{18}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:model_comparison}{{5}{18}{模型对比可视化。每行一个样本，从左至右依次为：原始原理图、标注真值（Ground Truth）、基座模型识别结果、$r=16$ LoRA微调后识别结果。基座模型输出为通用文本或重复token，LoRA微调后输出聚焦于电路域标签但存在塌缩现象。}{figure.caption.14}{}}
+\newlabel{fig:model_comparison@cref}{{[figure][5][]5}{[1][10][]18}{}{}{}}
+\gdef \@abspage@last{18}
