@@ -67,8 +67,8 @@ def make_dataset_figure():
 
 def make_model_comparison():
     print('Generating model comparison...')
-    base_file = f'{DATASET_DIR}/results_base_easy50.jsonl'
-    r16_file = f'{DATASET_DIR}/results_easy50_r16e3.jsonl'
+    base_file = f'{DATASET_DIR}/results_base_easy50_final.jsonl'
+    r16_file = f'{DATASET_DIR}/results_r16_easy50_final.jsonl'
     for fp in [base_file, r16_file]:
         if not os.path.exists(fp): print(f'  MISSING: {fp}'); return
     with open(base_file, encoding='utf-8') as f:
