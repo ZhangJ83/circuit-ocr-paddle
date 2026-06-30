@@ -59,6 +59,62 @@ def apply_paddle_patches():
         import sys
         from types import ModuleType
         import paddle
+
+        # Patch 0: PySafeSlice.shape for safetensors compatibility (Paddle 3.0rc/beta)
+        try:
+            from safetensors import safe_open as _safe_open
+            # Trigger PySafeSlice type registration by opening any safetensors file,
+            # then patch the class to add .shape property
+            _orig_safe_open = _safe_open
+            def _patched_safe_open(*args, **kwargs):
+                result = _orig_safe_open(*args, **kwargs)
+                if len(result.keys()) > 0:
+                    sl = result.get_slice(list(result.keys())[0])
+                    if not hasattr(type(sl), 'shape'):
+                        type(sl).shape = property(lambda self: self.get_shape())
+                return result
+            import safetensors
+            safetensors.safe_open = _patched_safe_open
+        except Exception:
+            pass
+
+        # Patch 0.1: LocalSharedLayerDesc (Paddle 3.0 only, not in rc/beta)
+        try:
+            import paddle.distributed.fleet.meta_parallel as _mp
+            if not hasattr(_mp, 'LocalSharedLayerDesc') and hasattr(_mp, 'SharedLayerDesc'):
+                _mp.LocalSharedLayerDesc = _mp.SharedLayerDesc
+        except Exception:
+            pass
+
+        # Patch 0.2: swiglu (missing in Paddle 3.0 beta/rc)
+        try:
+            import paddle.nn.functional as _pF
+            if not hasattr(_pF, 'swiglu'):
+                def _swiglu_impl(x, gate=None):
+                    if gate is None:
+                        split_dim = x.shape[-1] // 2
+                        x_up, x_gate = x[..., :split_dim], x[..., split_dim:]
+                    else:
+                        x_gate, x_up = gate, x
+                    return _pF.silu(x_gate) * x_up
+                _pF.swiglu = _swiglu_impl
+        except Exception:
+            pass
+
+        # Patch 0.3a: missing FLAGS_enable_auto_parallel_align_mode (Paddle 3.0 beta/rc bug)
+        try:
+            paddle.set_flags({'FLAGS_enable_auto_parallel_align_mode': False})
+        except Exception:
+            pass
+
+        # Patch 0.3: fused_rms_norm_ext (missing in Paddle 3.0 beta/rc)
+        try:
+            import paddle.incubate.nn.functional as _incF
+            if not hasattr(_incF, 'fused_rms_norm_ext') and hasattr(_incF, 'fused_rms_norm'):
+                _incF.fused_rms_norm_ext = _incF.fused_rms_norm
+        except Exception:
+            pass
+
         # Handle missing flex_checkpoint in Paddle 2.6.x (paddleformers needs it)
         try:
             import paddle.distributed.flex_checkpoint.dcp.sharded_weight
@@ -129,10 +185,15 @@ def apply_paddle_patches():
         # Patch get_flags and set_flags to bypass non-existent FLAGS_flash_attn_version
         old_get_flags = paddle.base.framework.get_flags
         def patched_get_flags(flags):
+            # Handle both list and single-string arguments
+            if isinstance(flags, str):
+                flags = [flags]
             res = {}
             for f in flags:
                 if f == "FLAGS_flash_attn_version":
                     res[f] = 2
+                elif f == "FLAGS_enable_auto_parallel_align_mode":
+                    res[f] = False
                 else:
                     try:
                         res[f] = old_get_flags([f])[f]
@@ -312,6 +373,10 @@ def parse_args():
     parser.add_argument("--limit", type=int, default=None, help="Limit number of processed samples (for dry run)")
     parser.add_argument("--resume", action="store_true", default=False,
                         help="Resume from existing output file; skip already-processed samples")
+    parser.add_argument("--manual_decode", action="store_true", default=False,
+                        help="Always use manual decode (bypass model.generate() for segfault-prone envs)")
+    parser.add_argument("--unordered", action="store_true", default=False,
+                        help="Sort lines before NED — compare content not reading order")
     parser.add_argument("--do_sample", action="store_true", default=False,
                         help="Enable sampling (instead of greedy decode)")
     parser.add_argument("--temperature", type=float, default=0.7,
@@ -323,13 +388,17 @@ def parse_args():
     return parser.parse_args()
 
 
-def compute_metrics(predictions, references):
+def compute_metrics(predictions, references, unordered=False):
     total_ned = 0
     num_samples = len(predictions)
     if num_samples == 0:
         return 0.0
 
     for pred, ref in zip(predictions, references):
+        if unordered:
+            # Sort lines alphabetically — compare content, not reading order
+            pred = "\n".join(sorted(pred.split("\n")))
+            ref = "\n".join(sorted(ref.split("\n")))
         dist = Levenshtein.distance(pred, ref)
         max_len = max(len(pred), len(ref))
         if max_len > 0:
@@ -661,7 +730,7 @@ def evaluate_paddleocr_vl(args):
             image = Image.open(img_resolved_path).convert("RGB")
             # Resize large images to avoid Paddle GPU crash on 8GB VRAM
             w, h = image.size
-            max_dim = 768
+            max_dim = 384
             if w > max_dim or h > max_dim:
                 scale = max_dim / max(w, h)
                 image = image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
@@ -691,6 +760,8 @@ def evaluate_paddleocr_vl(args):
             if args.do_sample:
                 raise RuntimeError("use manual sample path")
             try:
+                if args.manual_decode:
+                    raise RuntimeError("--manual_decode: bypass model.generate()")
                 with paddle.no_grad():
                     outputs = model.generate(**inputs, generation_config=generation_config, max_new_tokens=args.max_length)
                     # Handle tuple output (ids_tensor, ...) or direct tensor
@@ -915,7 +986,7 @@ def main():
 
     predictions = [res["prediction"] for res in all_results]
     references = [res["label"] for res in all_results]
-    avg_ned = compute_metrics(predictions, references)
+    avg_ned = compute_metrics(predictions, references, unordered=args.unordered)
 
     # Metrics report (output file already written incrementally)
     print("\n" + "="*40)
