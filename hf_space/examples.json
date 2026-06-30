@@ -1,0 +1,44 @@
+[
+  {
+    "image": ".\\data/test/11.jpg",
+    "gt": "M0\nnmos4\nVDD\nVDD\nVIN1\nVSS",
+    "base_pred": "(a)\n\nI_D\n\n2 V\n\nV_X",
+    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
+    "v5_pred": "I_D\n+1.2 V\nM₁\nV_X\n2 V\n+"
+  },
+  {
+    "image": ".\\data/test/Mark-MDO47_Skull-Project.png",
+    "gt": "U2\n~\nA1\nArduino_USB\nR4\n3K\nU3\n~\nR3\n7K",
+    "base_pred": "Option Microwave with Two Eyes\nNOTE: hallowing as from display side (not connector side)\ngithub.com/Mark-MKD",
+    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
+    "v5_pred": "Option | Microwave with two eyes | Option PIR with one eye\nNOTS | Noting by a front display"
+  },
+  {
+    "image": ".\\data/test/digital_simple_0000.png",
+    "gt": "C1\n10uF\nC2\n1uF\nR1\n100\nF1\n2A\nC3\n100nF",
+    "base_pred": "Feature | Description\n  - Front-Back | Front-Back\n  - Back-Back | Back-Back\n  - Back-Back |",
+    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
+    "v5_pred": "ESP32-WROOMU4\nU5\nU6\nU7\nU8\nU9\nU10\nU11\nU12\nU13\nU14\nU15\nU16\nU17\nU18"
+  },
+  {
+    "image": ".\\data/test/rh1tech_echo.png",
+    "gt": "VBUS\nJ3\nD-SUB 9 Male\nGND\nC10\n100n\nGND",
+    "base_pred": "(O)\n(O)\n(O)\n(O)\n(O)\n(O)\n(O)\n(O",
+    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
+    "v5_pred": "Category | Value\nTotal | 198,240\nTotal | 10,100\nTotal | 100,000"
+  },
+  {
+    "image": ".\\data/test/analog_simple_v2_0018.png",
+    "gt": "R1\n22k\nR2\n100\nD1\n1N4007\nL1\n100uH\nR3\n470",
+    "base_pred": "\\[\\frac{1}{100000000000000000000000",
+    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
+    "v5_pred": "R1\n22k\nR2\n100\nD1\nLED\nBT1\nBattery_Cell\nR2\nR\nD2\nLED"
+  },
+  {
+    "image": ".\\data/test/Pari55051_cat-pcb.png",
+    "gt": "D1\nLED\nBT1\nBattery_Cell\nR1\nR\nR2\nR\nD2\nLED",
+    "base_pred": "语言 | 最大值 | 最大值\nPython | 最大值 | 最大值\nC# | 最大值 | 最大值",
+    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
+    "v5_pred": "D1\nLED\nBT1\nBattery_Cell\nR1\n10k\nR2\n10k\nD2\nLED"
+  }
+]
