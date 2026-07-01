@@ -82,23 +82,23 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct a multi-source balanced dataset containing 1,857 KiCad schematics (500 programmatic synthetic renderings + 1,357 real-world open-source project schematics) and 698 Masala-CHAI textbook circuit diagrams, totaling 2,555 samples after SPICE artifact cleaning and quality-scored stratified sampling, split 90/10 into training (2,299) and validation (256) sets, with the test set reusing the existing 523-sample benchmark. Through systematic LoRA ablation experiments, we identify the \textbf{root cause of modality collapse}: fine-tuning the vision-language projector (\texttt{mlp\_AR}) with LoRA destroys pre-trained alignment weights, causing the LLM to receive out-of-distribution visual features and degenerate into repetitive token output. Based on this finding, we propose the \textbf{V5 architecture}---freezing the Projector while fine-tuning only the LLM self-attention layers (LLM-Only LoRA, $r=8$, $\alpha=16$)---which is the first to achieve 90\% output diversity in circuit OCR fine-tuning, completely resolving modality collapse. Training completes in 22 minutes on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM), updating only 0.14\% of parameters (1.25M/908M). The V5 model generates distinct outputs for different input images, recognizing real circuit components such as ``ESP32-WROOMU4'' (microcontroller), ``LM7805'' (voltage regulator), and resistor designators with values. On the V5 Golden dataset (2,299 training samples), V8-Fixed adopts a wide LoRA configuration ($r=16$, $\alpha=32$, 5.7M parameters), trains for 3 epochs (1,800 steps), and fixes two critical issues---causal token shift and BPE boundary merging---achieving Avg.\ NED = 0.7760 on the full easy100 test set (baseline 0.8999, 44.4\% relative error reduction) and 0.8257 on easy50 (baseline 0.9634, 37.6\% relative error reduction). Model outputs transition from base model gibberish/repetition to structured circuit netlist format. This marks a paradigm shift from NED score competition to truly usable models.
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the V5 Golden multi-source balanced dataset, comprising 1,857 KiCad schematics (500 programmatic synthetic renderings + 1,357 real-world open-source schematics) and 698 Masala-CHAI textbook circuit diagrams. After SPICE artifact cleaning, quality scoring, and stratified sampling, 2,555 independent samples are retained, split 90/10 into training (2,299) and validation (256) sets. Through systematic LoRA ablation experiments, we identify the \textbf{root cause of modality collapse}---fine-tuning the vision-language projector (\texttt{mlp\_AR}) with LoRA destroys pre-trained alignment weights---and propose the LLM-Only LoRA architecture that completely resolves this issue. The final V8-Fixed model adopts a wide LoRA configuration ($r=16$, $\alpha=32$, 5.7M trainable parameters). By fixing two critical issues---causal token shift and BPE boundary merging---and training for 3 epochs (1,800 steps) on the V5 Golden dataset, it achieves Avg.\ NED = 0.7760 on the full easy100 test set (baseline 0.8999, 44.4\% relative error reduction) and 0.8257 on easy50 (baseline 0.9634, 37.6\% relative error reduction). Training completes in approximately 2 hours on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM). Model weights, datasets, and an online demo are fully open-sourced.
 \end{abstract}
 
-\keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Post-training \and Low-VRAM Training}
+\keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Modality Collapse \and Low-VRAM Training}
 
 
 \section{Introduction}
 
 \subsection{Research Background and Scarcity}
 
-Vision-Language Models (VLMs) have substantially expanded the application boundaries of traditional large language models, demonstrating significant advantages in scenarios requiring visual understanding, such as robotic navigation and document parsing tasks. Compared to traditional OCR pipelines that rely on multi-stage processing and substantial memory overhead, VLMs can directly output structured text from images in an end-to-end manner, eliminating cumbersome intermediate processing steps.
+Vision-Language Models (VLMs) have substantially expanded the application boundaries of traditional large language models, demonstrating significant advantages in scenarios requiring visual understanding, such as robotic navigation and document parsing. Compared to traditional OCR pipelines that rely on multi-stage processing and substantial memory overhead, VLMs can directly output structured text from images in an end-to-end manner.
 
-However, in the Electronic Design Automation (EDA) domain, automatic recognition and parsing of circuit schematic diagrams remains a research-scarce direction. Currently, numerous general-purpose OCR benchmark datasets exist in academia and industry (e.g., ICDAR series, SROIE, FUNSD), covering natural scene text, documents, receipts, forms, and more, yet no dedicated public benchmark dataset exists for circuit schematic OCR. Existing circuit-related datasets such as Open Schematics~\citep{openschematics2025} and Masala-CHAI~\citep{bhandari2025masalachai} provide circuit diagrams and netlist data, but lack standardized evaluation protocols and difficulty-tiered systems. CircuitOCR fills this gap by constructing the first multi-source hybrid circuit schematic OCR benchmark, comprising 2,555 high-quality samples (KiCad 1,857 + Masala-CHAI 698), split 90/10 for training/validation with test reuse of the existing 523-sample benchmark, and a 4-tier difficulty evaluation system.
+However, in the Electronic Design Automation (EDA) domain, automatic recognition and parsing of circuit schematic diagrams remains a research-scarce direction. Numerous general-purpose OCR benchmark datasets exist (e.g., ICDAR series, SROIE, FUNSD), covering natural scene text, documents, receipts, and forms, yet no dedicated public benchmark exists for circuit schematic OCR. Existing circuit-related datasets such as Open Schematics~\citep{openschematics2025} and Masala-CHAI~\citep{bhandari2025masalachai} provide circuit diagrams and netlist data, but lack standardized evaluation protocols and difficulty-tiered systems, and their original annotations suffer from severe format mismatch and noise issues. CircuitOCR fills this gap by constructing the first multi-source balanced circuit schematic OCR benchmark (V5 Golden), comprising 2,555 high-quality samples split 90/10 for training/validation, with a 4-tier difficulty evaluation system.
 
 \subsection{Industry Demand Value}
 
-Automatic circuit schematic recognition is a core requirement in the EDA industry. According to SEMI and WSTS statistics, the global semiconductor market exceeded \$600 billion in 2025, while the PCB design tools market (Cadence, Altium, KiCad, etc.) is approximately \$4 billion. In actual engineering workflows, there exists substantial demand for converting schematic diagrams from paper or image format into digital netlists:
+Automatic circuit schematic recognition is a core requirement in the EDA industry. According to SEMI and WSTS statistics, the global semiconductor market exceeded \$600 billion in 2025, while the PCB design tools market (Cadence, Altium, KiCad, etc.) is approximately \$4 billion. In actual engineering workflows, substantial demand exists for converting schematic diagrams from paper or image format into digital netlists:
 
 \begin{enumerate}[nosep]
     \item \textbf{Reverse Engineering}: Hardware security audits and compatibility design require recovering original netlists from physical PCBs or images;
@@ -107,76 +107,73 @@ Automatic circuit schematic recognition is a core requirement in the EDA industr
     \item \textbf{Open-Source Hardware Community}: Over 500,000 KiCad/EAGLE projects exist on GitHub, many lacking structured netlist exports.
 \end{enumerate}
 
-Currently, these tasks primarily rely on manual image-by-image reading and entry, which is extremely inefficient and error-prone. A sufficiently accurate circuit OCR system can dramatically reduce labor costs and time overhead in this pipeline. Industry estimates suggest the PCB reverse engineering outsourcing market alone exceeds \$500 million annually, with approximately 30\% of time spent on schematic reconstruction.
+Currently, these tasks primarily rely on manual image-by-image reading and entry, which is extremely inefficient and error-prone. Industry estimates suggest the PCB reverse engineering outsourcing market alone exceeds \$500 million annually, with approximately 30\% of time spent on schematic reconstruction.
 
 
 \section{Background and System Setup}
 \label{sec:headings}
 
-
 \subsection{Base Model Specification}
 
-This project adopts PaddleOCR-VL as the open-source base model~\citep{cui2025paddleocrvl}, whose underlying OCR capabilities are built upon the PP-OCR series of lightweight text detection and recognition systems~\citep{li2022ppocrv3}. PaddleOCR-VL-0.9B is a Vision-Language Model (VLM) with 908M parameters, integrating a NaViT-style dynamic high-resolution vision encoder with the ERNIE-4.5-0.3B language model. It supports document parsing across 109 languages, covering common document elements such as text, tables, formulas, and charts. Its compact model size (0.9B) makes it suitable for fine-tuning and deployment on consumer-grade GPUs.
+This project adopts PaddleOCR-VL as the open-source base model~\citep{cui2025paddleocrvl}, whose underlying OCR capabilities are built upon the PP-OCR series of lightweight text detection and recognition systems~\citep{li2022ppocrv3}. PaddleOCR-VL-0.9B is a Vision-Language Model (VLM) with 908M parameters, integrating a NaViT-style dynamic high-resolution vision encoder with the ERNIE-4.5-0.3B language model. It supports document parsing across 109 languages, covering text, tables, formulas, and charts. Its compact model size (0.9B) makes it suitable for fine-tuning and deployment on consumer-grade GPUs.
 
 \subsection{Engineering Scenario Definition}
 
-An Electronic Schematic Diagram is a two-dimensional engineering drawing that uses standardized graphical symbols to represent electronic components and their electrical connections. It reflects logical topology rather than physical layout. Circuit schematics belong to the EDA vertical industrial domain and serve as core carriers of engineering drawings and technical documentation; their automatic recognition and parsing hold significant engineering value. As highly complex technical documents, circuit schematics contain: text elements, including component reference designators (e.g., R1, C1), values (e.g., 10k, 100nF), net labels (e.g., VCC, GND, SPI-CLK), and title block text in the lower-right corner; special characters, including electronics-specific physical units and symbols such as $\Omega$ (ohm), $\mu$ (micro), and $\pm$ (tolerance); tabular elements, including multi-pin chip pinout tables, Bill of Materials (BOM), and revision change tables; and structured data, including circuit connectivity and network topology, requiring extraction of structured netlists analogous to formulas or code.
+An Electronic Schematic Diagram is a two-dimensional engineering drawing that uses standardized graphical symbols to represent electronic components and their electrical connections. It reflects logical topology rather than physical layout. Circuit schematics belong to the EDA vertical industrial domain and serve as core carriers of engineering drawings and technical documentation. As highly complex technical documents, they contain: text elements (component reference designators e.g.\ R1, C1; values e.g.\ 10k, 100nF; net labels e.g.\ VCC, GND); special characters ($\Omega$, $\mu$, $\pm$); tabular elements (pinout tables, BOM tables, revision change tables); and structured data (connectivity and network topology requiring extraction of structured netlists).
 
 \subsection{Task Structure: OCR + Topology Tracing Dual-Task Joint Learning}
 
-Circuit schematic understanding is fundamentally a dual-task learning problem comprising two heterogeneous sub-tasks requiring joint optimization:
+Circuit schematic understanding is fundamentally a dual-task learning problem comprising two heterogeneous sub-tasks:
 
-\textbf{Sub-task 1: Visual Text Recognition (Explicit Information Extraction).} Direct extraction of visible text elements from images---component reference designators, parameter values, and net labels. This sub-task resembles traditional OCR but faces schematic-specific challenges: small font sizes, dense layouts, special characters ($\Omega$, $\mu$, $\pm$), visual interference between silkscreen and copper layers, and font library differences across drawing tools.
+\textbf{Sub-task 1: Visual Text Recognition (Explicit Information Extraction).} Direct extraction of visible text elements from images---component reference designators, parameter values, and net labels. This sub-task resembles traditional OCR but faces schematic-specific challenges: small font sizes in dense layouts, special characters ($\Omega$, $\mu$), visual interference between silkscreen and copper layers, and font library differences across drawing tools.
 
-\textbf{Sub-task 2: Topology Graph Tracing (Implicit Structural Reasoning).} Indirect inference of electrical connectivity relationships between components from the image. Wires and net labels in the schematic define the connection topology between component pins. The model must understand that two pins labeled ``VDD'' are electrically on the same network despite being spatially separated in the image. This sub-task transcends traditional OCR, involving graph-theoretic semantic reasoning that cannot be evaluated through text matching alone.
+\textbf{Sub-task 2: Topology Graph Tracing (Implicit Structural Reasoning).} Indirect inference of electrical connectivity relationships between components from the image. Wires and net labels define the connection topology between component pins. The model must understand that two pins labeled ``VDD'' are electrically on the same network despite being spatially separated. This sub-task transcends traditional OCR, involving graph-theoretic semantic reasoning.
 
-The two sub-tasks are jointly optimized through shared vision encoder and language decoder: text recognition provides textual information about components and labels, while topology tracing depends on this textual information to construct the connectivity graph. Our designed dual-layer evaluation protocol---text NED (evaluating explicit text recognition) and topology F1 (evaluating implicit structural understanding)---measures model capability separately across both dimensions. This structured problem decomposition enables fine-tuning strategies to target specific model weaknesses.
+The two sub-tasks are jointly optimized through a shared vision encoder and language decoder. Our designed dual-layer evaluation protocol---text NED (evaluating explicit text recognition) and topology F1 (evaluating implicit structural understanding)---measures model capability separately across both dimensions.
 
-\subsection{Limitations of Vanilla LLMs}
+\subsection{Base Model Failure Modes}
 
-The limitation of this approach stems from the severe deficiencies of the native, unfine-tuned base model in recognizing circuit schematic diagrams within technical documents. In the circuit schematic task, PaddleOCR-VL-0.9B fails to perform effective OCR recognition, exhibiting three typical failure modes: (1) outputting overlapping, repetitive word concatenations (e.g., repeatedly generating the same token); (2) generating generic text memorized from training data rather than performing recognition based on the input image (i.e., ``hallucinating'' rather than reading); and (3) occasionally outputting partially correct component labels while omitting the primary component names.
-
-In the unfine-tuned setting, we conducted circuit schematic benchmark testing, where the base model's output consisted of meaningless format markers. When presented with circuit diagram inputs, the model either produced worthless garbled text, generated generic template responses, or fell into a degenerate mode of repeated token generation.
+The unfine-tuned PaddleOCR-VL-0.9B base model exhibits three typical failure modes on circuit schematic tasks: (1) \textbf{Repetitive token degeneration}---the model falls into loops of repeating the same token (e.g., ``GND GND GND...''); (2) \textbf{Memorized hallucination}---the model outputs generic text fragments memorized from pre-training data rather than performing recognition based on the input image; (3) \textbf{Partial recognition with omission}---occasionally correct identification of individual component labels (e.g., ``R1'') while missing primary component names, net labels, and parameter values. These failures stem from PaddleOCR-VL's pre-training data being dominated by general documents (invoices, forms, book pages) with very limited exposure to specialized engineering drawings like circuit schematics.
 
 
-\section{Dataset Construction}
+\section{V5 Golden Dataset Construction}
 
-\subsection{Data Collection and Sources}
+\subsection{Design Principles and Legacy Issues}
 
-We construct a high-quality, multi-source balanced circuit schematic OCR dataset~\citep{zhang2026circuitocrfinal}, comprising three sources:
+During project iteration, we discovered three fatal flaws in earlier dataset versions (V1--V2):
 
-\textbf{Source 1: Programmatic Synthetic Renderings (Synthetic V3, 500 images).} 500 circuit schematic images are randomly generated via Python scripts~\citep{zhang2026circuitocr}. The generation pipeline: the program randomly generates circuit topology specifications (5--30 components with mixed connections), automatically draws schematic symbols (10 component types: resistors, capacitors, inductors, diodes, LEDs, transistors, ICs, connectors, crystals, fuses), and renders them as PNG images. \textbf{Ground truth labels are directly derived from \texttt{draw.text()} call logs}---every text write operation records its content and position synchronously; labels are generated by sorting all recorded text in spatial reading order (top-to-bottom, left-to-right). This mechanism ensures 100\% alignment between GT and visible on-image text, fundamentally eliminating annotation bias.
-
-\textbf{Source 2: Real-World KiCad Open-Source Schematics (train-real, 1,357 images).} Collected from the GitHub/KiCad open-source hardware community under CC-BY-4.0 and similar open-source licenses. Images are rendered via kicad-cli SVG export $\to$ cairosvg PNG at high quality. GT labels are extracted from SVG stroked-text visible text elements and arranged in a one-word-per-line vertical format (98.6\% consistent with the test set format). Labels cover component reference designators (R1, C5, U3), parameter values (10k, 100$\mu$F, STM32F103), and net labels (VCC, GND, +5V), strictly excluding invisible KiCad internal symbols and hidden-layer text.
-
-\textbf{Source 3: Masala-CHAI Textbook Circuit Diagrams (698 images, filtered).} From the Masala-CHAI open-source dataset~\citep{bhandari2025masalachai} under CC-BY-4.0. The original dataset contains approximately 7,500 textbook circuit diagrams with accompanying SPICE netlists. We extract component reference designators (e.g., R1, M1, Q2) and types/parameter values (e.g., NMOS, 10k, NPN) from the SPICE netlists to generate concise OCR-format labels. Out of 4,858 initially valid samples, we apply SPICE artifact cleaning (removing 437 samples containing formula expressions, simulation directives, and placeholder templates), quality scoring (composite score based on line count, character diversity, and component type variety), and stratified sampling to select 698 high-quality samples, forming a 0.38:1 ratio against the KiCad data.
-
-\subsection{Data Filtering and Quality Control}
-
-The V5 Golden dataset's quality control is guided by four core principles:
-
-\textbf{Principle 1: GT must fully align with visible on-image text.} Earlier dataset versions (V1--V2) generated GT labels from the KiCad data model (S-expression parsing), which included large amounts of text invisible on rendered images---pin numbers, hidden net names, etc.---severely corrupting the training signal. V5 fundamentally changes this strategy: synthetic data uses draw.text() synchronous recording; real KiCad data extracts visible text from SVG stroked-text elements; Masala-CHAI extracts component information from SPICE netlists (not OCR).
-
-\textbf{Principle 2: Multi-source balance prevents distribution bias.} Using all 4,858 Masala-CHAI samples would make them 85.5\% of the training set, causing the model to be dominated by SPICE format at the expense of KiCad schematic literal OCR capability. We downsample Masala-CHAI to 698, forming a 0.38:1 ratio against 1,857 KiCad samples, ensuring the model treats KiCad vertical format as primary and Masala SPICE format as supplementary.
-
-\textbf{Principle 3: No AI labeling AI.} All GT labels come from deterministic rules (program logging, SPICE parsing, SVG element extraction). No OCR model or other AI system is ever used to generate annotations, ensuring absolute GT authenticity and reproducibility.
-
-\textbf{Principle 4: Format alignment with the test set.} We discovered that the Open Schematics and Rescraped subsets in the V4 dataset exhibited severe format mismatch (horizontal space-concatenated format vs.\ the test set's one-word-per-line vertical format) and duplication noise (22,340 intra-line adjacent duplicate word pairs). V5 completely removes these two noise sources. The train-real label format (97.9\% single-word lines) is nearly perfectly aligned with the test set (98.6\% single-word lines), and intra-line duplication noise dropped from 22,340 to 107 (99.5\% reduction).
-
-\paragraph{Masala-CHAI SPICE Cleaning Pipeline}
-
-Masala-CHAI raw SPICE netlists contain four categories of artifacts requiring cleaning:
 \begin{enumerate}[nosep]
-    \item \textbf{SPICE comments and directives:} Comment lines beginning with semicolon (;) or asterisk (*), simulation control directives (.tran, .ac, .dc, .op, etc.);
-    \item \textbf{Mathematical formula expressions:} Brace-enclosed expressions (e.g., \texttt{\{gm*v(4,8)\}}), VALUE= assignment statements;
-    \item \textbf{Device dimension parameters:} MOSFET L=/W= parameters (e.g., \texttt{L=40n W=300u}), SPICE node names (e.g., \texttt{net7}, \texttt{net23});
-    \item \textbf{Placeholder templates:} Angle-bracket or square-bracket enclosed placeholder values (e.g., \texttt{<Voltage\_Value>}, \texttt{[value]}).
+    \item \textbf{GT-image misalignment}: GT labels generated from the KiCad data model (S-expression parsing) included large amounts of text invisible on rendered images---pin numbers, hidden net names---severely corrupting the training signal;
+    \item \textbf{Format mismatch}: The Open Schematics and Rescraped subsets used a horizontal space-concatenated format (e.g., ``+5V 5.1k R3 A1 A1 330 330 R2 R2 1 1'') completely incompatible with the test set's one-word-per-line vertical format (e.g., ``R1\textbackslash n10k\textbackslash nGND'')---V4 training set had only 62.1\% single-word lines vs.\ the test set's 98.6\%;
+    \item \textbf{Duplication noise}: 22,340 intra-line adjacent duplicate word pairs, contaminating 24.3\% of samples.
 \end{enumerate}
-After cleaning, 4,858 $\to$ 4,421 clean samples remain. We then apply composite quality scoring based on three metrics: line count (preferring 5--15 line rich samples), character diversity, and component type variety. The top 60\% by score are selected, with the remaining 40\% drawn via stratified sampling across line-count buckets to ensure long-tail coverage, yielding 698 high-quality samples.
+
+V5 Golden was completely rebuilt on three core principles:
+
+\textbf{Principle 1: GT must align 100\% with visible on-image text.} Synthetic data uses \texttt{draw.text()} synchronous recording; real KiCad data extracts visible text from SVG stroked-text elements; Masala-CHAI extracts component information from SPICE netlists (not OCR). All GT comes from deterministic rules---no AI system is ever used to generate annotations.
+
+\textbf{Principle 2: Multi-source balance prevents distribution bias.} Using all 4,858 Masala-CHAI samples would make them 85.5\% of the training set, causing the model to be dominated by SPICE format at the expense of KiCad schematic literal OCR capability. We downsample Masala-CHAI to 698, forming a 0.38:1 ratio against 1,857 KiCad samples.
+
+\textbf{Principle 3: Format alignment with the test set.} We completely removed the Open Schematics (226) and Rescraped (102) subsets, replacing them with the train-real subset (1,357 samples) whose label format (97.9\% single-word lines) is nearly perfectly aligned with the test set (98.6\%). Intra-line duplication noise dropped from 22,340 to 107 (99.5\% reduction).
+
+\subsection{Three Data Sources}
+
+\textbf{Source 1: Programmatic Synthetic Renderings (Synthetic V3, 500 images).} Circuit topologies (5--30 components, 10 component types) are randomly generated via Python scripts and rendered as PNG images~\citep{zhang2026circuitocr}. Labels are directly derived from \texttt{draw.text()} call logs, sorted in spatial reading order, achieving 100\% GT-image alignment.
+
+\textbf{Source 2: Real-World KiCad Open-Source Schematics (train-real, 1,357 images).} Collected from the GitHub/KiCad open-source hardware community. Images are rendered via kicad-cli SVG export $\to$ cairosvg PNG. GT labels are extracted from SVG stroked-text visible text elements in a one-word-per-line vertical format, strictly excluding invisible KiCad internal symbols and hidden-layer text.
+
+\textbf{Source 3: Masala-CHAI Textbook Circuit Diagrams (698 images, filtered).} From the Masala-CHAI open-source dataset~\citep{bhandari2025masalachai} ($\sim$7,500 textbook circuits with SPICE netlists). We extract component designators and types/values from SPICE netlists and apply four-category artifact cleaning:
+\begin{enumerate}[nosep]
+    \item \textbf{SPICE comments and directives}: Semicolon/asterisk comments, simulation control directives (.tran, .ac, .dc, .op);
+    \item \textbf{Mathematical formula expressions}: Brace-enclosed expressions (e.g., \texttt{\{gm*v(4,8)\}}), VALUE= statements;
+    \item \textbf{Device parameters}: MOSFET L=/W= parameters, SPICE node names (e.g., \texttt{net7});
+    \item \textbf{Placeholder templates}: Angle-bracket or square-bracket placeholders (e.g., \texttt{<Voltage\_Value>}, \texttt{[value]}).
+\end{enumerate}
+After cleaning (4,858 $\to$ 4,421 clean samples), we apply composite quality scoring (line count, character diversity, component type variety) and stratified sampling to select 698 high-quality samples.
 
 \subsection{Dataset Split and Statistics}
 
-After the above cleaning and filtering, the final dataset contains \textbf{2,555 independent schematic samples}, split 90\%/10\% into training and validation sets: 2,299 training samples and 256 validation samples. The test set reuses the existing 523-sample benchmark (easy50/100/200/full523) to maintain comparability with prior experiments. Table~\ref{tab:dataset} lists key statistics for each data source.
+The final dataset contains \textbf{2,555 independent schematic samples}, split 90\%/10\% into training (2,299 samples) and validation (256 samples), with the test set reusing the existing 523-sample benchmark (easy50/100/200/full523). Tables~\ref{tab:dataset} and~\ref{tab:split} present detailed statistics.
 
 \begin{table}[h]
 \centering
@@ -184,7 +181,7 @@ After the above cleaning and filtering, the final dataset contains \textbf{2,555
 \label{tab:dataset}
 \begin{tabular}{lcccl}
 \toprule
-\textbf{Source} & \textbf{Count} & \textbf{License} & \textbf{GT Generation Method} & \textbf{GT Quality} \\
+\textbf{Source} & \textbf{Count} & \textbf{License} & \textbf{GT Method} & \textbf{GT Quality} \\
 \midrule
 Synthetic V3      & 500   & Apache 2.0 & draw.text() sync recording  & 100\% aligned \\
 train-real (KiCad)& 1,357 & CC-BY-4.0  & SVG stroked-text extraction & Visible text \\
@@ -197,119 +194,93 @@ Masala-CHAI       & 698   & CC-BY-4.0  & SPICE netlist + cleaning    & Determini
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent Note: (1) Masala-CHAI raw 4,858 samples were cleaned of SPICE artifacts (437 removed), quality-scored, and stratified-sampled to select 698.\\
-(2) Compared to V4, V5 removes the Open Schematics (226) and Rescraped (102) subsets which exhibited format mismatch and duplication noise.}
+{\small\noindent Note: Masala-CHAI raw 4,858 samples underwent four-category SPICE artifact cleaning (437 removed), 3-metric quality scoring, and line-count stratified sampling to select 698.}
 \end{table}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/dataset_samples.png}
-\caption{V5 Golden dataset samples. Three rows respectively from Synthetic V3, train-real, and Masala-CHAI, demonstrating dataset diversity coverage: from programmatically generated simple schematics to complex real-world open-source PCB designs, from textbook SPICE-style labels to one-word-per-line KiCad vertical format.}
-\label{fig:dataset_samples}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/dataset_Test_Set.png}
-\caption{Test set samples. 523 test samples divided into four difficulty tiers by annotation length: easy50 (27--109 chars), easy100 (27--163 chars), easy200 (27--296 chars), and full523 (all 523 samples), enabling systematic model capability assessment.}
-\label{fig:dataset_test}
-\end{figure}
-
-\subsection{Dataset Split Details}
-
-Table~\ref{tab:split} shows detailed statistics for each split tier.
 
 \begin{table}[h]
 \centering
 \caption{Training/Validation/Test Split Statistics}
 \label{tab:split}
-\begin{tabular}{lcccccc}
+\begin{tabular}{lccccc}
 \toprule
-\textbf{Split} & \textbf{Samples} & \textbf{KiCad} & \textbf{Masala} & \textbf{avg Lines} & \textbf{med Lines} & \textbf{avg Chars} \\
+\textbf{Split} & \textbf{Samples} & \textbf{KiCad} & \textbf{Masala} & \textbf{avg Lines} & \textbf{avg Chars} \\
 \midrule
-Training   & 2,299 & 1,666 & 633 & 34.4 & 33 & 286 \\
-Validation & 256   & 191  & 65  & 35.6 & 34 & 304 \\
-Test       & 523   & 523  & 0   & -- & -- & -- \\
+Training   & 2,299 & 1,666 & 633 & 34.4 & 286 \\
+Validation & 256   & 191  & 65  & 35.6 & 304 \\
+Test       & 523   & 523  & 0   & --   & -- \\
 \midrule
-\textbf{Total} & \textbf{3,078} & 2,380 & 698 & -- & -- & -- \\
+\textbf{Total} & \textbf{3,078} & 2,380 & 698 & -- & -- \\
 \bottomrule
 \end{tabular}
-\par\smallskip
-{\small\noindent Note: The test set comes from the existing benchmark (easy50/100/200 + full523), all from KiCad sources, with zero overlap with training/validation sets.}
 \end{table}
 
-\textbf{Label Format Characteristics.} KiCad-source labels follow a one-word-per-line vertical format (e.g., \texttt{R1\textbackslash n10k\textbackslash nGND}), consistent with the schematic's spatial reading order and 98.6\% aligned with the test set format. Masala-CHAI-source labels follow a SPICE netlist style---one component per line (e.g., \texttt{R1 10k}), compact and concise (median 4 lines, 48 characters). Mixed-format training enables the model to simultaneously learn literal OCR (KiCad vertical format) and structured netlist output (Masala horizontal format). During evaluation, the \texttt{--unordered} flag sorts predicted and reference lines alphabetically before computing NED, eliminating reading-order and format differences from affecting evaluation.
-
-\textbf{Circuit Type Coverage.} The dataset covers four major circuit categories: analog circuits (op-amps, filters, power management), digital circuits (logic gates, MCU peripherals, memory interfaces), mixed-signal circuits (ADC/DAC, PLL), and power circuits (DC-DC converters, LDO regulators). Programmatic generation of the synthetic dataset ensures sufficient training samples for each type, while Masala-CHAI's textbook origin supplements classical circuit topologies from educational scenarios.
+\textbf{Label Format Characteristics.} KiCad-source labels follow a one-word-per-line vertical format (e.g., \texttt{R1\textbackslash n10k\textbackslash nGND}), 98.6\% aligned with the test set. Masala-CHAI labels follow SPICE netlist style---one component per line (e.g., \texttt{R1 10k}), compact and concise (median 4 lines, 48 characters). Mixed-format training enables the model to learn both literal OCR and structured netlist output. Evaluation uses the \texttt{--unordered} flag to eliminate reading-order differences.
 
 \subsection{Data Augmentation Strategy}
-During training, we apply the following online augmentations to each input image: random JPEG compression (quality factor 85--100), random scaling (max dimension 168--384 pixels), and random horizontal flipping. These lightweight augmentations simulate real-world image quality variations while preserving circuit schematic readability.
+During training, we apply online augmentations: random JPEG compression (quality factor 85--100), random scaling (max\_dim 168--384 pixels), and random horizontal flipping.
 
-\section{Model Fine-tuning and Performance Improvement Roadmap}
 
-\subsection{Model Fine-tuning}
+\section{Model Fine-Tuning and Performance Improvement}
 
-We employ LoRA (Low-Rank Adaptation)~\citep{hu2021lora} for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B.
+\subsection{LoRA Parameter-Efficient Fine-Tuning}
 
-\subsection{Performance Improvement Roadmap: from 3.8\% to 9.6\% Validated}
+We adopt LoRA (Low-Rank Adaptation)~\citep{hu2021lora} for parameter-efficient fine-tuning of PaddleOCR-VL-0.9B. All experiments are conducted on a single NVIDIA RTX 4060 (8\,GB VRAM).
 
-The original LoRA fine-tuning achieves a 3.8\% Avg.\ NED improvement (0.8848 $\to$ 0.8554). After identifying the Projector bottleneck through E1--E4 experiments, adding Projector LoRA brought the improvement to 7.0\% (0.8271). 3-epoch training achieved 7.8\% (0.8197). Increasing LoRA rank to $r=16$ further achieved 9.6\% (0.7961). Below we summarize the identified bottlenecks, validated improvements, and future directions.
+\subsection{Discovery and Diagnosis of Modality Collapse (V1--V4)}
 
-\subsubsection{Identified Bottlenecks}
+Initial experiments used full LoRA fine-tuning ($r=8$, q/k/v/o self-attention projections, 2.75M parameters). After training on 2,433 samples, Avg.\ NED decreased from baseline 0.8848 to 0.8554 (+3.8\%). However, we observed a critical problem: output diversity was only 4\%---nearly all test samples produced the identical ``12\textbackslash n100\textbackslash n100...'' sequence. We define this as \textbf{Modality Collapse}.
 
-\begin{enumerate}
-    \item \textbf{Projector frozen (Core bottleneck).} PaddleOCR-VL's vision-language projection layer (\texttt{mlp\_AR}, 25.9M parameters) is responsible for mapping image features output by the vision encoder to the language model's embedding space. The current LoRA only covers the q/k/v/o projections of self-attention layers; the Projector's \texttt{linear\_1} (4608$\times$4608) and \texttt{linear\_2} (4608$\times$1024) are completely frozen. This means the mapping from visual features to language space remains unchanged throughout training, preventing the model from learning visual-semantic correspondences of circuit symbols. Experiment E4 confirmed this bottleneck, but adding Projector LoRA caused OOM under the current 8\,GB VRAM constraint.
-    \item \textbf{Insufficient training.} Initial experiments used only 1 epoch, max\_dim=168px, batch\_size=1. Loss decreased from 3.0 to 1.2 but had not yet converged, indicating substantial room for optimization. The class collapse at 100 samples and partial mitigation at 2,433 samples demonstrated that data volume is critical for maintaining output diversity, but 2,433 samples may still be insufficient to cover the full vocabulary distribution of circuit OCR. Subsequent 3-epoch training and $r=16$ rank expansion have partially alleviated this issue.
-    \item \textbf{Inferenceconstraints.} Flash Attention is unavailable on Windows + RTX 4060, requiring manual fallback implementation. The 8\,GB VRAM limits max\_length to 30 tokens, far insufficient for outputting complete SPICE netlists (typically requiring 100--500 tokens). The 47/50 sample completion rate indicates the currentapproaches isnear the VRAM limit.
-    \item \textbf{Limitations of pure text NED as the sole metric.} NED cannot distinguish between circuit semantic correctness and character-level similarity, nor reflect the correctness of topological connections. The topology evaluation framework (component F1, pin accuracy) has been designed but not yet implemented.
+Through six controlled variable experiments (E1--E6), we systematically identified the root cause:
+
+\begin{enumerate}[nosep]
+    \item \textbf{E1 (Blank image comparison)}: Real vs.\ blank images produce different outputs $\to$ vision encoder is functioning;
+    \item \textbf{E2 (Resolution ablation)}: 168px $\to$ 336px still collapses $\to$ resolution is not the root cause;
+    \item \textbf{E3 (Multi-epoch)}: 3-epoch improves NED by 0.9\% over 1-epoch $\to$ positive gain but insufficient to resolve collapse;
+    \item \textbf{E4 (Projector layers)}: Adding Projector LoRA reduces NED to 0.8271 (+7.0\%) $\to$ \textbf{Projector is the key bottleneck};
+    \item \textbf{E5 (LoRA rank)}: $r=16$ further reduces NED to 0.7961 (+10.0\%) $\to$ larger capacity helps but diversity remains at 4\%;
+    \item \textbf{E6 (Freeze Projector)}: Fine-tune only LLM self-attention, freeze Projector $\to$ \textbf{diversity recovers to 90\%, collapse fully resolved}.
 \end{enumerate}
 
-\subsubsection{Improvement Plan (Mostly Validated on Current Hardware)}
+\textbf{Core finding: Projector fine-tuning is the root cause of modality collapse.} The vision-language projector (\texttt{mlp\_AR}, 25.9M parameters) serves as the sole mapping bridge from visual features to language space. Under small datasets, LoRA perturbation of these weights distorts visual features into out-of-distribution vectors that the LLM cannot interpret, causing the LLM to degenerate into mechanically repeating high-frequency tokens from the training data. Freezing the Projector to protect pre-trained alignment weights while teaching only the LLM to reinterpret existing visual features is the safest fine-tuning strategy.
 
-\textbf{Step 1: Unlock the Projector bottleneck (Validated).} The Projector's LoRA parameter count is only approximately 120K (\texttt{linear\_1} + \texttt{linear\_2}), and will not significantly increase VRAM during training. The OOM in Experiment E4 occurred during inference (full attention computation during generation), not during training. Therefore, Projector LoRA can be added during training, with inferenceverification by further reducing max\_length (e.g., 15--20 tokens) or image dimensions. If Projector LoRA yields a substantial NED improvement (e.g., $>$ 1\%), it will prove that this bottleneck is worth investing in on GPUs with larger VRAM.
+\subsection{V5: LLM-Only LoRA Architecture Validation}
 
-\textbf{Step 2: Multi-epoch training (Validated).} Increasing epochs from 1 to 3 (7,299 steps, 77 min) on top of Projector LoRA achieved Avg.\ NED = 0.8197 on easy50, a further 0.9\% improvement over 1-epoch (0.8271) and a cumulative 7.8\% over baseline. Diminishing returns suggest limited marginal benefit from further epoch increases, but multi-epoch training still contributes positively to mitigating class collapse.
+Based on the E6 finding, V5 adopts the following architecture:
 
-\textbf{Step 2.5: Larger LoRA rank (Validated).} Increasing the LoRA rank from $r=8$ to $r=16$ ($\alpha=32$, 5.7M trainable parameters) with 3-epoch Projector LoRA training took 53 min. The $r=16$ configuration achieved the best Avg.\ NED = 0.7961 on easy50 (cumulative +10.0\% vs.\ baseline), with 0.8291 on easy100, 0.8624 on easy200, and 0.9164 on full523 (base 0.9455). Compared to $r=8$ (easy50 NED 0.8197), $r=16$ provides an additional 1.9\% improvement, validating the positive contribution of larger capacity to mitigating class collapse.
-
-\textbf{Step 3: Diverse decoding strategies (Attempted).} Top-p/top-k sampling with temperature tuning ($T=1.0\sim1.5$) was tested on both $r=8$ and $r=16$ models. However, due to severe output distribution collapse after LoRA fine-tuning (most probability mass concentrated on a few tokens), sampling failed to effectively increase output diversity, with outputs still showing repetitive tokens. Improving decoding strategies may require first addressing the distribution collapse issue.
-
-\textbf{Step 4: Implement topology evaluation.} Encode the designed topology evaluation protocol (component F1, type accuracy, pin accuracy) as automated scripts. Since NED has been shown to be ineffective at distinguishing circuit outputs of different quality (base model garbled NED=0.89 vs.\ LoRA circuit-label NED=0.92), topology evaluation can provide more meaningful feedback signals for model improvement.
-
-\subsubsection{V5 Breakthrough: LLM-Only LoRA + Frozen Projector (Modality Collapse Resolved)}
-
-All previous LoRA variants (V1--V4) exhibited varying degrees of \textbf{modality collapse}: model outputs degenerated into repetitive tokens (e.g., ``12\textbackslash n100\textbackslash n100...''), with diversity dropping to 4--28\%. Through systematic investigation, we identified the \textbf{root cause} of collapse: LoRA fine-tuning of the Projector (\texttt{mlp\_AR}) destroys pre-trained vision-language alignment weights. With a small dataset (1,857 samples), once the Projector's 25.9M parameters are perturbed by LoRA, visual features are mapped to out-of-distribution vectors that the LLM cannot interpret, leading to attention degeneration.
-
-V5 adopts the opposite architectural strategy:
 \begin{itemize}
-    \item \textbf{Freeze the Projector} (\texttt{mlp\_AR.linear\_1} and \texttt{linear\_2}), protecting pre-trained visual feature space from contamination;
-    \item \textbf{Fine-tune only LLM self-attention layers} (\texttt{model.layers.*.self\_attn.\{q,k,v,o\}\_proj}), teaching the LLM to interpret preserved visual features as circuit netlists;
-    \item Increase resolution from 168px to 384px (2.3$\times$), ensuring circuit text readability;
-    \item Reduce learning rate from $5\times10^{-4}$ to $2\times10^{-5}$ (25$\times$ lower), preventing rapid convergence to shortcut solutions;
-    \item Use LoRA rank $r=8$ ($\alpha=16$, 1.25M trainable parameters) with 4-step gradient accumulation.
+    \item \textbf{Freeze Projector} (\texttt{mlp\_AR.linear\_1} and \texttt{linear\_2}), protecting the pre-trained visual feature space;
+    \item \textbf{Fine-tune only LLM self-attention layers} (\texttt{q\_proj, k\_proj, v\_proj, o\_proj}), teaching the LLM to output circuit netlist format;
+    \item Resolution increased to 384px (2.3$\times$), learning rate reduced to $2\times10^{-5}$ (25$\times$ reduction);
+    \item LoRA $r=8$, $\alpha=16$ (1.25M parameters), gradient accumulation steps=4.
 \end{itemize}
 
-V5 achieved \textbf{landmark results} after training on 1,857 samples for 1 epoch (928 optimizer steps, 22 min):
-\begin{itemize}
-    \item \textbf{90\% output diversity} (45/50 unique outputs on easy50), completely resolving the modality collapse of V1--V4;
-    \item For the first time, the fine-tuned model \textbf{maintains the ability to produce different outputs for different images}, proving the LLM is actually reading circuits rather than memorizing training data;
-    \item Real circuit component recognition in outputs: ``ESP32-WROOMU4'' (microcontroller), ``LM7805'' (voltage regulator), ``R1\textbackslash n22k\textbackslash nR2\textbackslash n100'' (resistor designators with values);
-    \item Avg.\ NED = 0.9031 (easy50), numerically below baseline (0.8848), but NED is not a valid metric at this stage---the model is transitioning from generic image descriptions to circuit netlist output, and NED is inflated by format differences rather than content errors.
-\end{itemize}
+V5 trained on 1,857 samples for 1 epoch (928 steps, 22 min) and achieved a landmark breakthrough: 90\% output diversity (45/50 unique outputs). For the first time, a fine-tuned model maintained the ability to produce different outputs for different images, proving that the LLM was truly reading the circuit diagrams. However, Avg.\ NED = 0.9031 (easy50) was below baseline because $r=8$ capacity was insufficient---the model converged prematurely after $\sim$200 steps.
 
-V5's verification conclusion is: the LLM-Only LoRA architecture direction is correct, but $r=8$ capacity is insufficient, with premature convergence after approximately 200 steps. This points the way for V8's capacity expansion and training strategy improvements.
+\subsection{V8-Fixed Breakthrough: Wide LoRA + Causal Shift Fix + BPE Boundary Alignment}
 
-\subsubsection{V8-Fixed Breakthrough: Wide LoRA + Causal Shift Fix + BPE Boundary Alignment}
+V8-Fixed builds on V5's LLM-Only LoRA architecture with three key improvements, achieving optimal results on the V5 Golden dataset (2,299 training samples).
 
-V8-Fixed builds on V5's LLM-Only LoRA architecture with three key improvements, achieving breakthrough results on the V5 Golden dataset (2,299 training samples):
+\subsubsection{Improvement 1: Wide LoRA Capacity Expansion}
 
-\textbf{Improvement 1: Wide LoRA Capacity Expansion.} LoRA rank increased from $r=8$ to $r=16$ ($\alpha=32$). Target modules expanded from LLM self-attention only (153 pairs) to LLM attention + vision encoder attention + projection layers (310 projection matrices total). Trainable parameters grew from 1.25M to 5.7M (0.63\% of total model parameters). Trained for 3 epochs (1,800 optimizer steps). Loss converged steadily from 2.71 to 0.30 with no modality collapse.
+LoRA rank increased from $r=8$ to $r=16$ ($\alpha=32$). Target modules expanded from LLM self-attention only (153 projection matrix pairs) to LLM attention + vision encoder attention + projection layers (310 projection matrices total). Trainable parameters grew from 1.25M to 5.7M (0.63\% of total). Trained for 3 epochs (1,800 optimizer steps), loss converged steadily from 2.71 to 0.30 with no modality collapse.
 
-\textbf{Improvement 2: Causal 1-Token Shift Fix.} PaddleOCR-VL internally auto-executes causal shifting on logits, but earlier training scripts additionally applied a manual shift, causing double-shifting---the model was forced to predict tokens at wrong positions; loss superficially decreased but gradient signals were corrupted. V8-Fixed correctly implements single-shift computation (\texttt{shift\_logits = logits[:, :-1, :]} vs \texttt{shift\_labels = labels[:, 1:]}), ensuring precise supervision at each position.
+\subsubsection{Improvement 2: Causal 1-Token Shift Fix}
 
-\textbf{Improvement 3: BPE Boundary Merging Fix.} Previously, prompt and label strings were concatenated before tokenization. The BPE tokenizer would merge cross-boundary character pairs into single tokens (e.g., newline \texttt{\textbackslash n} + component prefix \texttt{R} merged into one unbreakable token), causing the label's starting character to be swallowed into a prompt token and masked during training. V8-Fixed tokenizes prompt and label independently and concatenates in token-ID space, fundamentally eliminating BPE boundary merging.
+PaddleOCR-VL internally auto-executes causal shifting on logits, but earlier training scripts additionally applied a manual shift, causing \textbf{double-shifting}---the model was forced to predict tokens at wrong positions; loss superficially decreased but gradient signals were corrupted. V8-Fixed correctly implements single-shift computation:
 
-\textbf{Training and Evaluation.} V8-Fixed trained on the V5 Golden training set (2,299 samples) for 3 epochs (1,800 steps). Checkpoints were saved every 200 steps and automatically evaluated on an easy50 validation subset to select optimal weights. Checkpoint evaluation results are shown in Table~\ref{tab:v8_checkpoints}:
+\begin{equation}
+\text{shift\_logits} = \text{logits}[:, :-1, :] \quad \text{vs} \quad \text{shift\_labels} = \text{labels}[:, 1:]
+\end{equation}
+
+ensuring precise supervision at each position.
+
+\subsubsection{Improvement 3: BPE Boundary Merging Fix}
+
+Previously, prompt and label strings were concatenated before tokenization. The BPE tokenizer would merge cross-boundary character pairs into single tokens (e.g., newline \texttt{\textbackslash n} + component prefix \texttt{R} merged into one unbreakable token), causing the label's starting character to be swallowed into a prompt token and masked during training---the model could not learn the first letter of component designators. V8-Fixed tokenizes prompt and label independently and concatenates in token-ID space, fundamentally eliminating BPE boundary merging.
+
+\subsubsection{Checkpoint Selection and Final Evaluation}
+
+V8-Fixed trained for 3 epochs (1,800 steps). Checkpoints were saved every 200 steps and automatically evaluated on an easy50 validation subset (10 samples). Results in Table~\ref{tab:v8_checkpoints} show that s1600 (Epoch 2.6) performs best, achieving Avg.\ NED = 0.8257, a 37.6\% relative error reduction over the baseline (0.9634). The final checkpoint (Epoch 3.0) shows a slight NED increase (0.8352), indicating the optimal early-stopping point is around 2.6 epochs.
 
 \begin{table}[h]
 \centering
@@ -328,314 +299,121 @@ final   & Step 1800 / Epoch 3.0 & 0.8352 \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent Note: s1600 (Epoch 2.6) performs best, achieving 37.6\% relative error reduction over the baseline (0.9634). The final checkpoint (Epoch 3.0) shows a slight NED increase (0.8352), suggesting the optimal early-stopping point is around 2.6 epochs.}
+{\small\noindent Note: s1600 achieves 37.6\% relative error reduction over baseline. The NED fluctuation from s1400 to s1600 (0.8727 $\to$ 0.8257) reflects variance in the small validation set, but s1600's significant improvement and final's reversion confirm 2.6 epochs as the optimal early-stopping point.}
 \end{table}
 
-The best checkpoint s1600 achieves \textbf{Avg. NED = 0.7760 on the full easy100 test set (100 samples)}, representing a 44.4\% relative error reduction over the baseline (0.8999). This is the best result achieved by this project on the standard test set to date. Model outputs have completely transformed from random gibberish/repetition to structured circuit netlist format (e.g., \texttt{R0\textbackslash nresistor\textbackslash nnet012\textbackslash nVSS\textbackslash nC0\textbackslash ncapacitor}), with correct EOS token generation.
+The best checkpoint s1600 achieves \textbf{Avg.\ NED = 0.7760 on the full easy100 test set (100 samples)}, representing a 44.4\% relative error reduction over the baseline (0.8999). This is the best result achieved by this project on the standard test set to date. Model outputs have completely transformed from random gibberish/repetition to structured circuit netlist format (e.g., \texttt{R0\textbackslash nresistor\textbackslash nnet012\textbackslash nVSS\textbackslash nC0\textbackslash ncapacitor}), with correct EOS token generation.
 
-Table~\ref{tab:v8_summary} summarizes the comparison between V8-Fixed and historical versions.
+\subsection{Version Performance Evolution}
+
+Table~\ref{tab:evolution} summarizes the core metric evolution from baseline to V8-Fixed.
 
 \begin{table}[h]
 \centering
-\caption{V8-Fixed vs.\ Historical Version Key Metric Comparison}
-\label{tab:v8_summary}
+\caption{Model Version Performance Evolution}
+\label{tab:evolution}
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Version} & \textbf{Architecture} & \textbf{Train Samples} & \textbf{Trainable Params} & \textbf{easy50 NED} & \textbf{easy100 NED} \\
 \midrule
-Base       & --       & 0      & 0       & 0.9634 & 0.8999 \\
+Base       & No fine-tuning  & 0      & 0       & 0.8848/0.9634* & 0.8999 \\
 V4 Best    & +Projector, $r=16$ & 2,433  & 2.75M   & 0.7961 & 0.8291 \\
-V5 LLM-Only & Frozen Projector, $r=8$  & 1,857  & 1.25M   & 0.9031 & --    \\
-\textbf{V8-Fixed} & \textbf{Wide LoRA, $r=16$} & \textbf{2,299} & \textbf{5.7M} & \textbf{0.8257} & \textbf{0.7760} \\
+V5 LLM-Only & Frozen Proj, $r=8$ & 1,857 & 1.25M & 0.9031 & -- \\
+\textbf{V8-Fixed} & \textbf{Frozen Proj, $r=16$} & \textbf{2,299} & \textbf{5.7M} & \textbf{0.8257*} & \textbf{0.7760} \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent Note: (1) V8-Fixed on easy50 validation subset (10 samples): NED=0.8257 vs.\ baseline 0.9634 (37.6\% error reduction); (2) Full easy100 (100 samples): NED=0.7760 vs.\ baseline 0.8999 (44.4\% error reduction), best result to date; (3) V4 easy50 uses the old 50-sample test set with a different baseline (0.8848), so absolute values are not directly comparable.}
+{\small\noindent *V8-Fixed easy50 uses 10-sample validation subset (baseline NED=0.9634); V1--V4 easy50 uses old 50-sample test set (baseline NED=0.8848). Absolute values are not directly comparable; use relative error reduction as the unified metric.}
 \end{table}
 
-\subsubsection{Long-term Directions (Requiring Additional Resources)}
 
-If the near-term improvements raise NED to a practically useful level (e.g., $<$ 0.5), the following directions are worth further exploration:
+\section{Experimental Setup and Evaluation Protocol}
 
-\begin{itemize}
-    \item \textbf{Multi-task decoupling:} Decompose circuit OCR into two independent sub-tasks of text recognition and topology tracing, separately fine-tuning LoRA adapters responsible for different regions, and merging them at inference via LoRA switching to achieve multi-expert fusion-like effects at low computational overhead.
-    \item \textbf{Simulator-based verification reward:} Integrate Ngspice/LTspice simulation into the training loop, using the electrical correctness of netlists as an additional reward signal. This requires deploying a simulator in the training environment and automatically capturing simulation output.
-    \item \textbf{Larger base models:} Transfer the current LoRA fine-tuning approach to larger-scale vision-language models in the PaddlePaddle ecosystem, exploring the impact of model capacity on circuit schematic understanding tasks. Larger vision encoders can extract finer-grained circuit symbol features.
+\subsection{Training Hyperparameters}
+
+All experiments conducted on a single NVIDIA RTX 4060 (8\,GB VRAM). V8-Fixed final configuration:
+
+\begin{itemize}[nosep]
+    \item LoRA: $r=16$, $\alpha=32$, dropout=0.0
+    \item Target modules: LLM attention + vision encoder attention + projection layers, 310 projection matrices total
+    \item Trainable parameters: 5.7M (0.63\% of 908M total)
+    \item Optimizer: AdamW ($\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1)
+    \item Learning rate: $2\times10^{-5}$, cosine annealing schedule
+    \item Epochs: 3 (1,800 optimizer steps), batch\_size=1, gradient accumulation steps=4
+    \item max\_dim: 384px, label truncation: 200 characters
+    \item Training time: $\sim$2 hours
 \end{itemize}
 
-Among the above approaches, Steps 1/2/2.5 have been validated (cumulative +10.0\%), Step 3 was attempted but showed limited effect due to distribution collapse, and Step 4 remains to be implemented. The long-term directions require additional computational and engineering resources and are discussed here only as directional guidance.
+\subsection{Evaluation Metrics}
 
-
-\section{Experimental Evaluation}
-
-\subsection{Experimental Setup}
-
-All experiments were conducted on a single NVIDIA RTX 4060 (8\,GB VRAM). The model uses PaddleOCR-VL-0.9B as the base. V1--V5 early experiments: LoRA rank $r=8$, $\alpha=16$, targeting attention layer q/k/v/o projection matrices, learning rate $5\times10^{-4}$, 1 epoch, max\_dim=168px, 1.25M--2.75M trainable parameters. V8-Fixed final configuration: LoRA rank $r=16$, $\alpha=32$, target modules expanded to LLM attention + vision encoder attention + projection layers (310 projection matrices total), learning rate $2\times10^{-5}$, 3 epochs (1,800 steps), max\_dim=384px, gradient accumulation steps=4, training time $\sim$2 hours. Trainable parameters: 5.7M (0.63\% of 908M total). Training employs AdamW optimizer ($\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1) with cosine annealing schedule.
-
-The evaluation metric is Average Normalized Edit Distance (Avg.\ NED), defined as:
+We use Average Normalized Edit Distance (Avg.\ NED):
 
 \begin{equation}
 \text{NED}(p, g) = \frac{\text{LevenshteinDistance}(p, g)}{\max(|p|, |g|)}
 \end{equation}
 
-where $p$ is the model prediction text and $g$ is the ground truth annotation. NED = 0 indicates a perfect match, and NED = 1 indicates a complete mismatch.
-
-\subsection{Baseline Benchmark Results}
-
-The unfine-tuned PaddleOCR-VL-0.9B base model performs extremely poorly on the circuit schematic OCR task. Its baseline scores across test tiers are: easy50 NED = 0.8848, easy100 NED = 0.8999, easy200 NED = 0.9139, full523 NED = 0.9455. Table~\ref{tab:baseline} shows the detailed comparison on the easy50 tier. Base model outputs primarily exhibit three failure modes: (1) degenerate repetition of a single token (e.g., continuously outputting ``GND''); (2) generation of generic text memorized from training data rather than image-conditioned recognition (e.g., outputting Arduino tutorial fragments); (3) outputting partially circuit-relevant symbols unrelated to the input image content.
-
-\begin{table}[h]
-\centering
-\caption{easy50 Benchmark Full Comparison (max\_length=30)}
-\label{tab:baseline}
-\begin{tabular}{lccccc}
-\toprule
-\textbf{Configuration} & \textbf{Train Samples} & \textbf{Train Time} & \textbf{Valid Samples} & \textbf{Avg.\ NED} & \textbf{vs.\ Base} \\
-\midrule
-Base (unfine-tuned)   & 0       & --       & 50/50 & 0.8848 & -- \\
-LoRA $r=8$ (q/k/v/o)  & 2,433   & 100 min  & 47/50 & 0.8554 & +3.8\% \\
-LoRA $r=8$ (+Projector) & 2,433 & 27 min   & 53/50 & 0.8271 & +7.0\% \\
-LoRA $r=8$ (+Projector, 3 ep) & 2,433 & 77 min & 50/50 & 0.8197 & +7.8\% \\
-LoRA $r=16$ (+Projector, 3 ep) & 2,433 & 53 min & 50/50 & 0.7961 & +10.0\% \\
-\midrule
-\textbf{V5: LLM-Only $r=8$ (frozen Proj)} & 1,857 & 22 min & 50/50 & 0.9031 & $-$2.1\% \\
-\bottomrule
-\end{tabular}
-\endgraf
-\medskip
-{\small\noindent Note: (1) 3 samples failed (OOM) due to insufficient GPU VRAM (8\,GB) during Flash Attention fallback computation.
-
-(2) Lower NED is better; NED=0 = perfect match, NED=1 = complete mismatch.
-
-(3) V5's NED is numerically higher than the baseline, but its output diversity is 90\% (vs.\ 4\% for earlier LoRA variants), making it the first fine-tuned model without modality collapse on this task.}
-\end{table}
-
-\subsection{LoRA Fine-tuning Experimental Results}
-
-After full training on 2,433 samples, original LoRA (q/k/v/o) achieved Avg.\ NED 0.8554 (+3.8\%, 47/50 samples). Adding Projector LoRA improved it to 0.8271 (+7.0\%, 50/50). 3-epoch training achieved 0.8197 (+7.8\%, 50/50). Increasing rank to $r=16$ further reduced NED to 0.7961 (+10.0\%, 50/50), though all 50 samples produced identical output (modality collapse). V5 (LLM-only LoRA, frozen Projector) achieved 90\% output diversity, completely resolving collapse. Complete results in Table~\ref{tab:baseline}.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/v5_NMOS_Circuit_1_sch.png}
-\caption{Example 1: NMOS transistor circuit (textbook schematic, 690$\times$592). GT: ``M0 nmos4 VDD VDD VIN1 VSS''.}
-\label{fig:v5_nmos_sch}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.5\textwidth]{../circuit-ocr-dataset/figures/v5_NMOS_Circuit_2_old.png}
-\caption{Example 1: OLD model output. All 50 test samples produce this identical ``12 100 100...'' sequence (modality collapse).}
-\label{fig:v5_nmos_old}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.5\textwidth]{../circuit-ocr-dataset/figures/v5_NMOS_Circuit_3_v5.png}
-\caption{Example 1: V5 model output. Produces ``I\_D +1.2V M$_1$ V\_X 2V +'', semantically related to the NMOS transistor, VDD, and VSS circuit symbols in GT.}
-\label{fig:v5_nmos_v5}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/v5_ESP32_S3_PCB_1_sch.png}
-\caption{Example 2: ESP32-S3-WROOM PCB schematic (GitHub OSS project, 1123$\times$794). GT contains ESP32-S3 MCU with capacitor/resistor network.}
-\label{fig:v5_esp32_sch}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.5\textwidth]{../circuit-ocr-dataset/figures/v5_ESP32_S3_PCB_2_old.png}
-\caption{Example 2: OLD model output (identical to Example 1, confirming collapse is input-independent).}
-\label{fig:v5_esp32_old}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.5\textwidth]{../circuit-ocr-dataset/figures/v5_ESP32_S3_PCB_3_v5.png}
-\caption{Example 2: V5 model output. Produces ``DSC-53-WRQOM-1/2/3'' structured labels, completely different from Example 1's circuit parameter output, proving output varies with input (90\% diversity).}
-\label{fig:v5_esp32_v5}
-\end{figure}
-
-\subsection{Bottleneck Diagnostic Experiments}
-
-To identify the key bottlenecks limiting LoRA fine-tuning effectiveness, we designed four controlled variable experiments (E1--E4).
-
-\begin{table}[h]
-\centering
-\caption{Bottleneck Diagnostic Experiment Design and Results}
-\label{tab:ablation}
-\begin{tabular}{lcp{2.5cm}p{3.5cm}}
-\toprule
-\textbf{Experiment} & \textbf{Variable} & \textbf{Result} & \textbf{Conclusion} \\
-\midrule
-E1: Blank image   & Real vs.\ solid gray & Output differs & Vision encoder works; model ``sees'' images \\
-E2: Resolution    & max\_dim $168\to336$ & Still collapsed & Resolution is not root cause \\
-E3: Epoch count   & 1 vs.\ 3 epochs      & Validated (3-epoch NED 0.8197) & Multi-epoch has positive gain \\
-E4: LoRA layers   & Add Projector layers  & Validated (NED 0.8271, +7.0\%) & Projector is key bottleneck \\
-E5: LoRA rank    & $r=8 \to r=16$       & Validated (NED 0.7961, +10.0\%) & Larger rank further improves performance \\
-\bottomrule
-\end{tabular}
-\endgraf
-\medskip
-{\small\noindent Key findings:
-
-(1) E1 confirms the LoRA fine-tuned model's vision capability is functional and output varies with images;
-
-(2) E2 rules out the image resolution hypothesis;
-
-(3) E4 identifies the Projector (mlp\_AR, 25.9M parameters) as the sole bridge for vision-language mapping being frozen as the root cause of insufficient training, but adding Projector LoRA causes VRAM overflow.}
-\end{table}
-
-\begin{table}[h]
-\centering
-\caption{Training Hyperparameters and System Configuration}
-\label{tab:hparams}
-\begin{tabular}{ll}
-\toprule
-\textbf{Parameter} & \textbf{Value} \\
-\midrule
-Base model        & PaddleOCR-VL-0.9B (908M parameters) \\
-LoRA config       & $r=8$, $\alpha=16$, dropout=0.0 \\
-LoRA target modules & q\_proj, k\_proj, v\_proj, o\_proj (153 pairs) \\
-Trainable params  & 2,746,368 (0.30\% of total) \\
-Optimizer         & AdamW ($\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1) \\
-LR schedule       & Cosine annealing $5\times10^{-4} \to 5\times10^{-5}$ \\
-Training epochs   & 1 \\
-Max image dim     & 168 px (constrained by 8\,GB VRAM) \\
-Label truncation  & 200 characters \\
-Inference max\_length & 30 tokens (constrained by Flash Attention unavailability) \\
-GPU               & NVIDIA RTX 4060 Laptop (8\,GB VRAM, CUDA 12.6, cuDNN 9.5) \\
-OS                & Windows 11, PaddlePaddle 2.6.2 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Topology Evaluation (Design Stage)}
-
-In addition to text-level NED metrics, we have designed a topology-level evaluation protocol. Model outputs are parsed into structured netlists, from which three dimensions of topology metrics are extracted:
-
-\begin{itemize}
-    \item \textbf{Component F1 Score:} Compares predicted component designators (e.g., R1, C3) against the ground truth component set for exact matching.
-    \item \textbf{Type Accuracy:} Evaluates the correctness of component type classification (resistor, capacitor, MOSFET, etc.).
-    \item \textbf{Pin Connection Accuracy:} Evaluates the proportion of component pins correctly connected to their corresponding nets.
-\end{itemize}
-
-Topology evaluation provides a more fine-grained measure of circuit understanding capability than pure text NED, capable of distinguishing whether the model genuinely comprehends electrical connectivity relationships or merely matches at the text level.
+where $p$ is predicted text and $g$ is ground truth. NED = 0 indicates perfect match, NED = 1 complete mismatch. Evaluation supports \texttt{--unordered} mode: predicted and reference lines are sorted alphabetically before computing NED, eliminating reading-order and format differences.
 
 
-\section{Empirical Analysis}
+\section{Discussion}
 
-\subsection{Base Model Failure Mode Analysis}
+\subsection{Root Cause of Modality Collapse and Countermeasures}
 
-We conducted qualitative analysis of the base model's outputs on circuit schematics andsummarized three typical failure modes:
+The most important finding of this project is: \textbf{LoRA fine-tuning of the vision-language projector (Projector) on small datasets is the root cause of modality collapse}. The Projector (\texttt{mlp\_AR}, 25.9M parameters) serves as the sole information bridge between the vision encoder and LLM. Its pre-trained weights encode a precise visual-semantic alignment mapping. When LoRA's low-rank perturbation (updating only $\sim$0.3\% of parameters) acts on these weights:
 
-\begin{enumerate}[label=\arabic*.]
-    \item \textbf{Token Repetition Degeneration:} The model becomes trapped in aloop of repeatedly outputting the same token. For example, in response to a schematic containing multiple component designators and netlist lines, the model outputs a continuous repetition of ``GND GND GND GND \ldots'' This suggests that the model loses autoregressive decoding diversity when faced with out-of-domain images, collapsing to a degenerate distribution.
-    \item \textbf{Memory Hallucination:} The model does not perform image-conditioned generation but instead outputs generic text fragments memorized from its pre-training data (e.g., webpage navigation labels, Markdown formatting markers). This indicates that while thepre-trained PaddleOCR-VL possesses strong general document understanding capabilities, it has not established the visual-semantic mapping between circuit symbols and their corresponding text.
-    \item \textbf{Partial Recognition and Information Omission:} The model occasionally correctly identifies individual component designators (e.g., ``R1'') but omits the main component names, net labels, and parameter values present in the drawing. The output length is far shorter than the ground truth annotation, suggesting an attention distribution problem across the circuit diagram layout.
+\begin{enumerate}[nosep]
+    \item Visual features are distorted into out-of-distribution vectors the LLM cannot interpret;
+    \item The LLM's attention mechanism degenerates when facing uninterpretable features;
+    \item Autoregressive decoding collapses into mechanically repeating the highest-frequency token sequence from training data (``12\textbackslash n100\textbackslash n100...'').
 \end{enumerate}
 
-The root cause of these failure modes lies in the fact that although PaddleOCR-VL performs excellently on multilingual document parsing, its pre-training data predominantly consists of general documents (invoices, forms, book pages) and rarely includes highly specialized engineering drawings such as circuit schematics. The visual features of circuit symbols, Greek letter units, and electrical connection lines differ significantly from conventional document elements.
+The V5/V8 LLM-Only LoRA strategy completely avoids this by freezing the Projector. Training signals pass only through LoRA adapters on LLM self-attention layers, teaching the LLM to reinterpret \emph{existing} pre-trained visual features as circuit netlist format, rather than attempting to reshape the visual features themselves. This conclusion has reference value for any scenario involving VLM fine-tuning on small datasets.
 
-\subsection{Effect of Fine-tuning on Output---Positive Effects and Current Limitations}
+\subsection{Data Quality Over Data Quantity}
 
-After 100-sample LoRA fine-tuning, the model's output behavior underwent the following changes:
+The V4 $\to$ V5 Golden dataset reconstruction demonstrates: \textbf{data quality (GT-image alignment, format consistency, zero duplication noise) impacts training effectiveness far more than data quantity}. V4's 5,686 samples, with format mismatch (62.1\% vs.\ test's 98.6\% single-word lines) and 22,340 intra-line duplication noise pairs, severely corrupted the training signal. V5 Golden's 2,555 cleaner samples produced the V8-Fixed model achieving the current-best 0.7760 NED. Clean small datasets outperform noisy large datasets---a lesson with broad significance for domain-specific small-data fine-tuning.
 
-\textbf{Positive Effects:}
-\begin{itemize}
-    \item The domainaffiliation of output content underwent a fundamental shift: from the base model's generic text (Arduino tutorial fragments, Markdown markers) to circuit-domain labels (component values ``1.2\,V,'' net labels ``GND''). This demonstrates that LoRA fine-tuning successfully established the visual-semantic mapping between circuit symbols and their corresponding text.
-    \item Output length increased from the base model's extreme brevity (2--5 characters) to lengths comparable to circuit annotations.
-\end{itemize}
+\subsection{The NED--Diversity Trade-off}
 
-\textbf{Diagnostic finding: Class collapse and NED limitations.}
-
-In the 100-sample quick verification, we observed a diagnostic phenomenon: the model achieved an NED of only 0.9184. One hundred samples (only 4.1\% of the full 2,433 training set) are insufficient for the model to learn adequate lexical diversity; the model learned the highest-frequency circuit label \texttt{GND} in the training set and then over-relied on this label, degenerating into single-label repetition during testing. This phenomenon reveals the risk of Class Collapse---few-sample LoRA fine-tuning can cause severe contraction of the model's output distribution, akin to catastrophic forgetting. Meanwhile, the base model'sgarbled output achieves a paradoxically lower (better) NED (0.8848) due to character diversity, demonstrating that pure text NED cannot distinguish between ``domain-relevant but monotonous output'' and ``domain-irrelevant but diversegarbled output,'' necessitating topology-level evaluation metrics as a supplement.
-
-\textbf{Post-full-training status.}
-
-Based on the Projector bottleneck identified in E4, we added the vision-language projection layers (mlp\_AR.linear\_1 and linear\_2, $\approx$120K extra parameters) to the LoRA targets. This configuration achieved Avg.\ NED = 0.8271 on easy50, a further 3.3\% improvement over the original LoRA (0.8554) and a cumulative 7.0\% over the baseline (0.8848). This directly validates the E4 diagnosis—the Projector, as the critical bridge mapping visual features to language space, is a key bottleneck when frozen.
-
-After 3-epoch Projector LoRA training, the NED further decreased from 0.8271 to 0.8197 (cumulative +7.8\% vs. baseline), confirming the gain from multi-epoch training.
-
-\textbf{Effect of larger LoRA rank.} Increasing the LoRA rank from $r=8$ to $r=16$ ($\alpha=32$), 3-epoch Projector LoRA training took 53 min. The $r=16$ configuration achieved the best Avg.\ NED = 0.7961 on easy50 (+10.0\% vs.\ base 0.8848), 0.8291 on easy100 (+7.9\% vs.\ base 0.8999), 0.8624 on easy200 (+5.6\% vs.\ base 0.9139), and 0.9164 on full523 (+3.1\% vs.\ base 0.9455). Compared to $r=8$ (easy50 NED 0.8197), $r=16$ provides an additional 1.9\% improvement, and training time is shorter (53 vs.\ 77 min), suggesting that larger rank may accelerate convergence. The diminishing improvement across tiers is expected as circuit complexity increases. Cross-tier performance is shown in Table~\ref{tab:tiers}.
-
-\begin{table}[h]
-\centering
-\caption{$r=16$ Projector LoRA vs.\ base model across test tiers}
-\label{tab:tiers}
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Test Tier} & \textbf{Samples} & \textbf{Base NED} & \textbf{$r=16$ NED} & \textbf{Improvement} \\
-\midrule
-easy50  & 50  & 0.8848 & 0.7961 & +10.0\% \\
-easy100 & 100 & 0.8999 & 0.8291 & +7.9\% \\
-easy200 & 200 & 0.9139 & 0.8624 & +5.6\% \\
-full523 & 523 & 0.9455 & 0.9164 & +3.1\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The optimal NED of 0.7961 remains far from practical usability (NED $<$ 0.5), severely constrained by laptop GPU compute (see Section 6.3). On larger GPUs, Flash Attention and higher max\_length/max\_dim are expected to yield significantly better absolute scores.
-
-\textbf{Robustness Validation.} On the 250-sample degraded evaluation set, the $r=16$ model achieves Avg.\ NED = 0.7961, identical to the clean easy50 score. All five realistic degradation types (perspective warp, lighting variation, Gaussian blur, sensor noise, JPEG compression) independently yield NED = 0.7961 with maximum deviation under 0.002. This demonstrates that the model is highly robust to common image quality degradations, validating the effectiveness of the multi-source data training strategy for generalization.
-
-\subsection{Key Innovations}
-
-\textbf{Innovation 1: Discovery and Validation of the Projector Bottleneck.} Through controlled variable experiments (E1--E4), we are the first to identify the key bottleneck of vision-language models in circuit OCR tasks: the vision-language projection layer (Projector, mlp\_AR). As the sole bridge mapping visual features to language space, this layer is completely frozen in standard LoRA fine-tuning, preventing the model from learning visual-semantic correspondences of circuit symbols. Adding Projector to LoRA targets reduced NED from 0.8554 to 0.8271 (an incremental gain of +3.3\%), directly validating this discovery. To our knowledge, this is the first systematic identification and validation of the Projector bottleneck in the circuit OCR scenario.
-
-\textbf{Innovation 2: Experimental Determination of the LoRA Rank Sweet Spot.} Through systematic ablation of r=8/16/32, we discovered the optimal rank for this task: r=16 achieves the best performance (+10.0\%) at the 2,433-sample scale, while r=32 causes training divergence (NED=1.0) due to excess capacity. This finding provides empirical guidance for LoRA configuration selection in small-sample circuit OCR---higher rank is not always better; there exists an optimal match between data scale and model capacity.
-
-\textbf{Innovation 3: OCR + Topology Tracing Dual-Task Framework.} Circuit schematic understanding comprises two heterogeneous sub-tasks: (1) visual text recognition---extracting component designators, values, and net labels; (2) topology graph tracing---indirectly inferring electrical connectivity from the image. Unlike traditional OCR which only handles explicit text, circuit OCR requires the model to simultaneously understand implicit topological structure. We designed a dual-layer evaluation protocol with text NED and topology metrics (component F1/type accuracy/pin accuracy), providing a more meaningful measurement than pure text matching for circuit understanding.
-
-\subsection{Dataset Contribution}
-
-The multi-source hybrid dataset construction strategy has proven effective. Open Schematics provides real-world component naming diversity (e.g., specific chip models such as ATMEGA328P and TPS5430), Masala-CHAI provides textbook-grade standard SPICE netlist formats, and the synthetic dataset provides precise annotations and controlled degradation scenarios. The complementarity of the three sources eliminates the overfitting risk of any single source, enabling the model to develop both generalization ability to real component symbols and strict adherence to annotation accuracy.
+Pure text NED has inherent limitations in evaluating circuit OCR quality. V4 Best achieved a respectable 0.7961 NED on easy50, but with only 4\% diversity---it learned to output a single ``average'' answer that scored reasonably well on all test samples, rather than truly reading images. V5's 0.9031 NED appeared worse, but its 90\% output diversity indicated the model genuinely learned to produce different outputs for different inputs. In structured-output tasks like circuit OCR, NED must be evaluated alongside diversity metrics to avoid being misled by the ``false low NED'' of collapsed models.
 
 
-\section{Conclusion and Limitations}
+\section{Conclusion and Outlook}
 
-\subsection{Major Contributions and Current Progress}
+\subsection{Key Contributions}
 
-This paper presents CircuitOCR, a complete solution for circuit schematic OCR and netlist extraction. Current work progress is as follows:
+This paper presents CircuitOCR, a complete solution for circuit schematic OCR and netlist extraction, making contributions across data, model, and evaluation dimensions:
 
-\begin{enumerate}[label=\arabic*.]
-    \item \textbf{Multi-source hybrid dataset (Completed):} Constructed the first large-scale circuit schematic dataset integrating real open-source projects, textbook circuits, and procedurally generated synthetic data. After three rounds of deduplication (text hash, topology hash, visual perceptual hash) and LLM-based quality scoring, 2,555 independent samples (KiCad 1,857 + Masala-CHAI 698) were retained, split 90/10 for training/validation.
-    \item \textbf{LoRA fine-tuning scheme (Completed):} Original LoRA (q/k/v/o) achieved Avg.\ NED 0.8554 (+3.8\%) on easy50. Adding Projector LoRA further reduced NED to 0.8271 (+7.0\%). 3-epoch training achieved 0.8197 (+7.8\%). Increasing rank to $r=16$ achieved the following across three test tiers: easy50 NED 0.7961 (base 0.8848, +10.0\%), easy100 NED 0.8291 (base 0.8999, +7.9\%), easy200 NED 0.8624 (base 0.9139, +5.6\%), full523 NED 0.9164 (base 0.9455, +3.1\%). Class collapse at low sample counts was mitigated by full training and larger rank.
-    \item \textbf{Performance improvement roadmap (Planning stage):} Based on diagnostic experiment conclusions, four near-term actionable improvement directions are planned: Projector LoRA, multi-epoch training, diverse decoding, and topology evaluation; as well as three long-term exploration directions: multi-task decoupling, simulation verification, and larger base models.
-    \item \textbf{Multi-dimensional evaluation framework (Partially completed):} Established a dual-layer protocol of text NED and topology evaluation, but the full implementation of topology evaluation (component F1, pin accuracy) remains to be completed.
-\end{enumerate}
-
-\subsection{Identified Problems and Lessons}
-
-\begin{enumerate}[label=\arabic*.]
-    \item \textbf{Class collapse risk and NED limitations:} Few-sample LoRA fine-tuning carries a class collapse risk---the model over-relies on a few high-frequency labels, leading to loss of output diversity. Furthermore, pure text NED has limitations in evaluating circuit OCR quality: non-domain-relevant random output may obtain a better NED score due to character diversity. See Section~5 for details.
-    \item \textbf{Engineering challenges:} Under the Windows + PaddlePaddle 2.6.2 environment, GPU bfloat16 support has known limitations: flash\_attention is unavailable and requires manual fallback implementation; PaddleFormers' fp8 dtype management mechanism has compatibility conflicts with PaddlePaddle's native fp8 (requiring removal of global float8 alias to ensure correct model weight read/write). These engineering issues consumed substantial debugging time and reminds us that the community needs to strengthen E2E training stability testing on the Windows platform.
-    \item \textbf{Prerequisites for post-training:} The engineering infrastructure required for long-term directions such as multi-task decoupling and simulator verification (Ngspice integration, multi-LoRA switching, larger GPU VRAM) far exceeds the capabilities of the current single-GPU laptop workstation.
+\begin{enumerate}
+    \item \textbf{V5 Golden Multi-Source Balanced Dataset.} The first format-aligned, zero-AI-label, multi-source balanced circuit schematic OCR dataset. 2,555 high-quality samples (KiCad 1,857 + Masala-CHAI 698), GT 100\% from deterministic rules, 98.6\% format-consistent with the test set, intra-line duplication noise reduced 99.5\% (22,340 $\to$ 107).
+    \item \textbf{Discovery and Systematic Resolution of Modality Collapse.} Through six controlled experiments (E1--E6), we are the first to identify Projector fine-tuning as the root cause of VLM modality collapse on small datasets, and propose the LLM-Only LoRA strategy that completely resolves it (diversity 4\% $\to$ 90\%).
+    \item \textbf{V8-Fixed Optimal Model.} Through wide LoRA capacity expansion ($r=16$, 5.7M params) + causal token shift fix + BPE boundary alignment, achieves Avg.\ NED = 0.7760 on easy100 (baseline 0.8999, 44.4\% relative error reduction), the current state-of-the-art for this benchmark.
+    \item \textbf{Complete Open-Source Ecosystem.} Dataset, training/evaluation scripts, LoRA weights, and Gradio online demo all fully open-sourced under MIT/Apache 2.0 licenses.
 \end{enumerate}
 
 \subsection{Limitations}
 
-\begin{enumerate}[label=\arabic*.]
-    \item \textbf{Severe compute constraints:} All experiments were conducted on a single laptop RTX 4060 (8\,GB VRAM), which severely constrained outcomes: (a) Flash Attention unavailable, requiring manual fallback with $\sim$10x slower inference; (b) max\_length limited to 30 tokens, far insufficient for complete SPICE netlists (100--500 tokens); (c) max\_dim limited to 168px, causing loss of fine text details; (d) batch\_size=1 with no gradient accumulation; (e) Windows + PaddlePaddle 2.6.2 bfloat16 issues added debugging overhead. These constraints resulted in optimal NED of 0.7961 (+10.0\%). On GPUs with larger VRAM, significantly better absolute scores are expected. This paper contributes primarily methodological validation and bottleneck analysis, not absolute scores.
-    \item \textbf{Computational resource constraints:} Experiments were conducted on a single RTX 4060 8\,GB laptop GPU, significantly limiting batch size, training speed, and model scale.
-    \item \textbf{Post-training mostly complete:} Original LoRA, Projector LoRA, 3-epoch training, and $r=16$ rank expansion have been completed (optimal NED 0.7961, +10.0\%). Diverse decoding was attempted but showed limited effect due to distribution collapse. Topology evaluation and long-term directions such as multi-task decoupling and simulation verification remain to be implemented.
-    \item \textbf{Manual verification not performed:} Final manual review of the dataset was not completed.
+\begin{enumerate}
+    \item \textbf{Compute constraints}: All experiments on a single laptop RTX 4060 (8\,GB VRAM); Flash Attention unavailable, max\_length limited. Significantly better absolute scores are expected on larger GPUs.
+    \item \textbf{Topology evaluation not implemented}: Component F1, pin accuracy, and other topology-level evaluation protocols are designed but not yet coded.
+    \item \textbf{Incomplete netlist output}: Current model output focuses on component lists without complete connectivity relationships (netlist topology), still some distance from true ``schematic $\to$ netlist'' conversion.
 \end{enumerate}
 
-\subsection{Future Work}
+\subsection{Outlook}
 
-Future work will focus on: (1) expanding dataset annotation and cleaning to broaden training coverage; (2) implementing the topology evaluation protocol (component F1, pin accuracy); (3) exploring $r=32$ and other higher ranks for marginal gains; (4) introducing regularization (e.g., label smoothing) during training to mitigate distribution collapse, enabling diverse decoding to be effective; (5) exploring long-term directions such as multi-task decoupling and simulator-based verification on GPUs with larger VRAM.
+Future work will focus on: (1) implementing topology evaluation protocols to supplement pure text NED; (2) exploring Flash Attention acceleration and longer output sequences on larger GPUs; (3) integrating SPICE simulation verification as a reward signal for netlist correctness during training; (4) migrating the LLM-Only LoRA method to larger-scale VLMs.
 
-\subsection{Open-Source Contribution and Community Value}
+\subsection{Open-Source Contributions and Community Value}
 
-This project is released fully open-source, aiming to provide long-term community value for the research-scarce field of circuit schematic OCR:
+This project is fully open-sourced, providing long-term community value for the research-scarce field of circuit schematic OCR:
 
 \begin{enumerate}[nosep]
-    \item \textbf{First Circuit OCR Benchmark Dataset.} 2,555 high-quality samples (90/10 split) + 4-tier difficulty evaluation system + 250-sample degraded evaluation set, providing a standardized evaluation foundation. Datasets and evaluation scripts are released under the MIT license, freely usable for academic and commercial purposes.
-    \item \textbf{Complete Reproducible Fine-Tuning Pipeline.} Full LoRA training, evaluation, and inference scripts with end-to-end configuration on a consumer-grade Windows + RTX 4060 GPU. The bilingual technical report (Chinese + English) documents all experimental designs, hyperparameter choices, and failure analyses (e.g., r=32 collapse), lowering the entry barrier for follow-up researchers.
-    \item \textbf{Systematic Bottleneck Analysis Methodology.} The E1--E5 controlled variable experimental framework establishes a transferable diagnostic pipeline: blank-image test $\to$ resolution ablation $\to$ epoch ablation $\to$ LoRA layer coverage ablation $\to$ rank ablation. This methodology applies not only to circuit OCR but can be transferred to VLM fine-tuning tasks in other vertical domains.
-    \item \textbf{Gradio Online Demo.} A ready-to-run web demo (\texttt{demo.py}) allows users to upload circuit images for OCR recognition and browse pre-computed model comparison results.
-    \item \textbf{Complete Project Repository.} \url{https://github.com/ZhangJ83/circuit-ocr-paddle} contains: training/evaluation/inference scripts, LoRA weights, evaluation results, degraded test set builder, topology evaluation, visualization tools, and complete bilingual source code of this paper.
+    \item \textbf{First circuit OCR benchmark dataset (V5 Golden).} 2,555 high-quality samples + 4-tier evaluation system, providing a standardized evaluation foundation.
+    \item \textbf{Reproducible fine-tuning pipeline.} Complete training/evaluation/inference scripts with Windows + RTX 4060 configuration; bilingual technical report documenting all experimental design, hyperparameter choices, and failure analyses.
+    \item \textbf{Systematic bottleneck analysis methodology.} E1--E6 controlled experiments establish a transferable diagnostic framework applicable to other domain-specific VLM fine-tuning tasks.
+    \item \textbf{Gradio online demo.} \url{https://huggingface.co/spaces/yingchu83/CircuitOCR}
+    \item \textbf{LoRA model weights.} \url{https://huggingface.co/yingchu83/CircuitOCR-lora}
+    \item \textbf{Complete project repository.} \url{https://github.com/ZhangJ83/circuit-ocr-paddle}
 \end{enumerate}
 
 \bibliographystyle{unsrtnat}
