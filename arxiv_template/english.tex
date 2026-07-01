@@ -259,7 +259,7 @@ Through six controlled variable experiments (E1--E6), we systematically identifi
     \item \textbf{E3 (Multi-epoch)}: 3-epoch improves NED by 0.9\% over 1-epoch $\to$ positive gain but insufficient to resolve collapse;
     \item \textbf{E4 (Projector layers)}: Adding Projector LoRA reduces NED to 0.8271 (+7.0\%) $\to$ \textbf{Projector is the key bottleneck};
     \item \textbf{E5 (LoRA rank)}: $r=16$ further reduces NED to 0.7961 (+10.0\%) $\to$ larger capacity helps but diversity remains at 4\%;
-    \item \textbf{E6 (Freeze Projector)}: Fine-tune only LLM self-attention, freeze Projector $\to$ \textbf{diversity recovers to 90\%, collapse fully resolved}.
+    \item \textbf{E6 (Freeze Projector)}: Fine-tune only LLM self-attention, freeze Projector $\to$ \textbf{diversity recovers to 90\%, collapse resolved}.
 \end{enumerate}
 
 \textbf{Core finding: Projector fine-tuning is the root cause of modality collapse.} The vision-language projector (\texttt{mlp\_AR}, 25.9M parameters) serves as the sole mapping bridge from visual features to language space. Under small datasets, LoRA perturbation of these weights distorts visual features into out-of-distribution vectors that the LLM cannot interpret, causing the LLM to degenerate into mechanically repeating high-frequency tokens from the training data (Figure~\ref{fig:collapsed_output}). Freezing the Projector to protect pre-trained alignment weights while teaching only the LLM to reinterpret existing visual features is the safest fine-tuning strategy.
@@ -310,7 +310,7 @@ In SFT training of autoregressive VLMs, the language decoder supervises next-tok
 \mathcal{L} = -\frac{1}{N} \sum_{i=1}^{N} \log P(x_i = y_i \mid x_{<i})
 \end{equation}
 where the predicted probability distribution ($\text{logits}$) and ground truth labels ($\text{labels}$) must maintain a strict 1-token offset relationship, i.e., using information at step $t$ to predict the label at step $t+1$.
-In earlier scripts, due to a misunderstanding of framework internals, manual causal shifting was applied to both logits and labels (\texttt{shift\_logits = logits[:, :-1, :]} and \texttt{shift\_labels = labels[:, 1:]}). However, the PaddleOCR-VL conditional generation interface (\texttt{AutoModelForConditionalGeneration}) already implements this causal shift internally. This mismatch resulted in a fatal \textbf{double-shifting} bug---forcing the model to supervise the prediction at step $t$ with the label from step $t+2$. The gradient signals were corrupted. V8-Fixed removes the manual shift, ensuring a precise single-shift alignment that matches autoregressive causal logic.
+In earlier scripts, due to a misunderstanding of framework internals, manual causal shifting was applied to both logits and labels (\texttt{shift\_logits = logits[:, :-1, :]} and \texttt{shift\_labels = labels[:, 1:]}). However, the PaddleOCR-VL conditional generation interface (\texttt{AutoModelForConditionalGeneration}) already implements this causal shift internally. This mismatch resulted in a \textbf{double-shifting} bug---forcing the model to supervise the prediction at step $t$ with the label from step $t+2$. The gradient signals were corrupted. V8-Fixed removes the manual shift, ensuring a precise single-shift alignment that matches autoregressive causal logic.
 
 \subsubsection{Breakthrough 3: ID-Space Concatenation to Eliminate BPE Boundary Merging}
 When prompt and label strings are concatenated into a single string $S = P + L$ prior to tokenization, the Byte-Pair Encoding (BPE) tokenizer merges adjacent characters across the boundary if they form a common pair in the vocabulary:
@@ -440,7 +440,7 @@ This paper presents CircuitOCR, a complete solution for circuit schematic OCR an
     \item \textbf{V5 Golden Multi-Source Balanced Dataset.} A format-aligned, zero-AI-label, multi-source balanced circuit schematic OCR dataset. 2,555 high-quality samples (KiCad 1,857 + Masala-CHAI 698), GT 100\% from deterministic rules, 98.6\% format-consistent with the test set, intra-line duplication noise reduced 99.5\% (22,340 $\to$ 107).
     \item \textbf{Discovery and Systematic Resolution of Modality Collapse.} Through six controlled experiments (E1--E6), we identify Projector fine-tuning as the root cause of VLM modality collapse on small datasets, and propose the LLM-Only LoRA strategy that resolves it (diversity 4\% $\to$ 90\%).
     \item \textbf{V8-Fixed Optimal Model.} Through wide LoRA capacity expansion ($r=16$, 5.7M params) + causal token shift fix + BPE boundary alignment, achieves Avg.\ NED = 0.7760 on easy100 (baseline 0.9372, 17.2\% relative error reduction), the current state-of-the-art for this benchmark.
-    \item \textbf{Complete Open-Source Ecosystem.} Dataset, training/evaluation scripts, LoRA weights, and Gradio online demo all fully open-sourced under MIT/Apache 2.0 licenses.
+    \item \textbf{Complete Open-Source Ecosystem.} Dataset, training/evaluation scripts, LoRA weights, and Gradio online demo all open-sourced under MIT/Apache 2.0 licenses.
 \end{enumerate}
 
 \subsection{Limitations}
@@ -457,7 +457,7 @@ Future work will focus on: (1) implementing topology evaluation protocols to sup
 
 \subsection{Open-Source Contributions and Community Value}
 
-This project is fully open-sourced, providing long-term community value for the research-scarce field of circuit schematic OCR:
+This project is open-sourced, providing long-term community value for the research-scarce field of circuit schematic OCR:
 
 \begin{enumerate}[nosep]
     \item \textbf{First circuit OCR benchmark dataset (V5 Golden).} 2,555 high-quality samples + 4-tier evaluation system, providing a standardized evaluation foundation.

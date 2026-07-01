@@ -115,7 +115,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-电路原理图自动识别是电子设计自动化（EDA）领域的一项核心挑战，涉及视觉文字提取与拓扑图论追踪两大异构任务。本文提出 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 系统。我们构建了 V5 Golden 多源平衡数据集，包含 1,857 张 KiCad 原理图（500 张程序化合成渲染图 + 1,357 张真实开源项目图）与 698 张 Masala-CHAI 教材电路图，经 SPICE 伪影清洗和分层采样后保留 2,555 个独立样本。通过 E1--E6 六个控制变量实验，我们识别出\textbf{模态塌缩的根因}：对视觉-语言投影层（Projector）的 LoRA 微调会破坏预训练对齐权重，导致 LLM 退化输出。基于此发现提出的 LLM-Only LoRA 架构解决了塌缩问题（多样性 4\% $\to$ 90\%）。最终 V8-Fixed 模型采用宽 LoRA（$r=16$, 5.7M 参数），通过修复因果 token 偏移和 BPE 边界合并，在 easy100 全量测试集取得 Avg. NED = 0.7760（基座 0.9372，错误率削减 17.2\%），easy50 验证集取得 0.8257（基座 0.9634，错误率削减 14.3\%）。训练在单卡 RTX 4060 8GB 上约 2 小时完成。模型权重、数据集和在线 Demo 均已开源发布。
+电路原理图自动识别是电子设计自动化（EDA）领域的一项核心挑战，涉及视觉文字提取与拓扑图论追踪两大异构任务。本文提出 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 系统。我们构建了 V5 Golden 多源平衡数据集，包含 1,857 张 KiCad 原理图（500 张程序化合成渲染图 + 1,357 张真实开源项目图）与 698 张 Masala-CHAI 教材电路图，经 SPICE 伪影清洗和分层采样后保留 2,555 个独立样本。通过 E1--E6 六个控制变量实验，我们定位到模态塌缩的根因：对视觉-语言投影层（Projector）的 LoRA 微调会破坏预训练对齐权重，导致 LLM 退化输出。基于此发现的 LLM-Only LoRA 架构解决了塌缩问题（多样性 4\% $\to$ 90\%）。最终 V8-Fixed 模型采用宽 LoRA（$r=16$, 5.7M 参数），通过修复因果 token 偏移和 BPE 边界合并，在 easy100 全量测试集取得 Avg. NED = 0.7760（基座 0.9372，错误率削减 17.2\%），easy50 验证集取得 0.8257（基座 0.9634，错误率削减 14.3\%）。训练在单卡 RTX 4060 8GB 上约 2 小时完成。模型权重、数据集和在线 Demo 均已开源发布。
 \end{abstract}
 
 \keywords{电路原理图 \and OCR \and PaddleOCR-VL \and LoRA微调 \and 网表提取 \and 模态塌缩 \and 低显存训练}
@@ -133,7 +133,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 
 \begin{enumerate}[nosep]
     \item \textbf{V5 Golden 数据集}：格式对齐、零 AI 标注、多源平衡的电路 OCR 基准（2,555 样本）；
-    \item \textbf{模态塌缩根因定位}：E1--E6 实验识别出 Projector 微调为塌缩根因，LLM-Only LoRA 解决了该问题（多样性 4\% $\to$ 90\%）；
+    \item \textbf{模态塌缩根因定位}：E1--E6 实验定位到 Projector 微调为塌缩根因，LLM-Only LoRA 解决了该问题（多样性 4\% $\to$ 90\%）；
     \item \textbf{V8-Fixed 模型}：easy100 NED 0.7760（基座 0.9372，错误率削减 17.2\%），easy50 NED 0.8257（基座 0.9634，错误率削减 14.3\%）；
     \item \textbf{完整开源生态}：数据集、权重、Demo 均已发布。
 \end{enumerate}
