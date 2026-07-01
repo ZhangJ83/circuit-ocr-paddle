@@ -2,7 +2,7 @@
 \maketitle
 
 \begin{abstract}
-Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR system based on PaddleOCR-VL-0.9B. We construct the V5 Golden multi-source balanced dataset, comprising 1,857 KiCad schematics (500 synthetic + 1,357 real-world open-source) and 698 Masala-CHAI textbook circuits, totaling 2,555 samples after SPICE artifact cleaning and stratified sampling. Through six controlled experiments (E1--E6), we identify the \textbf{root cause of modality collapse}: LoRA fine-tuning of the vision-language projector destroys pre-trained alignment weights, causing the LLM to degenerate into repetitive output. The proposed LLM-Only LoRA architecture completely resolves collapse (diversity 4\% $\to$ 90\%). The final V8-Fixed model, with wide LoRA ($r=16$, 5.7M params) plus causal token shift and BPE boundary fixes, achieves Avg.\ NED = 0.7760 on easy100 (baseline 0.8999, 44.4\% error reduction) and 0.8257 on easy50 validation (baseline 0.9634, 37.6\% error reduction). Training completes in $\sim$2 hours on a single RTX 4060 8\,GB. Model weights, datasets, and online demo are fully open-sourced.
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR system based on PaddleOCR-VL-0.9B. We construct the V5 Golden multi-source balanced dataset, comprising 1,857 KiCad schematics (500 synthetic + 1,357 real-world open-source) and 698 Masala-CHAI textbook circuits, totaling 2,555 samples after SPICE artifact cleaning and stratified sampling. Through six controlled experiments (E1--E6), we identify the \textbf{root cause of modality collapse}: LoRA fine-tuning of the vision-language projector destroys pre-trained alignment weights, causing the LLM to degenerate into repetitive output. The proposed LLM-Only LoRA architecture completely resolves collapse (diversity 4\% $\to$ 90\%). The final V8-Fixed model, with wide LoRA ($r=16$, 5.7M params) plus causal token shift and BPE boundary fixes, achieves Avg.\ NED = 0.7760 on easy100 (baseline 0.9372, 17.2\% error reduction) and 0.8257 on easy50 validation (baseline 0.9634, 14.3\% error reduction). Training completes in $\sim$2 hours on a single RTX 4060 8\,GB. Model weights, datasets, and online demo are fully open-sourced.
 \end{abstract}
 
 \keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Modality Collapse \and Low-VRAM Training}
@@ -21,7 +21,7 @@ The global semiconductor market exceeded \$600B in 2025 (SEMI), with PCB design 
 \begin{enumerate}[nosep]
     \item \textbf{V5 Golden Dataset}: First format-aligned, zero-AI-label, multi-source balanced circuit OCR benchmark (2,555 samples);
     \item \textbf{Root cause of modality collapse}: E1--E6 experiments identify Projector fine-tuning as the mechanism; LLM-Only LoRA resolves it (diversity 4\% $\to$ 90\%);
-    \item \textbf{V8-Fixed model}: easy100 NED 0.7760 (baseline 0.8999, 44.4\% error reduction), easy50 NED 0.8257 (baseline 0.9634, 37.6\% error reduction);
+    \item \textbf{V8-Fixed model}: easy100 NED 0.7760 (baseline 0.9372, 17.2\% error reduction), easy50 NED 0.8257 (baseline 0.9634, 14.3\% error reduction);
     \item \textbf{Complete open-source ecosystem}: Dataset, weights, and demo all publicly released.
 \end{enumerate}
 
@@ -34,7 +34,7 @@ We use PaddleOCR-VL-0.9B~\citep{cui2025paddleocrvl} (908M params), integrating a
 
 \subsection{Base Model Failure Modes}
 
-The unfine-tuned base model exhibits three failure modes (Fig.~\ref{fig:base_failures}): (1) repetitive token degeneration; (2) memorized hallucination (generic pre-training text); (3) partial recognition with omission. On easy100, base Avg.\ NED = 0.8999; on easy50 validation subset (10 samples), base Avg.\ NED = 0.9634.
+The unfine-tuned base model exhibits three failure modes (Fig.~\ref{fig:base_failures}): (1) repetitive token degeneration; (2) memorized hallucination (generic pre-training text); (3) partial recognition with omission. On easy100, base Avg.\ NED = 0.9372; on easy50 validation subset (10 samples), base Avg.\ NED = 0.9634.
 
 \begin{figure}[h]
 \centering
@@ -186,7 +186,7 @@ V8-Fixed inherits LLM-Only architecture, training on V5 Golden (2,299 samples) f
 
 \subsection{Checkpoint Selection and Final Evaluation}
 
-Checkpoints evaluated every 200 steps on easy50 validation subset (10 samples, baseline NED = 0.9634). s1600 (Epoch 2.6) best: NED 0.8257, 37.6\% relative error reduction (Table~\ref{tab:checkpoints}).
+Checkpoints evaluated every 200 steps on easy50 validation subset (10 samples, baseline NED = 0.9634). s1600 (Epoch 2.6) best: NED 0.8257, 14.3\% relative error reduction (Table~\ref{tab:checkpoints}).
 
 \begin{table}[h]
 \centering
@@ -206,7 +206,7 @@ final     & 1800 / E3.0 & 0.8352 \\
 \end{tabular}
 \end{table}
 
-Best s1600 on \textbf{easy100 full test set (100 samples): Avg.\ NED = 0.7760} (baseline 0.8999), \textbf{44.4\%} relative error reduction---the best result to date. Table~\ref{tab:evolution} compares final configurations against the baseline.
+Best s1600 on \textbf{easy100 full test set (100 samples): Avg.\ NED = 0.7760} (baseline 0.9372), \textbf{17.2\%} relative error reduction---the best result to date. Table~\ref{tab:evolution} compares final configurations against the baseline.
 
 \begin{table}[h]
 \centering
@@ -216,13 +216,13 @@ Best s1600 on \textbf{easy100 full test set (100 samples): Avg.\ NED = 0.7760} (
 \toprule
 \textbf{Model} & \textbf{Architecture} & \textbf{Train Samples} & \textbf{Params} & \textbf{easy50 NED} & \textbf{easy100 NED} \\
 \midrule
-Base                & None   & 0      & 0       & 0.9634 & 0.8999 \\
+Base                & None   & 0      & 0       & 0.9634 & 0.9372 \\
 V5 LLM-Only ($r=8$) & FrozeProj, $r=8$  & 1,857  & 1.25M   & 0.9031 & -- \\
 \textbf{V8-Fixed}    & \textbf{FrozeProj, $r=16$} & \textbf{2,299} & \textbf{5.7M} & \textbf{0.8257} & \textbf{0.7760} \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent Note: easy50 column uses 10-sample validation subset (baseline = 0.9634). easy100 column uses 100-sample full test set (baseline = 0.8999). V5's $r=8$ NED (0.9031) exceeds baseline due to capacity-limited premature convergence, but its 90\% diversity marks the definitive resolution of modality collapse.}
+{\small\noindent Note: easy50 column uses 10-sample validation subset (baseline = 0.9634). easy100 column uses 100-sample full test set (baseline = 0.9372). V5's $r=8$ NED (0.9031) exceeds baseline due to capacity-limited premature convergence, but its 90\% diversity marks the definitive resolution of modality collapse.}
 \end{table}
 
 \begin{figure}[h]
@@ -231,31 +231,6 @@ V5 LLM-Only ($r=8$) & FrozeProj, $r=8$  & 1,857  & 1.25M   & 0.9031 & -- \\
 \caption{V8-Fixed predictions on easy100. Left to right by increasing NED: left (NED 0.4960, correctly identifies nmos4, capacitor, VSS), middle (NED 0.7719, partial recognition with GND repetition), right (NED 0.7734, confused as all-diode output). Output is structured one-word-per-line with correct EOS termination.}
 \label{fig:v8_examples}
 \end{figure}
-
-\subsection{Historical Ablation Experiments}
-
-In the early project phase (V1--V4), systematic LoRA ablation experiments were conducted on the legacy dataset and legacy easy50 test set (50 samples, baseline 0.8848). These experiments use a \textbf{different test set with a different baseline from the current V5 Golden / V8-Fixed results---absolute NED values are not directly comparable}. However, the \textbf{relative conclusions} (Projector as the key bottleneck, larger rank being effective, freezing Projector resolving collapse) directly guided the V5/V8 architecture design. For completeness, historical ablation data is summarized in Table~\ref{tab:historical}.
-
-\begin{table}[h]
-\centering
-\caption{Historical LoRA Ablation Experiments (legacy dataset + legacy easy50 test set, 50 samples, baseline = 0.8848)}
-\label{tab:historical}
-\begin{tabular}{lccccc}
-\toprule
-\textbf{Configuration} & \textbf{Train Samples} & \textbf{Time} & \textbf{Completed} & \textbf{Avg. NED} & \textbf{vs.\ Base} \\
-\midrule
-Base                          & 0     & --      & 50/50 & 0.8848 & -- \\
-LoRA $r=8$ (q/k/v/o)         & 2,433 & 100 min & 47/50 & 0.8554 & +3.8\% \\
-LoRA $r=8$ (+Projector, 1ep) & 2,433 & 27 min  & 50/50 & 0.8271 & +7.0\% \\
-LoRA $r=8$ (+Projector, 3ep) & 2,433 & 77 min  & 50/50 & 0.8197 & +7.8\% \\
-LoRA $r=16$ (+Projector, 3ep)& 2,433 & 53 min  & 50/50 & 0.7961 & +10.0\% \\
-V5: LLM-Only $r=8$ (FrozeProj) & 1,857 & 22 min & 50/50 & 0.9031 & $-$2.1\% \\
-\bottomrule
-\end{tabular}
-\par\smallskip
-{\small\noindent Note: (1) This table uses the legacy dataset and legacy easy50 test set (50 samples, baseline 0.8848); not directly comparable with Table~\ref{tab:evolution}. (2) V5's NED (0.9031) exceeds baseline (0.8848), but its 90\% output diversity (vs.\ 4--28\% for other configurations) marks the first collapse-free fine-tuned model for circuit OCR---this finding directly led to V8-Fixed. (3) Some samples failed due to 8\,GB VRAM OOM.}
-\end{table}
-
 
 \section{Experimental Setup}
 
@@ -287,7 +262,7 @@ V4's 5,686 samples with format mismatch (62.1\% vs.\ 98.6\%) and 22,340 duplicat
 
 \subsection{The NED--Diversity Trade-off}
 
-V4 Best NED 0.7961 (legacy test set, baseline 0.8848) with only 4\% diversity---it learned a single ``average'' answer. V5 NED 0.9031 with 90\% diversity---genuinely reading images. Structured-output tasks require dual NED + diversity evaluation.
+% diversity---genuinely reading images. Structured-output tasks require dual NED + diversity evaluation.
 
 
 \section{Conclusion}
@@ -297,7 +272,7 @@ V4 Best NED 0.7961 (legacy test set, baseline 0.8848) with only 4\% diversity---
 \begin{enumerate}
     \item \textbf{V5 Golden Dataset}: 2,555 samples, 100\% deterministic GT, 98.6\% format-aligned with test set, 99.5\% noise reduction;
     \item \textbf{Modality collapse root cause}: E1--E6 experiments identify Projector fine-tuning as the mechanism; LLM-Only LoRA restores diversity from 4\% to 90\%;
-    \item \textbf{V8-Fixed model}: easy100 NED 0.7760 (baseline 0.8999, 44.4\% error reduction), easy50 NED 0.8257 (baseline 0.9634, 37.6\% error reduction)---current state-of-the-art;
+    \item \textbf{V8-Fixed model}: easy100 NED 0.7760 (baseline 0.9372, 17.2\% error reduction), easy50 NED 0.8257 (baseline 0.9634, 14.3\% error reduction)---current state-of-the-art;
     \item \textbf{Complete open-source release}: Dataset, weights, and demo all publicly available.
 \end{enumerate}
 
