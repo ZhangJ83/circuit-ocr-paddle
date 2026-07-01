@@ -115,7 +115,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-电路原理图自动识别是电子设计自动化（EDA）领域的一项核心挑战，涉及视觉文字提取与拓扑图论追踪两大异构任务。本文提出 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 与网表提取系统。我们构建了 V5 Golden 多源平衡数据集，包含 1,857 张 KiCad 原理图（500 张程序化合成渲染图 + 1,357 张真实开源项目图）与 698 张 Masala-CHAI 教材电路图，经 SPICE 伪影清洗、质量评分和分层采样后保留 2,555 个独立样本，按 90/10 划分为训练集（2,299）和验证集（256）。我们通过系统性 LoRA 消融实验识别出\textbf{模态塌缩的根因}——对视觉-语言投影层（Projector）的微调会破坏预训练对齐权重——并提出 LLM-Only LoRA 架构彻底解决了该问题。最终 V8-Fixed 模型采用宽 LoRA 配置（$r=16$, $\alpha=32$, 5.7M 可训练参数），通过修复因果 token 偏移和 BPE 边界合并两大关键问题，在 V5 Golden 数据集上训练 3 epoch（1,800 步）后，于 easy100 全量测试集取得 Avg. NED = 0.7760（基座 0.8999，相对错误率削减 44.4\%），easy50 验证集取得 0.8257（基座 0.9634，相对错误率削减 37.6\%）。训练在单卡 NVIDIA RTX 4060 笔记本 GPU（8GB 显存）上约 2 小时完成。模型权重、数据集和在线 Demo 均已开源发布。
+电路原理图自动识别是电子设计自动化（EDA）领域的一项核心挑战，涉及视觉文字提取与拓扑图论追踪两大异构任务。本文提出 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 系统。我们构建了 V5 Golden 多源平衡数据集，包含 1,857 张 KiCad 原理图（500 张程序化合成渲染图 + 1,357 张真实开源项目图）与 698 张 Masala-CHAI 教材电路图，经 SPICE 伪影清洗和分层采样后保留 2,555 个独立样本。通过 E1--E6 六个控制变量实验，我们首次识别出\textbf{模态塌缩的根因}：对视觉-语言投影层（Projector）的 LoRA 微调会破坏预训练对齐权重，导致 LLM 退化输出。基于此发现提出的 LLM-Only LoRA 架构彻底解决了塌缩问题（多样性 4\% $\to$ 90\%）。最终 V8-Fixed 模型采用宽 LoRA（$r=16$, 5.7M 参数），通过修复因果 token 偏移和 BPE 边界合并，在 easy100 全量测试集取得 Avg. NED = 0.7760（基座 0.8999，错误率削减 44.4\%），easy50 验证集取得 0.8257（基座 0.9634，错误率削减 37.6\%）。训练在单卡 RTX 4060 8GB 上约 2 小时完成。模型权重、数据集和在线 Demo 均已完全开源。
 \end{abstract}
 
 \keywords{电路原理图 \and OCR \and PaddleOCR-VL \and LoRA微调 \and 网表提取 \and 模态塌缩 \and 低显存训练}
@@ -123,331 +123,291 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 
 \section{引言}
 
-\subsection{研究背景与稀缺性}
+\subsection{研究背景}
 
-视觉语言模型（VLM）极大地扩展了传统大语言模型的应用边界，在需要视觉理解的场景（如机器人导航、文档解析）中展现出显著优势。相比于传统 OCR 方案依赖多级流水线和大量内存开销，VLM 能够以端到端的方式直接从图像输出结构化文本，省去了繁琐的中间处理步骤。
+视觉语言模型（VLM）在文档解析等领域展现出显著优势，能够以端到端方式从图像输出结构化文本。然而在 EDA 领域，电路原理图的自动识别与解析仍然是研究稀缺方向——目前尚无专门针对电路原理图 OCR 的公开基准数据集。现有数据集如 Open Schematics~\citep{openschematics2025} 和 Masala-CHAI~\citep{bhandari2025masalachai} 虽提供了电路图和网表，但缺乏标准化评估协议，且原始标注存在严重的格式失配和噪声问题。
 
-然而，在电子设计自动化（EDA）领域，电路原理图的自动识别与解析仍然是一个研究稀缺的方向。目前学术界和工业界存在大量通用 OCR 基准数据集（如 ICDAR 系列、SROIE、FUNSD 等），覆盖自然场景文字、文档、票据、表格等多种场景，但尚无任何专门针对电路原理图 OCR 的公开基准数据集。现有的电路相关数据集如 Open Schematics~\citep{openschematics2025} 和 Masala-CHAI~\citep{bhandari2025masalachai} 虽然提供了电路图和网表数据，但缺乏标准化的评估协议和难度分层体系，且原始标注存在严重的格式失配和噪声问题。CircuitOCR 填补了这一空白：构建了首个多源平衡的电路原理图 OCR 基准（V5 Golden），包含 2,555 个高质量样本，按 90/10 划分训练/验证集，并建立了 4 个梯度难度层级的测试体系。
+据 SEMI 统计，全球半导体市场在 2025 年已超 6,000 亿美元，PCB 设计工具市场规模约 40 亿美元。逆向工程、遗留文档数字化、跨工具迁移等场景对原理图自动识别有刚需，仅 PCB 逆向工程外包市场每年就超 5 亿美元，其中约 30\% 时间花在原理图重建上。CircuitOCR 填补了这一空白。
 
-\subsection{工业需求价值}
-
-电路原理图自动识别是 EDA 行业的核心刚需。据 SEMI 和 WSTS 统计，全球半导体市场规模在 2025 年已超过 6,000 亿美元，而 PCB 设计工具市场（Cadence、Altium、KiCad 等）规模约为 40 亿美元。在实际工程流程中，存在大量将纸质或图像格式原理图转换为数字网表的需求：
+\subsection{核心贡献}
 
 \begin{enumerate}[nosep]
-    \item \textbf{逆向工程}：硬件安全审计和兼容性设计需要从物理 PCB 或图像中恢复原始网表；
-    \item \textbf{遗留文档数字化}：大量 1980--2000 年代的纸质原理图需要数字化存档；
-    \item \textbf{跨工具迁移}：不同 EDA 工具之间的原理图格式互不兼容，图像级别的 OCR 可以作为通用迁移桥梁；
-    \item \textbf{开源硬件社区}：GitHub 上超过 50 万个 KiCad/EAGLE 项目，其中大量缺少结构化网表导出。
+    \item \textbf{V5 Golden 数据集}：首个格式对齐、零 AI 标注、多源平衡的电路 OCR 基准（2,555 样本）；
+    \item \textbf{模态塌缩根因发现}：E1--E6 实验首次识别 Projector 微调为塌缩根因，LLM-Only LoRA 彻底解决；
+    \item \textbf{V8-Fixed 最优模型}：easy100 NED 0.7760（错误率削减 44.4\%），easy50 NED 0.8257（错误率削减 37.6\%）；
+    \item \textbf{完整开源生态}：数据集、权重、Demo 均已发布。
 \end{enumerate}
-
-目前这些工作主要依赖人工逐图阅读和手动录入，效率极低且易出错。据行业估计，仅 PCB 逆向工程外包市场每年就超过 5 亿美元，其中约 30\% 的时间花费在原理图重建上。
 
 
 \section{背景与系统设置}
-\label{sec:headings}
 
-\subsection{基座模型规格}
+\subsection{基座模型与任务定义}
 
-本次项目选用 PaddleOCR-VL 为开源基座模型~\citep{cui2025paddleocrvl}，其底层 OCR 能力建立在 PP-OCR 系列轻量级文字检测与识别系统之上~\citep{li2022ppocrv3}。PaddleOCR-VL-0.9B 是一个参数规模为 908M 的视觉语言模型（VLM），集成了 NaViT 风格的动态分辨率视觉编码器与 ERNIE-4.5-0.3B 语言模型，支持 109 种语言的文档解析任务，涵盖文本、表格、公式和图表等常见文档元素。其紧凑的模型规模（0.9B）使其适合在消费级 GPU 上进行微调和部署。
+选用 PaddleOCR-VL-0.9B 为基座模型~\citep{cui2025paddleocrvl}，参数 908M，集成 NaViT 动态分辨率视觉编码器与 ERNIE-4.5-0.3B 语言模型，支持 109 种语言文档解析。
 
-\subsection{工程场景定义}
+电路原理图理解包含两个异构子任务：（1）\textbf{视觉文字识别}——提取元件编号（R1、C1）、参数值（10k、100nF）、网络标签（VCC/GND）；（2）\textbf{拓扑图论追踪}——从图像推断元件间电气连接。评估采用双层协议：文本 NED（归一化编辑距离）和拓扑 F1。
 
-电路原理图（Electronic Schematic Diagram）是一种用标准图形符号表示电子元件及其电气连接关系的二维工程图，它不反映物理布局，只表达逻辑拓扑。电路原理图属于 EDA 这一垂直工业领域，是工程图纸和技术文档的核心载体。作为一种高度复杂的专业技术文档，电路原理图包含：文本元素（元件编号如 R1、C1，阻值如 10k/100nF，网络标签如 VCC/GND）；特殊字符（$\Omega$、$\mu$、$\pm$）；表格元素（引脚表、BOM 表、版本变更表）；结构化数据（连接关系和网络拓扑，需提取类似代码的结构化网表）。
+\subsection{基座模型失效模式}
 
-\subsection{任务结构：OCR + 拓扑追踪双任务联合学习}
+未微调的基座模型在电路原理图上表现出三种典型失效（图~\ref{fig:base_failures}）：(1) 重复 token 退化（``GND GND GND...''）；(2) 记忆性幻觉（输出预训练数据中的通用文本）；(3) 部分识别遗漏。根因在于预训练数据以通用文档为主，极少包含工程图纸。
 
-电路原理图理解本质上是一个双任务学习问题，包含两个异构子任务需要联合优化：
-
-\textbf{子任务 1：视觉文字识别（显式信息提取）。} 从图像中直接提取可见的文字元素——元件编号、参数值、网络标签。这一子任务与传统 OCR 类似，但面临工程图纸特有的挑战：小字体密集排布、$\Omega$/$\mu$ 等特殊字符、丝印与铜箔的视觉干扰、以及不同画图工具的字库差异。
-
-\textbf{子任务 2：拓扑图论追踪（隐式结构推理）。} 从图像中间接推断元件之间的电气连接关系。电路图中的连线和网络标签定义了元件引脚之间的连接拓扑，模型需要理解：两个标注为 ``VDD'' 的引脚虽然在图像中空间分离，但电气上属于同一网络。这一子任务超越了传统 OCR 的范畴，涉及图论层面的语义推理。
-
-两个子任务通过共享的视觉编码器和语言解码器进行联合优化。我们设计的双层评估协议——文本 NED（评估显式文字识别能力）和拓扑 F1（评估隐式结构理解能力）——能够分别衡量模型在两个维度上的表现。
-
-\subsection{基座模型的失效模式}
-
-未微调的 PaddleOCR-VL-0.9B 基座模型在电路原理图任务上表现出三种典型的失效模式：（1）\textbf{重复 token 退化}——模型陷入反复输出同一词元的循环（如连续输出 ``GND GND GND...''）；（2）\textbf{记忆性幻觉}——模型输出其预训练数据中已记忆的通用文本片段（如 Arduino 教程片段、Markdown 格式标记），而非根据输入图像进行识别；（3）\textbf{部分识别与信息遗漏}——偶尔正确识别个别元件编号（如 ``R1''）但遗漏了图纸中的主要元件名称、网络标签和参数值。这些失效模式的根本原因在于 PaddleOCR-VL 的预训练数据以通用文档（发票、表单、书籍页面）为主，极少包含电路原理图这类高度专业化的工程图纸。
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/v5_NMOS_Circuit_1_sch.png}
+\caption{基座模型失效示例：NMOS 晶体管电路（教科书原理图，690$\times$592）。GT 为 ``M0\textbackslash n nmos4\textbackslash n VDD\textbackslash n VDD\textbackslash n VIN1\textbackslash n VSS''，基座输出为 ``(a)\textbackslash n\textbackslash n I\_D\textbackslash n\textbackslash n 2 V\textbackslash n\textbackslash n V\_X''（与电路无关的随机片段）。}
+\label{fig:base_failures}
+\end{figure}
 
 
-\section{V5 Golden 数据集的构建}
+\section{V5 Golden 数据集}
 
-\subsection{设计原则与旧版问题}
+\subsection{旧版数据集的三大致命缺陷}
 
-在项目迭代过程中，我们发现早期数据集（V1--V2）存在三个致命缺陷：
+V1--V4 数据集存在严重质量问题：
 
 \begin{enumerate}[nosep]
-    \item \textbf{GT-图像不对齐}：GT 标注从 KiCad 数据模型（S-表达式解析）生成，包含了引脚号、隐藏网络名等大量在渲染图像上不可见的文本，导致训练信号严重噪声化；
-    \item \textbf{格式失配}：Open Schematics 和 Rescraped 子集使用水平空格拼接格式（如 ``+5V 5.1k R3 A1 A1 330 330 R2 R2 1 1''），与测试集的一词一行垂直格式（如 ``R1\textbackslash n10k\textbackslash nGND''）完全不兼容——V4 训练集仅 62.1\% 单词行，而测试集为 98.6\%；
-    \item \textbf{重复噪点}：行内相邻重复词高达 22,340 个，24.3\% 的样本受到污染，模型被强制学会输出无意义的双重重复。
+    \item \textbf{GT-图像不对齐}：GT 从 KiCad S-表达式解析生成，包含引脚号、隐藏网络名等渲染图像上不可见的文本；
+    \item \textbf{格式失配}：Open Schematics/Rescraped 用水平空格拼接格式（``+5V 5.1k R3 A1 A1 330 330 R2 R2 1 1''），测试集为一词一行垂直格式——V4 训练集仅 62.1\% 单词行 vs 测试集 98.6\%；
+    \item \textbf{重复噪点}：行内相邻重复词 22,340 个，24.3\% 样本受污染。
 \end{enumerate}
 
-V5 Golden 数据集基于以下核心原则彻底重构：
+\subsection{三项设计原则}
 
-\textbf{原则 1：GT 必须与图像可见文字 100\% 对齐。} 合成数据使用 \texttt{draw.text()} 同步记录，真实 KiCad 数据从 SVG stroked-text 可见文字提取，Masala-CHAI 从 SPICE 网表（而非 OCR）提取元件信息。所有 GT 均来自确定性规则，绝不使用 AI 系统生成标注。
+\textbf{原则 1：GT 与可见文字 100\% 对齐。} 合成数据用 \texttt{draw.text()} 同步记录，真实 KiCad 从 SVG stroked-text 提取，Masala 从 SPICE 网表提取。全部来自确定性规则，零 AI 标注。
 
-\textbf{原则 2：多源平衡防止分布偏差。} 直接使用全部 4,858 个 Masala-CHAI 样本会导致其在训练集中占比高达 85.5\%，模型将被 SPICE 格式主导而忽略 KiCad 原理图的字面 OCR 能力。我们将 Masala-CHAI 下采样至 698 个，与 KiCad 1,857 个形成 0.38:1 的配比，确保模型以 KiCad 垂直格式为主体、Masala SPICE 格式为补充。
+\textbf{原则 2：多源平衡。} Masala-CHAI 从 4,858 下采样至 698，与 KiCad 1,857 形成 0.38:1 配比，防止 SPICE 格式主导训练。
 
-\textbf{原则 3：格式与测试集严格对齐。} 将 Open Schematics（226 张）和 Rescraped（102 张）从训练集中彻底移除，替换为 train-real 子集（1,357 张），其标注格式（97.9\% 单词行）与测试集（98.6\% 单词行）几乎完美一致。行内重复噪点从 22,340 降至 107（99.5\% 降幅）。
+\textbf{原则 3：格式与测试集对齐。} 移除 Open Schematics（226）和 Rescraped（102），替换为 train-real（1,357），格式一致性从 62.1\% 提升至 97.9\%，重复噪点削减 99.5\%。
 
 \subsection{三个数据来源}
 
-\textbf{来源一：程序化合成渲染图（Synthetic V3，500 张）。} 通过 Python 脚本随机生成电路拓扑（5--30 个元件，10 类元件符号），自动绘制并渲染为 PNG 图像~\citep{zhang2026circuitocr}。标注直接来自 \texttt{draw.text()} 调用记录，按空间阅读顺序排序，GT 与图像 100\% 对齐。
+\textbf{合成 V3（500 张）。} Python 随机生成 5--30 个元件的混合电路，10 类元件符号，PNG 渲染。GT 来自 \texttt{draw.text()} 同步记录~\citep{zhang2026circuitocr}。
 
-\textbf{来源二：真实 KiCad 开源项目原理图（train-real，1,357 张）。} 来自 GitHub/KiCad 开源硬件社区。图像通过 kicad-cli 导出 SVG $\to$ cairosvg 渲染为高质量 PNG，GT 从 SVG stroked-text 可见文字元素提取，按一词一行的垂直格式排列。标注涵盖元件编号、参数值和网络标签，严格排除不可见的 KiCad 内部符号和隐藏图层文本。
+\textbf{train-real（1,357 张）。} GitHub/KiCad 社区真实开源项目，kicad-cli SVG $\to$ cairosvg PNG 渲染，GT 从 SVG stroked-text 可见文字提取，一词一行垂直格式。
 
-\textbf{来源三：Masala-CHAI 教材电路图（698 张，经筛选）。} 来自 Masala-CHAI 开源数据集~\citep{bhandari2025masalachai}，原始约 7,500 张教材电路图配套 SPICE 网表。我们从 SPICE 中提取元件标号和类型/参数值，经四类伪影清洗：
-\begin{enumerate}[nosep]
-    \item \textbf{SPICE 注释与指令}：以分号（;）或星号（*）开头的注释行、仿真控制指令（.tran、.ac、.dc、.op 等）；
-    \item \textbf{数学公式表达式}：大括号包裹的表达式（如 \texttt{\{gm*v(4,8)\}}）、VALUE= 赋值语句；
-    \item \textbf{器件尺寸参数}：MOSFET 的 L=/W= 参数、SPICE 节点名（如 \texttt{net7}）；
-    \item \textbf{占位符模板}：尖括号或方括号包裹的占位值（如 \texttt{<Voltage\_Value>}、\texttt{[value]}）。
-\end{enumerate}
-清洗后 4,858 $\to$ 4,421 个干净样本。随后按行数（偏好 5--15 行的丰富样本）、字符多样性、元件种类数三项指标综合评分，取前 60\% 高分样本后从剩余样本中按行数分层采样以确保长尾覆盖，最终精选 698 个高质量样本。
+\textbf{Masala-CHAI（698 张）。} 原始 7,500 张教材电路~\citep{bhandari2025masalachai}，SPICE 网表提取元件信息，经四类伪影清洗（注释指令、公式表达式、器件参数、占位符），从 4,858 样本中精选 698。
 
-\subsection{数据集划分与统计}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/dataset_samples.png}
+\caption{V5 Golden 数据集样本：三行分别为合成 V3（程序化生成，GT 100\% 对齐）、train-real（真实开源 KiCad 项目，一词一行垂直格式）、Masala-CHAI（教材电路，SPICE 网表提取）。格式与测试集高度一致，零行内重复噪点。}
+\label{fig:dataset_samples}
+\end{figure}
 
-最终数据集包含 \textbf{2,555 个独立原理图样本}，按 90\%/10\% 划分为训练集（2,299 样本）和验证集（256 样本），测试集复用现有的 523 样本基准（easy50/100/200/full523）。表~\ref{tab:dataset} 和表~\ref{tab:split} 列出了详细统计。
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/dataset_Test_Set.png}
+\caption{测试集样本：523 样本按标注长度分为 easy50（27--109 字符）、easy100（27--163 字符）、easy200（27--296 字符）和 full523 四个梯度层级。}
+\label{fig:dataset_test}
+\end{figure}
+
+\subsection{数据集划分}
+
+表~\ref{tab:dataset} 和表~\ref{tab:split} 列出 V5 Golden 的构成与划分。
 
 \begin{table}[h]
 \centering
-\caption{数据集构成与来源统计（V5 Golden）}
+\caption{数据集构成（V5 Golden）}
 \label{tab:dataset}
 \begin{tabular}{lcccl}
 \toprule
-\textbf{来源} & \textbf{样本量} & \textbf{许可协议} & \textbf{GT 生成方式} & \textbf{GT 质量} \\
+\textbf{来源} & \textbf{样本} & \textbf{协议} & \textbf{GT 方式} & \textbf{质量} \\
 \midrule
-合成 V3           & 500   & Apache 2.0 & draw.text() 同步记录      & 100\% 对齐 \\
-train-real (KiCad)& 1,357 & CC-BY-4.0  & SVG stroked-text 提取    & 可见文字 \\
-Masala-CHAI       & 698   & CC-BY-4.0  & SPICE 网表提取 + 清洗    & 确定性 \\
+合成 V3      & 500   & Apache 2.0 & draw.text() 同步 & 100\% 对齐 \\
+train-real   & 1,357 & CC-BY-4.0  & SVG 可见文字提取 & 可见文字 \\
+Masala-CHAI  & 698   & CC-BY-4.0  & SPICE + 清洗     & 确定性 \\
 \midrule
-\textbf{KiCad 小计}& \textbf{1,857} & -- & -- & -- \\
-\textbf{Masala 小计}& \textbf{698} & -- & 比例 0.38:1 vs KiCad & -- \\
+KiCad 小计   & 1,857 & -- & -- & -- \\
+Masala 小计  & 698   & -- & 0.38:1 vs KiCad & -- \\
 \midrule
-\textbf{合计}      & \textbf{2,555} & -- & 模拟/数字/混合/电源四大类 & -- \\
+\textbf{合计} & \textbf{2,555} & -- & 四大电路类型 & -- \\
 \bottomrule
 \end{tabular}
-\par\smallskip
-{\small\noindent 注：Masala-CHAI 原始 4,858 样本经四类 SPICE 伪影清洗（437 移除）、三维质量评分和行数分层采样后精选 698 个。}
 \end{table}
 
 \begin{table}[h]
 \centering
-\caption{训练/验证/测试集划分统计}
+\caption{数据集划分统计}
 \label{tab:split}
 \begin{tabular}{lccccc}
 \toprule
-\textbf{划分} & \textbf{样本数} & \textbf{KiCad} & \textbf{Masala} & \textbf{avg 行数} & \textbf{avg 字符} \\
+\textbf{划分} & \textbf{样本} & \textbf{KiCad} & \textbf{Masala} & \textbf{avg 行} & \textbf{avg 字符} \\
 \midrule
 训练集 & 2,299 & 1,666 & 633 & 34.4 & 286 \\
 验证集 & 256   & 191  & 65  & 35.6 & 304 \\
 测试集 & 523   & 523  & 0   & --   & -- \\
 \midrule
-\textbf{总计} & \textbf{3,078} & 2,380 & 698 & -- & -- \\
+总计   & 3,078 & 2,380 & 698 & -- & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{标注格式特点。} KiCad 来源的标注为一词一行的垂直格式（如 \texttt{R1\textbackslash n10k\textbackslash nGND}），与测试集 98.6\% 对齐。Masala-CHAI 标注为 SPICE 网表风格——每行一个元件（如 \texttt{R1 10k}），格式紧凑（中位数 4 行，48 字符）。两种格式的混合训练使模型同时学习字面 OCR 和结构化网表输出。评测使用 \texttt{--unordered} 标志消除阅读顺序差异。
 
-\subsection{数据增强策略}
-训练过程中对每张输入图像施加在线增强：随机 JPEG 压缩（质量因子 85--100）、随机缩放（max\_dim 168--384 像素）以及随机水平翻转。
+\section{模型微调与性能提升}
 
+\subsection{模态塌缩的发现与诊断（E1--E6）}
 
-\section{模型微调与性能提升路线}
+初期全量 LoRA（$r=8$，q/k/v/o 自注意力，2.75M 参数）在 2,433 样本上训练后，Avg. NED 从 0.8848 降至 0.8554。但输出多样性仅 4\%——几乎所有样本输出相同 ``12\textbackslash n100\textbackslash n100...'' 序列（图~\ref{fig:old_collapse}）。我们将其定义为\textbf{模态塌缩}。
 
-\subsection{LoRA 参数高效微调}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{../circuit-ocr-dataset/figures/v5_NMOS_Circuit_2_old.png}
+\caption{旧模型（V4，+Projector LoRA $r=16$）输出：全部 50 个测试样本输出完全相同（``12 100 100...''），多样性 4\%，典型的模态塌缩。}
+\label{fig:old_collapse}
+\end{figure}
 
-我们采用 LoRA（Low-Rank Adaptation）~\citep{hu2021lora} 对 PaddleOCR-VL-0.9B 进行参数高效微调。所有实验在单张 NVIDIA RTX 4060（8GB VRAM）上运行。
-
-\subsection{模态塌缩的发现与诊断（V1--V4）}
-
-初期实验采用全量 LoRA 微调（$r=8$, q/k/v/o 自注意力投影，2.75M 参数），在 2,433 样本上训练后 Avg. NED 从基座 0.8848 降至 0.8554（+3.8\%）。然而我们观察到一个关键问题：模型输出多样性仅 4\%——几乎所有测试样本输出完全相同的 ``12\textbackslash n100\textbackslash n100...'' 序列。我们将其定义为\textbf{模态塌缩（Modality Collapse）}。
-
-通过六个控制变量实验（E1--E6）系统排查，我们定位到塌缩的根因：
-
-\begin{enumerate}[nosep]
-    \item \textbf{E1（空白图对比）}：真实图与纯灰图输出不同 $\to$ 视觉编码器正常工作，模型确实在读图；
-    \item \textbf{E2（分辨率消融）}：168px $\to$ 336px 仍坍塌 $\to$ 分辨率不是根因；
-    \item \textbf{E3（多 epoch）}：3 epoch 较 1 epoch NED 降 0.9\% $\to$ 多 epoch 有正向增益但不足以解决塌缩；
-    \item \textbf{E4（Projector 层）}：增加 Projector LoRA 后 NED 降至 0.8271（+7.0\%）$\to$ \textbf{Projector 是关键瓶颈}；
-    \item \textbf{E5（LoRA rank）}：$r=16$ 将 NED 进一步降至 0.7961（+10.0\%）$\to$ 更大容量有效但多样性仍仅 4\%；
-    \item \textbf{E6（冻结 Projector）}：仅微调 LLM 自注意力，冻结 Projector $\to$ \textbf{多样性恢复至 90\%，塌缩彻底解决}。
-\end{enumerate}
-
-\textbf{核心发现：Projector 微调是模态塌缩的根因。} 视觉-语言投影层（\texttt{mlp\_AR}，25.9M 参数）作为视觉特征到语言空间的唯一映射桥梁，在小数据集下被 LoRA 扰动后，视觉特征被扭曲为 LLM 无法解读的分布外向量，导致 LLM 退化为对训练数据中高频 token 的机械重复。冻结 Projector 保护预训练对齐权重，仅教 LLM 将现有视觉特征解读为电路网表，是最安全的微调策略。
-
-\subsection{V5：LLM-Only LoRA 架构验证}
-
-基于 E6 的发现，V5 采用以下架构：
-
-\begin{itemize}
-    \item \textbf{冻结 Projector}（\texttt{mlp\_AR.linear\_1} 和 \texttt{linear\_2}），保护预训练视觉特征空间不受污染；
-    \item \textbf{仅微调 LLM 自注意力层}（\texttt{q\_proj, k\_proj, v\_proj, o\_proj}），教会 LLM 将预训练的视觉特征解读为电路网表格式；
-    \item 分辨率从 168px 提升至 384px（2.3 倍），确保电路文字可读；
-    \item 学习率从 $5\times10^{-4}$ 下调至 $2\times10^{-5}$（25 倍），防止过快收敛到捷径解；
-    \item LoRA rank $r=8$, $\alpha=16$（1.25M 可训练参数），梯度累积步数 4。
-\end{itemize}
-
-V5 在 1,857 样本上训练 1 epoch（928 步，22 min）后取得标志性突破：输出多样性 90\%（50 样本中 45 个唯一输出），模型首次在微调后保持了对不同图像产生不同输出的能力，证明 LLM 确实在读图而非背诵训练数据。但 Avg. NED = 0.9031（easy50）低于基座——因为 $r=8$ 容量不足，模型约 200 步后过早收敛，权重不再变化。这为 V8 的容量扩展指明了方向。
-
-\subsection{V8-Fixed 突破：宽 LoRA + 因果偏移修复 + BPE 边界对齐}
-
-V8-Fixed 在 V5 的 LLM-Only LoRA 架构基础上做了三个关键改进，在 V5 Golden 数据集（2,299 训练样本）上取得了最优结果。
-
-\subsubsection{改进 1：宽 LoRA 容量扩展}
-
-将 LoRA rank 从 $r=8$ 提升至 $r=16$（$\alpha=32$），目标模块从仅 LLM 自注意力层（153 对投影矩阵）扩展至 LLM 注意力 + 视觉编码器注意力 + 投影层共 310 个投影矩阵，可训练参数从 1.25M 增至 5.7M（占模型总参数 0.63\%）。训练 3 epoch（1,800 优化器步数），Loss 从 2.71 稳定收敛至 0.30，未出现模态塌缩。
-
-\subsubsection{改进 2：因果 1-Token 偏移修复}
-
-PaddleOCR-VL 内部已自动执行 logits 的因果移位，但早期训练脚本额外施加了一次手动移位，导致\textbf{双重偏移}——模型被强制预测错误位置上的 token，loss 表面上下降但梯度信号被污染。V8-Fixed 正确实现了单次移位计算：
-
-\begin{equation}
-\text{shift\_logits} = \text{logits}[:, :-1, :] \quad \text{vs} \quad \text{shift\_labels} = \text{labels}[:, 1:]
-\end{equation}
-
-确保每个位置的监督信号精确对应于正确的 target token。
-
-\subsubsection{改进 3：BPE 边界合并修复}
-
-此前将 prompt 和 label 字符串拼接后再统一分词，BPE tokenizer 在边界处将跨字符串的字符对合并为单一 token（如换行符 \texttt{\textbackslash n} + 元件前缀 \texttt{R} 被合并为一个不可分割的 token），导致 label 的起始字符被吞入 prompt token 而在训练中被 mask 掉，模型无法学习到元件标号的首字母。V8-Fixed 将 prompt 和 label 分别独立分词，在 token ID 空间拼接，从根本上杜绝了 BPE 边界合并。
-
-\subsubsection{检查点筛选与最终评估}
-
-V8-Fixed 训练 3 epoch（1,800 步），每 200 步保存检查点并在 easy50 验证子集（10 样本）上自动评估以筛选最优权重。结果如表~\ref{tab:v8_checkpoints} 所示：s1600（Epoch 2.6）表现最优，Avg. NED = 0.8257，相比基座 0.9634 实现 37.6\% 的相对错误率削减。final（Epoch 3.0）NED 略有回升（0.8352），提示 2.6 epoch 附近为最优早停点。
+通过六个控制变量实验系统定位根因：
 
 \begin{table}[h]
 \centering
-\caption{V8-Fixed 检查点评估对比（easy50 验证子集，10 样本）}
-\label{tab:v8_checkpoints}
+\caption{模态塌缩根因排查实验（E1--E6）}
+\label{tab:ablation}
+\begin{tabular}{lcp{2.5cm}p{3.5cm}}
+\toprule
+\textbf{实验} & \textbf{变量} & \textbf{结果} & \textbf{结论} \\
+\midrule
+E1：空白图    & 真实图 vs 纯灰图 & 输出不同   & 视觉编码器工作正常 \\
+E2：分辨率    & 168px $\to$ 336px & 仍坍塌     & 分辨率不是根因 \\
+E3：epoch 数  & 1 vs 3 epoch      & NED 降 0.9\% & 多 epoch 有正向增益 \\
+E4：LoRA 层   & 增加 Projector    & NED 0.8271 & \textbf{Projector 是关键瓶颈} \\
+E5：LoRA rank & $r=8 \to r=16$    & NED 0.7961 & 容量有效但多样性仍 4\% \\
+E6：LLM-Only  & 冻结 Projector    & 多样性 90\% & \textbf{塌缩彻底解决} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{核心发现：Projector 微调是塌缩根因。} Projector（\texttt{mlp\_AR}，25.9M 参数）作为视觉$\to$语言唯一映射桥，被 LoRA 扰动后输出分布外向量，LLM 退化为高频 token 机械重复。冻结 Projector 保护预训练对齐，仅教 LLM 将现有视觉特征解读为电路网表，是最安全策略。
+
+\subsection{V5：LLM-Only LoRA 验证}
+
+V5 冻结 Projector、仅微调 LLM 自注意力（$r=8$, 1.25M 参数），384px 分辨率，$2\times10^{-5}$ 学习率。在 1,857 样本上训练 1 epoch（928 步，22 min）后多样性达 90\%，模型首次能对不同图像输出不同内容（图~\ref{fig:v5_output}）。但 $r=8$ 容量不足，约 200 步过早收敛，NED 0.9031 低于基座。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{../circuit-ocr-dataset/figures/v5_NMOS_Circuit_3_v5.png}
+\caption{V5 模型输出（LLM-Only LoRA $r=8$）：产生 ``I\_D +1.2V M\textsubscript{1} V\_X 2V +'' 等电路参数，与 GT 中的 NMOS 晶体管语义相关。虽未完美匹配 GT，但输出随图像变化——90\% 多样性首次实现。}
+\label{fig:v5_output}
+\end{figure}
+
+\subsection{V8-Fixed：三大关键突破}
+
+V8-Fixed 继承 LLM-Only 架构，在 V5 Golden（2,299 训练样本）上训练 3 epoch（1,800 步）。
+
+\textbf{突破 1：宽 LoRA 容量（$r=16$, 5.7M）。} Rank 翻倍，目标模块从 153 对扩至 310 对投影矩阵（LLM + 视觉编码器 + 投影层），参数从 1.25M $\to$ 5.7M。Loss 从 2.71 稳定收敛至 0.30，无塌缩。
+
+\textbf{突破 2：因果 token 偏移修复。} 早期脚本对 PaddleOCR-VL 已自动移位的 logits 再手动移位，造成双重偏移——梯度信号污染。V8-Fixed 实现正确单次移位（$\text{shift\_logits} = \text{logits}[:, :-1, :] ~\text{vs}~ \text{shift\_labels} = \text{labels}[:, 1:] $）。
+
+\textbf{突破 3：BPE 边界合并修复。} Prompt 和 label 分别独立分词后在 token ID 空间拼接，杜绝 BPE 在边界合并字符对（如 ``\textbackslash nR'' $\to$ 单 token）导致 label 首字符被吞。
+
+\subsection{检查点筛选}
+
+每 200 步保存检查点并在 easy50（10 样本）评估（表~\ref{tab:checkpoints}）。s1600（Epoch 2.6）最优，NED = 0.8257（基座 0.9634，错误率削减 37.6\%）。
+
+\begin{table}[h]
+\centering
+\caption{V8-Fixed 检查点评估}
+\label{tab:checkpoints}
 \begin{tabular}{lcc}
 \toprule
 \textbf{检查点} & \textbf{步数/轮次} & \textbf{Avg. NED} \\
 \midrule
-基座（无 LoRA） & --   & 0.9634 \\
-s1000  & Step 1000 / Epoch 1.6 & 0.8603 \\
-s1200  & Step 1200 / Epoch 2.0 & 0.8407 \\
-s1400  & Step 1400 / Epoch 2.3 & 0.8727 \\
-\textbf{s1600} & \textbf{Step 1600 / Epoch 2.6} & \textbf{0.8257} \\
-final   & Step 1800 / Epoch 3.0 & 0.8352 \\
+基座      & --   & 0.9634 \\
+s1000     & 1000 / E1.6 & 0.8603 \\
+s1200     & 1200 / E2.0 & 0.8407 \\
+s1400     & 1400 / E2.3 & 0.8727 \\
+\textbf{s1600} & \textbf{1600 / E2.6} & \textbf{0.8257} \\
+final     & 1800 / E3.0 & 0.8352 \\
 \bottomrule
 \end{tabular}
-\par\smallskip
-{\small\noindent 注：s1600 相对基座错误率削减 37.6\%。NED 从 s1400 到 s1600 的波动（0.8727 $\to$ 0.8257）反映了小验证集的方差，但 s1600 的显著跃升与 final 的回升确认了 2.6 epoch 为最优早停点。}
 \end{table}
 
-最优检查点 s1600 在 \textbf{easy100 全量测试集（100 样本）上取得 Avg. NED = 0.7760}，相比基座（0.8999）实现 44.4\% 的相对错误率削减。这是本项目目前在标准测试集上的最优成绩。模型输出已从基座的随机乱码/重复退化完全转变为结构化的电路网表格式（如 \texttt{R0\textbackslash nresistor\textbackslash nnet012\textbackslash nVSS\textbackslash nC0\textbackslash ncapacitor}），并能正确生成 EOS 终止符。
+\subsection{最终评估}
 
-\subsection{版本性能演进总览}
-
-表~\ref{tab:evolution} 汇总了从基座到 V8-Fixed 的核心性能指标演进。
+最优 s1600 在 easy100 全量（100 样本）取得 \textbf{Avg. NED = 0.7760}（基座 0.8999，错误率削减 44.4\%）。表~\ref{tab:evolution} 展示版本演进，图~\ref{fig:v8_examples} 展示 V8-Fixed 的实际预测示例。
 
 \begin{table}[h]
 \centering
-\caption{模型版本性能演进}
+\caption{版本性能演进}
 \label{tab:evolution}
 \begin{tabular}{lccccc}
 \toprule
-\textbf{版本} & \textbf{架构特征} & \textbf{训练样本} & \textbf{可训练参数} & \textbf{easy50 NED} & \textbf{easy100 NED} \\
+\textbf{版本} & \textbf{架构} & \textbf{训练样本} & \textbf{参数} & \textbf{easy50 NED} & \textbf{easy100 NED} \\
 \midrule
-基座       & 无微调        & 0      & 0       & 0.8848/0.9634* & 0.8999 \\
-V4 最优    & +Projector, $r=16$ & 2,433  & 2.75M   & 0.7961 & 0.8291 \\
-V5 LLM-Only & 冻结Projector, $r=8$ & 1,857 & 1.25M & 0.9031 & -- \\
-\textbf{V8-Fixed} & \textbf{冻结Projector, $r=16$} & \textbf{2,299} & \textbf{5.7M} & \textbf{0.8257*} & \textbf{0.7760} \\
+基座       & 无微调   & 0      & 0       & 0.8848/0.9634* & 0.8999 \\
+V4 最优    & +Proj, $r=16$ & 2,433 & 2.75M & 0.7961 & 0.8291 \\
+V5 LLM-Only & 冻Proj, $r=8$ & 1,857 & 1.25M & 0.9031 & -- \\
+\textbf{V8} & \textbf{冻Proj, $r=16$} & \textbf{2,299} & \textbf{5.7M} & \textbf{0.8257*} & \textbf{0.7760} \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent *V8-Fixed 的 easy50 使用 10 样本验证子集（基座 NED=0.9634），V1--V4 的 easy50 使用旧 50 样本测试集（基座 NED=0.8848）。绝对值不可直接对比，以相对错误率削减为统一衡量标准。}
+{\small *V8 easy50 用 10 样本验证子集（基座 0.9634），V1--V4 用旧 50 样本测试集（基座 0.8848）。以相对错误率削减为统一标准。}
 \end{table}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/model_comparison_v5.png}
+\caption{V8-Fixed 预测示例（easy100 测试集）。三个样本从左到右 NED 递增：Sample 7（NED 0.4960，正确识别 nmos4、capacitor、VSS 等）、Sample 1（NED 0.7719，部分识别但输出 GND 重复）、Sample 6（NED 0.7734，混淆为全二极管输出）。模型输出为结构化一词一行格式，能正确生成 EOS。}
+\label{fig:v8_examples}
+\end{figure}
 
-\section{实验设置与评估协议}
+
+\section{实验设置}
 
 \subsection{训练超参数}
 
-所有实验在单张 NVIDIA RTX 4060（8GB VRAM）上运行。V8-Fixed 最终配置：
+所有实验在单卡 RTX 4060 8GB 上运行。V8-Fixed 配置：
 
 \begin{itemize}[nosep]
-    \item LoRA：$r=16$, $\alpha=32$, dropout=0.0
-    \item 目标模块：LLM 注意力 + 视觉编码器注意力 + 投影层，共 310 个投影矩阵
-    \item 可训练参数：5.7M（占 908M 总参数的 0.63\%）
-    \item 优化器：AdamW（$\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1）
-    \item 学习率：$2\times10^{-5}$，余弦退火调度
-    \item Epoch：3（1,800 优化器步数），batch\_size=1，梯度累积 4 步
-    \item max\_dim：384px，label 截断长度：200 字符
-    \item 训练时间：约 2 小时
+    \item LoRA：$r=16$, $\alpha=32$，LLM + 视觉编码器 + 投影层共 310 矩阵，5.7M 参数（0.63\%）
+    \item 优化器：AdamW（$\beta_1=0.9$, $\beta_2=0.95$, decay=0.1）
+    \item 学习率：$2\times10^{-5}$，余弦退火，3 epoch（1,800 步），batch\_size=1，梯度累积 4
+    \item max\_dim：384px，训练约 2 小时
 \end{itemize}
 
 \subsection{评估指标}
 
-评估指标采用平均归一化编辑距离（Avg. NED）：
-
-\begin{equation}
-\text{NED}(p, g) = \frac{\text{LevenshteinDistance}(p, g)}{\max(|p|, |g|)}
-\end{equation}
-
-其中 $p$ 为预测文本，$g$ 为标注真值。NED = 0 为完全匹配，NED = 1 为完全不匹配。评测支持 \texttt{--unordered} 模式：将预测和真值按行字母排序后再计算 NED，消除阅读顺序和格式差异对评估的影响。
+Avg. NED：$\text{NED}(p, g) = \text{Levenshtein}(p, g) / \max(|p|, |g|)$。支持 \texttt{--unordered} 模式（按行排序后计算）。Easy50 验证用 10 样本快速筛选，easy100 用 100 样本最终评估。多样性 = 唯一输出数 / 总样本数。
 
 
 \section{讨论}
 
-\subsection{模态塌缩的根因与对策}
+\subsection{模态塌缩机制}
 
-本项目最重要的发现是：\textbf{在小数据集下对视觉-语言投影层（Projector）进行 LoRA 微调是导致模态塌缩的根因}。Projector（\texttt{mlp\_AR}，25.9M 参数）作为视觉编码器与 LLM 之间的唯一信息桥梁，其预训练权重承载了精密的视觉-语义对齐映射。当 LoRA 的低秩扰动（仅更新约 0.3\% 参数）作用于此层时：
+Projector 被 LoRA 扰动 $\to$ 视觉特征扭曲为分布外向量 $\to$ LLM 注意力退化 $\to$ 自回归退化为高频 token 重复。这解释了为何所有 V4 塌缩样本输出完全相同的 ``12\textbackslash n100\textbackslash n100...''——该序列是训练数据中出现频率最高的 token 组合。LLM-Only LoRA 通过冻结 Projector 彻底规避了这一问题。
 
-\begin{enumerate}[nosep]
-    \item 视觉特征被扭曲为 LLM 无法解读的分布外向量；
-    \item LLM 面对不可解读的特征，注意力机制退化；
-    \item 自回归解码退化为对训练数据中最高频 token 序列（``12\textbackslash n100\textbackslash n100...''）的机械重复。
-\end{enumerate}
+\subsection{数据质量 > 数据数量}
 
-V5/V8 的 LLM-Only LoRA 策略通过冻结 Projector 彻底规避了这一问题。训练信号仅通过 LLM 自注意力层的 LoRA 适配器传递，教会 LLM 将\emph{现有}的预训练视觉特征重新解读为电路网表格式，而非试图重塑视觉特征本身。这一结论对任何在小数据集上微调 VLM 的场景都具有参考价值。
-
-\subsection{数据质量的优先级}
-
-V4 $\to$ V5 Golden 的数据集重构经验表明：\textbf{数据质量（GT-图像对齐、格式一致性、无重复噪点）对训练效果的影响远超数据数量}。V4 的 5,686 样本因格式失配（62.1\% vs 测试集 98.6\% 单词行）和 22,340 个行内重复噪点导致训练信号被严重污染；V5 Golden 的 2,555 样本虽更少但更干净，训练出的 V8-Fixed 模型取得了目前最优的 0.7760 NED。精标小数据集优于粗标大数据集——这一教训对垂直领域小数据微调具有普遍意义。
+V4 的 5,686 样本因格式失配（62.1\% vs 测试集 98.6\%）和 22,340 个重复噪点导致训练信号被严重污染。V5 Golden 的 2,555 样本虽更少但更干净，训练出 V8-Fixed 的 0.7760 NED——精标小数据集优于粗标大数据集。
 
 \subsection{NED 与多样性的权衡}
 
-纯文本 NED 在评估电路 OCR 质量时存在固有局限。V4 最优模型在 easy50 上取得 0.7961 的较好 NED，但多样性仅 4\%——它学会了输出一个在所有测试样本上 NED 分数尚可的``平均''答案，而非真正读图。V5 模型 NED 0.9031 看似更差，但 90\% 的输出多样性意味着模型真正学会了根据输入图像生成不同输出。在电路 OCR 这类结构化输出任务中，需要将 NED 与多样性指标结合判断，避免被塌缩模型的``虚假低 NED''误导。
+V4 最优 NED 0.7961 看似不错，但多样性仅 4\%——学会了输出一个在所有样本上分数尚可的「平均」答案。V5 NED 0.9031 更差，但 90\% 多样性意味着模型真正在读图。评估结构化输出任务时需结合 NED 与多样性双重指标。
 
 
-\section{结论与展望}
+\section{结论}
 
 \subsection{主要贡献}
 
-本文提出了 CircuitOCR，一个面向电路原理图 OCR 与网表提取的完整解决方案，在数据、模型和评估三个层面做出了贡献：
-
 \begin{enumerate}
-    \item \textbf{V5 Golden 多源平衡数据集。} 构建了首个格式对齐、零 AI 标注、多源平衡的电路原理图 OCR 数据集。2,555 个高质量样本（KiCad 1,857 + Masala-CHAI 698），GT 100\% 来自确定性规则，与测试集格式 98.6\% 一致，行内重复噪点仅 107 个（较 V4 降低 99.5\%）。
-    \item \textbf{模态塌缩根因的发现与系统性解决。} 通过 E1--E6 共六个控制变量实验，首次识别出 Projector 微调是 VLM 在小数据集下模态塌缩的根因，并提出 LLM-Only LoRA 策略彻底解决了该问题（多样性 4\% $\to$ 90\%）。
-    \item \textbf{V8-Fixed 最优模型。} 通过宽 LoRA 容量扩展（$r=16$, 5.7M 参数）+ 因果 token 偏移修复 + BPE 边界对齐，在 easy100 全量测试集取得 Avg. NED = 0.7760（基座 0.8999，44.4\% 相对错误率削减），为当前最优成绩。
-    \item \textbf{完整开源生态。} 数据集、训练/评估脚本、LoRA 权重、Gradio 在线 Demo 均在 MIT/Apache 2.0 许可证下完全开源。
+    \item \textbf{V5 Golden 数据集}：2,555 样本，GT 100\% 确定性来源，格式与测试集 98.6\% 对齐，重复噪点削减 99.5\%；
+    \item \textbf{模态塌缩根因发现}：E1--E6 实验首次定位 Projector 微调为根因，LLM-Only LoRA 将多样性从 4\% 恢复至 90\%；
+    \item \textbf{V8-Fixed 模型}：easy100 NED 0.7760（错误率削减 44.4\%），easy50 NED 0.8257（错误率削减 37.6\%），为当前最优；
+    \item \textbf{完整开源}：数据集、权重、Demo 均已发布。
 \end{enumerate}
 
-\subsection{局限性}
+\subsection{局限与展望}
 
-\begin{enumerate}
-    \item \textbf{算力制约}：全部实验在单张笔记本 RTX 4060（8GB VRAM）上完成，Flash Attention 不可用，max\_length 受限。在更大显存 GPU 上预期可获得显著更好的绝对分数。
-    \item \textbf{拓扑评估未实现}：元件 F1 分数、引脚准确率等拓扑级评估协议框架已设计但尚未编码实现。
-    \item \textbf{网表完整性不足}：当前模型输出以元件列表为主，尚未包含完整的连接关系（netlist 拓扑），距离真正的``原理图 $\to$ 网表''转换仍有距离。
-\end{enumerate}
+当前受限于 RTX 4060 8GB 算力（Flash Attention 不可用）。拓扑评估协议（元件 F1、引脚准确率）框架已设计但未实现。未来方向：（1）实现拓扑评估补充纯文本 NED；（2）更大 GPU 上扩展 Flash Attention 和更长输出；（3）引入 SPICE 仿真验证作为奖励信号；（4）迁移至更大规模 VLM。
 
-\subsection{展望}
-
-未来工作将集中在：（1）实现拓扑评估协议以补充纯文本 NED；（2）在更大显存 GPU 上探索 Flash Attention 加速和更长输出序列；（3）尝试在训练中引入 SPICE 仿真验证作为网表正确性的奖励信号；（4）将 LLM-Only LoRA 微调方法迁移到更大规模的 VLM，探索模型容量对电路理解任务的影响。
-
-\subsection{开源贡献与社区价值}
-
-本项目以完全开源形式发布，为电路原理图 OCR 这一研究稀缺领域提供长期社区价值：
+\subsection{开源资源}
 
 \begin{enumerate}[nosep]
-    \item \textbf{首个电路 OCR 基准数据集（V5 Golden）。} 2,555 高质量样本 + 4 梯度层级测试体系，提供标准化评测基础。
-    \item \textbf{完整可复现微调方案。} 训练/评估/推理脚本 + Windows + RTX 4060 全流程配置，中英文双版技术报告记录所有实验设计、超参选择和失败教训。
-    \item \textbf{系统性瓶颈分析方法论。} E1--E6 控制变量实验建立可推广的诊断框架（空白图测试 $\to$ 分辨率消融 $\to$ epoch 消融 $\to$ LoRA 层范围消融 $\to$ rank 消融 $\to$ Projector 冻结验证），可迁移到其他垂直领域 VLM 微调任务。
-    \item \textbf{Gradio 在线体验。} \url{https://huggingface.co/spaces/yingchu83/CircuitOCR}
-    \item \textbf{LoRA 模型权重。} \url{https://huggingface.co/yingchu83/CircuitOCR-lora}
-    \item \textbf{完整项目仓库。} \url{https://github.com/ZhangJ83/circuit-ocr-paddle}
+    \item 项目仓库：\url{https://github.com/ZhangJ83/circuit-ocr-paddle}
+    \item 数据集：\url{https://github.com/ZhangJ83/circuit_ocr_dataset_final}
+    \item LoRA 权重：\url{https://huggingface.co/yingchu83/CircuitOCR-lora}
+    \item 在线 Demo：\url{https://huggingface.co/spaces/yingchu83/CircuitOCR}
+    \item 技术报告（中文）：\url{https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf}
+    \item 技术报告（英文）：\url{https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf}
 \end{enumerate}
 
 \bibliographystyle{unsrtnat}
