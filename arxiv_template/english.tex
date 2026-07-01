@@ -82,7 +82,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the V5 Golden multi-source balanced dataset, comprising 1,857 KiCad schematics (500 programmatic synthetic renderings + 1,357 real-world open-source schematics) and 698 Masala-CHAI textbook circuit diagrams. After SPICE artifact cleaning, quality scoring, and stratified sampling, 2,555 independent samples are retained, split 90/10 into training (2,299) and validation (256) sets. Through systematic LoRA ablation experiments, we identify the \textbf{root cause of modality collapse}---fine-tuning the vision-language projector (\texttt{mlp\_AR}) with LoRA destroys pre-trained alignment weights---and propose the LLM-Only LoRA architecture that completely resolves this issue. The final V8-Fixed model adopts a wide LoRA configuration ($r=16$, $\alpha=32$, 5.7M trainable parameters). By fixing two critical issues---causal token shift and BPE boundary merging---and training for 3 epochs (1,800 steps) on the V5 Golden dataset, it achieves Avg.\ NED = 0.7760 on the full easy100 test set (baseline 0.9372, 17.2\% relative error reduction) and 0.8257 on easy50 (baseline 0.9634, 14.3\% relative error reduction). Training completes in approximately 2 hours on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM). Model weights, datasets, and an online demo are fully open-sourced.
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA), involving two heterogeneous tasks: visual text extraction and topological graph tracing. This paper presents CircuitOCR, a circuit schematic OCR and netlist extraction system based on PaddleOCR-VL-0.9B. We construct the V5 Golden multi-source balanced dataset, comprising 1,857 KiCad schematics (500 programmatic synthetic renderings + 1,357 real-world open-source schematics) and 698 Masala-CHAI textbook circuit diagrams. After SPICE artifact cleaning, quality scoring, and stratified sampling, 2,555 independent samples are retained, split 90/10 into training (2,299) and validation (256) sets. Through systematic LoRA ablation experiments, we identify the \textbf{root cause of modality collapse}---fine-tuning the vision-language projector (\texttt{mlp\_AR}) with LoRA destroys pre-trained alignment weights---and propose the LLM-Only LoRA architecture that resolves this issue. The final V8-Fixed model adopts a wide LoRA configuration ($r=16$, $\alpha=32$, 5.7M trainable parameters). By fixing two critical issues---causal token shift and BPE boundary merging---and training for 3 epochs (1,800 steps) on the V5 Golden dataset, it achieves Avg.\ NED = 0.7760 on the full easy100 test set (baseline 0.9372, 17.2\% relative error reduction) and 0.8257 on easy50 (baseline 0.9634, 14.3\% relative error reduction). Training completes in approximately 2 hours on a single NVIDIA RTX 4060 laptop GPU (8\,GB VRAM). Model weights, datasets, and an online demo are open-sourced.
 \end{abstract}
 
 \keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Modality Collapse \and Low-VRAM Training}
@@ -94,7 +94,7 @@ Automatic recognition of circuit schematic diagrams is a core challenge in Elect
 
 Vision-Language Models (VLMs) have substantially expanded the application boundaries of traditional large language models, demonstrating significant advantages in scenarios requiring visual understanding, such as robotic navigation and document parsing. Compared to traditional OCR pipelines that rely on multi-stage processing and substantial memory overhead, VLMs can directly output structured text from images in an end-to-end manner.
 
-However, in the Electronic Design Automation (EDA) domain, automatic recognition and parsing of circuit schematic diagrams remains a research-scarce direction. Numerous general-purpose OCR benchmark datasets exist (e.g., ICDAR series, SROIE, FUNSD), covering natural scene text, documents, receipts, and forms, yet no dedicated public benchmark exists for circuit schematic OCR. Existing circuit-related datasets such as Open Schematics~\citep{openschematics2025} and Masala-CHAI~\citep{bhandari2025masalachai} provide circuit diagrams and netlist data, but lack standardized evaluation protocols and difficulty-tiered systems, and their original annotations suffer from severe format mismatch and noise issues. CircuitOCR fills this gap by constructing the first multi-source balanced circuit schematic OCR benchmark (V5 Golden), comprising 2,555 high-quality samples split 90/10 for training/validation, with a 4-tier difficulty evaluation system.
+However, in the Electronic Design Automation (EDA) domain, automatic recognition and parsing of circuit schematic diagrams remains a research-scarce direction. Numerous general-purpose OCR benchmark datasets exist (e.g., ICDAR series, SROIE, FUNSD), covering natural scene text, documents, receipts, and forms, yet no dedicated public benchmark exists for circuit schematic OCR. Existing circuit-related datasets such as Open Schematics~\citep{openschematics2025} and Masala-CHAI~\citep{bhandari2025masalachai} provide circuit diagrams and netlist data, but lack standardized evaluation protocols and difficulty-tiered systems, and their original annotations suffer from severe format mismatch and noise issues. CircuitOCR fills this gap by constructing a multi-source balanced circuit schematic OCR benchmark (V5 Golden), comprising 2,555 high-quality samples split 90/10 for training/validation, with a 4-tier difficulty evaluation system.
 
 \subsection{Industry Demand Value}
 
@@ -147,7 +147,7 @@ The unfine-tuned PaddleOCR-VL-0.9B base model exhibits three typical failure mod
 
 \subsection{Design Principles and Legacy Issues}
 
-During project iteration, we discovered three fatal flaws in earlier dataset versions (V1--V2):
+During project iteration, we discovered three flaws in earlier dataset versions (V1--V2):
 
 \begin{enumerate}[nosep]
     \item \textbf{GT-image misalignment}: GT labels generated from the KiCad data model (S-expression parsing) included large amounts of text invisible on rendered images---pin numbers, hidden net names---severely corrupting the training signal;
@@ -155,13 +155,13 @@ During project iteration, we discovered three fatal flaws in earlier dataset ver
     \item \textbf{Duplication noise}: 22,340 intra-line adjacent duplicate word pairs, contaminating 24.3\% of samples.
 \end{enumerate}
 
-V5 Golden was completely rebuilt on three core principles:
+V5 Golden was rebuilt on three core principles:
 
 \textbf{Principle 1: GT must align 100\% with visible on-image text.} Synthetic data uses \texttt{draw.text()} synchronous recording; real KiCad data extracts visible text from SVG stroked-text elements; Masala-CHAI extracts component information from SPICE netlists (not OCR). All GT comes from deterministic rules---no AI system is ever used to generate annotations.
 
 \textbf{Principle 2: Multi-source balance prevents distribution bias.} Using all 4,858 Masala-CHAI samples would make them 85.5\% of the training set, causing the model to be dominated by SPICE format at the expense of KiCad schematic literal OCR capability. We downsample Masala-CHAI to 698, forming a 0.38:1 ratio against 1,857 KiCad samples.
 
-\textbf{Principle 3: Format alignment with the test set.} We completely removed the Open Schematics (226) and Rescraped (102) subsets, replacing them with the train-real subset (1,357 samples) whose label format (97.9\% single-word lines) is nearly perfectly aligned with the test set (98.6\%). Intra-line duplication noise dropped from 22,340 to 107 (99.5\% reduction).
+\textbf{Principle 3: Format alignment with the test set.} We removed the Open Schematics (226) and Rescraped (102) subsets, replacing them with the train-real subset (1,357 samples) whose label format (97.9\% single-word lines) is nearly perfectly aligned with the test set (98.6\%). Intra-line duplication noise dropped from 22,340 to 107 (99.5\% reduction).
 
 \subsection{Three Data Sources}
 
@@ -282,7 +282,7 @@ Based on the E6 finding, V5 adopts the following architecture:
     \item LoRA $r=8$, $\alpha=16$ (1.25M parameters), gradient accumulation steps=4.
 \end{itemize}
 
-V5 trained on 1,857 samples for 1 epoch (928 steps, 22 min) and achieved a landmark breakthrough: 90\% output diversity (45/50 unique outputs). For the first time, a fine-tuned model maintained the ability to produce different outputs for different images, proving that the LLM was truly reading the circuit diagrams. The optimized V8-Fixed model is capable of generating fully aligned, structured circuit netlists in a vertical format (Figure~\ref{fig:v5_output}). However, Avg.\ NED = 0.9031 (easy50) was below baseline because $r=8$ capacity was insufficient---the model converged prematurely after $\sim$200 steps.
+V5 trained on 1,857 samples for 1 epoch (928 steps, 22 min) and achieved 90\% output diversity (45/50 unique outputs). A fine-tuned model maintained the ability to produce different outputs for different images, proving that the LLM was truly reading the circuit diagrams. The optimized V8-Fixed model is capable of generating fully aligned, structured circuit netlists in a vertical format (Figure~\ref{fig:v5_output}). However, Avg.\ NED = 0.9031 (easy50) was below baseline because $r=8$ capacity was insufficient---the model converged prematurely after $\sim$200 steps.
 
 \begin{figure}[h]
 \centering
@@ -293,7 +293,7 @@ V5 trained on 1,857 samples for 1 epoch (928 steps, 22 min) and achieved a landm
 
 \subsection{V8-Fixed: Three Core Technical Breakthroughs}
 
-To fundamentally address the challenges of slow training convergence, first-character swallowing, and sequence truncation during long netlist generation, V8-Fixed inherits and refines the LLM-Only LoRA architecture. The model is fine-tuned for 3 epochs (1,800 steps) on the V5 Golden dataset (2,299 high-quality training samples), achieving technical breakthroughs in three critical dimensions:
+To fundamentally address the challenges of slow training convergence, first-character swallowing, and sequence truncation during long netlist generation, V8-Fixed inherits and refines the LLM-Only LoRA architecture. The model is fine-tuned for 3 epochs (1,800 steps) on the V5 Golden dataset (2,299 high-quality training samples), with three technical improvements:
 
 \subsubsection{Breakthrough 1: Wide LoRA Parameter Space Expansion and Multimodal Capacity Matching}
 In the early V5 validation, the LLM-Only LoRA targeted only the $153$ self-attention projection matrix pairs inside the LLM with a restricted rank of $r=8$, yielding a tiny capacity of $1.25\text{M}$ trainable parameters. Experiments indicated that this configuration suffered from severe capacity constraints, converging prematurely around step $200$ and failing to fit complex real-world KiCad netlists. 
@@ -301,7 +301,7 @@ To resolve this, V8-Fixed implements a ``wide capacity'' LoRA expansion:
 \begin{enumerate}[nosep]
     \item \textbf{Rank Capacity Doubling}: The LoRA rank is raised from $r=8$ to $r=16$ ($\alpha=32$), granting the low-rank approximation matrices higher degrees of freedom;
     \item \textbf{Comprehensive Layer Coverage}: Target modules are expanded from single LLM self-attention to cover self-attention layers in the LLM (\texttt{q/k/v/o\_proj}), cross-attention layers, vision encoder self-attentions, and projector layers, encompassing $310$ low-rank projection matrices in total;
-    \item \textbf{Scale Adaptation}: Trainable parameters are scaled to $5.7\text{M}$ ($0.63\%$ of the total 908M parameters). This expansion significantly enhances the decoder's capacity to reinterpret visual features without modifying the pre-trained alignment weights (the primary projection weights in \texttt{mlp\_AR} remain frozen). SFT loss converges smoothly from $2.71$ to $0.30$, completely resolving collapse.
+    \item \textbf{Scale Adaptation}: Trainable parameters are scaled to $5.7\text{M}$ ($0.63\%$ of the total 908M parameters). This expansion significantly enhances the decoder's capacity to reinterpret visual features without modifying the pre-trained alignment weights (the primary projection weights in \texttt{mlp\_AR} remain frozen). SFT loss converges smoothly from $2.71$ to $0.30$, resolving collapse.
 \end{enumerate}
 
 \subsubsection{Breakthrough 2: Accurate Alignment of Autoregressive Causal Token Shift}
@@ -310,7 +310,7 @@ In SFT training of autoregressive VLMs, the language decoder supervises next-tok
 \mathcal{L} = -\frac{1}{N} \sum_{i=1}^{N} \log P(x_i = y_i \mid x_{<i})
 \end{equation}
 where the predicted probability distribution ($\text{logits}$) and ground truth labels ($\text{labels}$) must maintain a strict 1-token offset relationship, i.e., using information at step $t$ to predict the label at step $t+1$.
-In earlier scripts, due to a misunderstanding of framework internals, manual causal shifting was applied to both logits and labels (\texttt{shift\_logits = logits[:, :-1, :]} and \texttt{shift\_labels = labels[:, 1:]}). However, the PaddleOCR-VL conditional generation interface (\texttt{AutoModelForConditionalGeneration}) already implements this causal shift internally. This mismatch resulted in a fatal \textbf{double-shifting} bug---forcing the model to supervise the prediction at step $t$ with the label from step $t+2$. The gradient signals were completely corrupted. V8-Fixed resolves this by removing the manual shift, ensuring a precise single-shift alignment that matches autoregressive causal logic.
+In earlier scripts, due to a misunderstanding of framework internals, manual causal shifting was applied to both logits and labels (\texttt{shift\_logits = logits[:, :-1, :]} and \texttt{shift\_labels = labels[:, 1:]}). However, the PaddleOCR-VL conditional generation interface (\texttt{AutoModelForConditionalGeneration}) already implements this causal shift internally. This mismatch resulted in a fatal \textbf{double-shifting} bug---forcing the model to supervise the prediction at step $t$ with the label from step $t+2$. The gradient signals were corrupted. V8-Fixed removes the manual shift, ensuring a precise single-shift alignment that matches autoregressive causal logic.
 
 \subsubsection{Breakthrough 3: ID-Space Concatenation to Eliminate BPE Boundary Merging}
 When prompt and label strings are concatenated into a single string $S = P + L$ prior to tokenization, the Byte-Pair Encoding (BPE) tokenizer merges adjacent characters across the boundary if they form a common pair in the vocabulary:
@@ -321,7 +321,7 @@ When prompt and label strings are concatenated into a single string $S = P + L$ 
     \begin{equation}
     T_{\text{concat}} = T_{\text{tokenizer}}(P) \oplus T_{\text{tokenizer}}(L)
     \end{equation}
-    This prevents cross-boundary BPE merging, ensuring that the label's first character (e.g., independent ``\texttt{R}'' token with ID 82) is fully preserved and supervised during training.
+    This prevents cross-boundary BPE merging, ensuring that the label's first character (e.g., independent ``\texttt{R}'' token with ID 82) is preserved and supervised during training.
 \end{enumerate}
 
 \subsubsection{Checkpoint Selection and Final Evaluation}
@@ -331,7 +331,7 @@ V8-Fixed trained for 3 epochs (1,800 steps). Checkpoints were saved every 200 st
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/model_comparison_v5.png}
-\caption{Typical prediction examples of V8-Fixed on the easy100 test set. From top to bottom: connector interface circuit (NED 0.2419, precise extraction of connector designators and types), CMOS amplifier circuit (NED 0.4960, successful identification of nmos4, VSS and nets), and RLC circuit (NED 0.6211, successful extraction of capacitors, inductors, and resistors into vertical netlists). All three examples demonstrate that the model output is completely free from modality collapse and meaningless repetition, steadily producing structured one-word-per-line netlists and correctly generating the EOS token.}
+\caption{Typical prediction examples of V8-Fixed on the easy100 test set. From top to bottom: connector interface circuit (NED 0.2419, precise extraction of connector designators and types), CMOS amplifier circuit (NED 0.4960, successful identification of nmos4, VSS and nets), and RLC circuit (NED 0.6211, successful extraction of capacitors, inductors, and resistors into vertical netlists). All three examples demonstrate that the model output is free from modality collapse and meaningless repetition, steadily producing structured one-word-per-line netlists and correctly generating the EOS token.}
 \label{fig:v8_examples}
 \end{figure}
 
@@ -355,7 +355,7 @@ final   & Step 1800 / Epoch 3.0 & 0.8352 \\
 {\small\noindent Note: s1600 achieves 14.3\% relative error reduction over baseline. The NED fluctuation from s1400 to s1600 (0.8727 $\to$ 0.8257) reflects variance in the small validation set, but s1600's significant improvement and final's reversion confirm 2.6 epochs as the optimal early-stopping point.}
 \end{table}
 
-The best checkpoint s1600 achieves \textbf{Avg.\ NED = 0.7760 on the full easy100 test set (100 samples)}, representing a 17.2\% relative error reduction over the baseline (0.9372). This is the best result achieved by this project on the standard test set to date. Model outputs have completely transformed from random gibberish/repetition to structured circuit netlist format (e.g., \texttt{R0\textbackslash nresistor\textbackslash nnet012\textbackslash nVSS\textbackslash nC0\textbackslash ncapacitor}), with correct EOS token generation.
+Checkpoint s1600 achieves \textbf{Avg.\ NED = 0.7760 on the full easy100 test set (100 samples)}, representing a 17.2\% relative error reduction over the baseline (0.9372). This is the result achieved by this project on the standard test set to date. Model outputs have transformed from random gibberish/repetition to structured circuit netlist format (e.g., \texttt{R0\textbackslash nresistor\textbackslash nnet012\textbackslash nVSS\textbackslash nC0\textbackslash ncapacitor}), with correct EOS token generation.
 
 \subsection{Version Performance Evolution}
 
@@ -419,11 +419,11 @@ The most important finding of this project is: \textbf{LoRA fine-tuning of the v
     \item Autoregressive decoding collapses into mechanically repeating the highest-frequency token sequence from training data (``12\textbackslash n100\textbackslash n100...'').
 \end{enumerate}
 
-The V5/V8 LLM-Only LoRA strategy completely avoids this by freezing the Projector. Training signals pass only through LoRA adapters on LLM self-attention layers, teaching the LLM to reinterpret \emph{existing} pre-trained visual features as circuit netlist format, rather than attempting to reshape the visual features themselves. This conclusion has reference value for any scenario involving VLM fine-tuning on small datasets.
+The V5/V8 LLM-Only LoRA strategy avoids this by freezing the Projector. Training signals pass only through LoRA adapters on LLM self-attention layers, teaching the LLM to reinterpret \emph{existing} pre-trained visual features as circuit netlist format, rather than attempting to reshape the visual features themselves. This conclusion has reference value for any scenario involving VLM fine-tuning on small datasets.
 
 \subsection{Data Quality Over Data Quantity}
 
-The V4 $\to$ V5 Golden dataset reconstruction demonstrates: \textbf{data quality (GT-image alignment, format consistency, zero duplication noise) impacts training effectiveness far more than data quantity}. V4's 5,686 samples, with format mismatch (62.1\% vs.\ test's 98.6\% single-word lines) and 22,340 intra-line duplication noise pairs, severely corrupted the training signal. V5 Golden's 2,555 cleaner samples produced the V8-Fixed model achieving the current-best 0.7760 NED. Clean small datasets outperform noisy large datasets---a lesson with broad significance for domain-specific small-data fine-tuning.
+The V4 $\to$ V5 Golden dataset reconstruction demonstrates: \textbf{data quality (GT-image alignment, format consistency, zero duplication noise) impacts training effectiveness far more than data quantity}. V4's 5,686 samples, with format mismatch (62.1\% vs.\ test's 98.6\% single-word lines) and 22,340 intra-line duplication noise pairs, severely corrupted the training signal. V5 Golden's 2,555 cleaner samples produced the V8-Fixed model achieving the 0.7760 NED. Clean small datasets outperform noisy large datasets---a lesson with broad significance for domain-specific small-data fine-tuning.
 
 \subsection{The NED--Diversity Trade-off}
 
@@ -437,8 +437,8 @@ The V4 $\to$ V5 Golden dataset reconstruction demonstrates: \textbf{data quality
 This paper presents CircuitOCR, a complete solution for circuit schematic OCR and netlist extraction, making contributions across data, model, and evaluation dimensions:
 
 \begin{enumerate}
-    \item \textbf{V5 Golden Multi-Source Balanced Dataset.} The first format-aligned, zero-AI-label, multi-source balanced circuit schematic OCR dataset. 2,555 high-quality samples (KiCad 1,857 + Masala-CHAI 698), GT 100\% from deterministic rules, 98.6\% format-consistent with the test set, intra-line duplication noise reduced 99.5\% (22,340 $\to$ 107).
-    \item \textbf{Discovery and Systematic Resolution of Modality Collapse.} Through six controlled experiments (E1--E6), we are the first to identify Projector fine-tuning as the root cause of VLM modality collapse on small datasets, and propose the LLM-Only LoRA strategy that completely resolves it (diversity 4\% $\to$ 90\%).
+    \item \textbf{V5 Golden Multi-Source Balanced Dataset.} A format-aligned, zero-AI-label, multi-source balanced circuit schematic OCR dataset. 2,555 high-quality samples (KiCad 1,857 + Masala-CHAI 698), GT 100\% from deterministic rules, 98.6\% format-consistent with the test set, intra-line duplication noise reduced 99.5\% (22,340 $\to$ 107).
+    \item \textbf{Discovery and Systematic Resolution of Modality Collapse.} Through six controlled experiments (E1--E6), we identify Projector fine-tuning as the root cause of VLM modality collapse on small datasets, and propose the LLM-Only LoRA strategy that resolves it (diversity 4\% $\to$ 90\%).
     \item \textbf{V8-Fixed Optimal Model.} Through wide LoRA capacity expansion ($r=16$, 5.7M params) + causal token shift fix + BPE boundary alignment, achieves Avg.\ NED = 0.7760 on easy100 (baseline 0.9372, 17.2\% relative error reduction), the current state-of-the-art for this benchmark.
     \item \textbf{Complete Open-Source Ecosystem.} Dataset, training/evaluation scripts, LoRA weights, and Gradio online demo all fully open-sourced under MIT/Apache 2.0 licenses.
 \end{enumerate}
