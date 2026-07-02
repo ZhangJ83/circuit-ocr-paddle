@@ -8,7 +8,7 @@ sdk_version: 4.44.1
 app_file: app.py
 pinned: true
 license: mit
-python_version: 3.10
+python_version: "3.10"
 ---
 
 # CircuitOCR: Schematic Diagram Understanding
