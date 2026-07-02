@@ -1,44 +1,42 @@
 [
   {
-    "image": ".\\data/test/11.jpg",
-    "gt": "M0\nnmos4\nVDD\nVDD\nVIN1\nVSS",
-    "base_pred": "(a)\n\nI_D\n\n2 V\n\nV_X",
-    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
-    "v5_pred": "I_D\n+1.2 V\nM₁\nV_X\n2 V\n+"
+    "image": "./data/test/benjiaomodular_sot2dip.png",
+    "gt": "J2\nConn_01x06_Male\nJ3\nConn_01x03_Male\nJ1\nConn_01x03_Male",
+    "v8_pred": "J1\nConn_01x02_Female\nJ2\nConn_01x02_Female\nJ3\nConn_01x02_Female"
   },
   {
-    "image": ".\\data/test/Mark-MDO47_Skull-Project.png",
+    "image": "./data/test/Mark-MDO47_Skull-Project.png",
     "gt": "U2\n~\nA1\nArduino_USB\nR4\n3K\nU3\n~\nR3\n7K",
-    "base_pred": "Option Microwave with Two Eyes\nNOTE: hallowing as from display side (not connector side)\ngithub.com/Mark-MKD",
-    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
-    "v5_pred": "Option | Microwave with two eyes | Option PIR with one eye\nNOTS | Noting by a front display"
+    "v8_pred": "PWR:\nBT6\nBT7\nBT6\nBT7\nBT5\nBT4\nBT3\nBT2\nBT1\nBT0\nBT1\nBT1\nBT4\nBT5\nBT1\nBT3\nBT6\nBT4\nBT1\nBT2\nBT5\nBT1\nBT4\nBT6\nBT3\nBT4\nBT1\nBT2\nBT5\nBT1\nBT4\nBT6\nBT4\nBT1\nBT3\nBT5\nBT1\nBT4\nBT6\nBT3\nBT4\nBT1"
   },
   {
-    "image": ".\\data/test/digital_simple_0000.png",
+    "image": "./data/test/digital_simple_0000.png",
     "gt": "C1\n10uF\nC2\n1uF\nR1\n100\nF1\n2A\nC3\n100nF",
-    "base_pred": "Feature | Description\n  - Front-Back | Front-Back\n  - Back-Back | Back-Back\n  - Back-Back |",
-    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
-    "v5_pred": "ESP32-WROOMU4\nU5\nU6\nU7\nU8\nU9\nU10\nU11\nU12\nU13\nU14\nU15\nU16\nU17\nU18"
+    "v8_pred": "U4\nESP32-WROOM\nU3\nESP32-WROOM\nU2\nESP32-WROOM\nU1\nESP32-WROOM"
   },
   {
-    "image": ".\\data/test/rh1tech_echo.png",
+    "image": "./data/test/rh1tech_echo.png",
     "gt": "VBUS\nJ3\nD-SUB 9 Male\nGND\nC10\n100n\nGND",
-    "base_pred": "(O)\n(O)\n(O)\n(O)\n(O)\n(O)\n(O)\n(O",
-    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
-    "v5_pred": "Category | Value\nTotal | 198,240\nTotal | 10,100\nTotal | 100,000"
+    "v8_pred": "J2\nUSB_C\nJ1\nUSB_C\nJ3\nUSB_0\nJ4\nUSB_0"
   },
   {
-    "image": ".\\data/test/analog_simple_v2_0018.png",
+    "image": "./data/test/analog_simple_v2_0018.png",
     "gt": "R1\n22k\nR2\n100\nD1\n1N4007\nL1\n100uH\nR3\n470",
-    "base_pred": "\\[\\frac{1}{100000000000000000000000",
-    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
-    "v5_pred": "R1\n22k\nR2\n100\nD1\nLED\nBT1\nBattery_Cell\nR2\nR\nD2\nLED"
+    "v8_pred": "D1\n1N4007\nD2\n1N4007\nD3\n1N4007\nD4\n1N4007\nD5\n1N4007\nD6\n1N4007\nD7\n1N4007\nD8\n1N4007\nD9\n1N4007\nD10\n1N4007\nD11\n1N4007\nD12\n1N4007\nD13\n1"
   },
   {
-    "image": ".\\data/test/Pari55051_cat-pcb.png",
+    "image": "./data/test/Pari55051_cat-pcb.png",
     "gt": "D1\nLED\nBT1\nBattery_Cell\nR1\nR\nR2\nR\nD2\nLED",
-    "base_pred": "语言 | 最大值 | 最大值\nPython | 最大值 | 最大值\nC# | 最大值 | 最大值",
-    "old_pred": "12\n100\n100\n100\n100\n100\n100\n100",
-    "v5_pred": "D1\nLED\nBT1\nBattery_Cell\nR1\n10k\nR2\n10k\nD2\nLED"
+    "v8_pred": "BT1\nBattery_Cell\nBT2\nBattery\nBT3\nBattery"
+  },
+  {
+    "image": "./data/test/lokichubs_Flicker-noise-project.png",
+    "gt": "U3\n1063\nJ1\nRaspberry_Pi_4\nGND\nR1\nR\nU1\nADS1115IDGS",
+    "v8_pred": "U1\nWeMos_D1_E\n\nU2\nWeMos_D1_E\n\nU3\nWeMos_D1_E\n\nU4\nWeMos_D1_E\n\nU5\nWemos_D1_E\n\nU6\nWemos_D1_E\n\nU7\nWemos_D1_E\n\nU8\nWemos_D1_E\n\nU9\nWemos_D1_E\n\nU10\nWemos_D1_E\n\nU11\nWemos_"
+  },
+  {
+    "image": "./data/test/power_simple_v2_0000.png",
+    "gt": "C1\n1nF\nU1\nLM7805\nU2\nLM7805\nR1\n330\nU3\nTC4427\nF1\n5A",
+    "v8_pred": "D1\n1N400\nD2\n1N400\nD3\n1N400\nD4\n1N400\nD5\n1N400\nD6\n1N400\nD7\n1N400\nD8\n1N400\nD9\n1N400\nD10\n1N400\nD11\n1N400\nD12\n1N400\nD13\n1N400\nD14\n1N4"
   }
 ]

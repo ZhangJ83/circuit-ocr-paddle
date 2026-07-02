@@ -1,4 +1,4 @@
-"""CircuitOCR HuggingFace Space Demo."""
+"""CircuitOCR V8-Fixed HuggingFace Space Demo."""
 import gradio as gr
 import json
 import os
@@ -6,7 +6,6 @@ import os
 DATASET_DIR = os.path.dirname(os.path.abspath(__file__))
 RESULTS_FILE = os.path.join(DATASET_DIR, "examples.json")
 
-# Load pre-computed examples (lightweight, no GPU needed)
 def load_examples():
     if os.path.exists(RESULTS_FILE):
         with open(RESULTS_FILE, encoding='utf-8') as f:
@@ -22,7 +21,7 @@ def inference_tab():
         ### Upload a circuit schematic image
 
         **Note:** Full model inference requires GPU. For quick results, see the **Examples** tab
-        for pre-computed comparisons on real test samples.
+        for pre-computed V8-Fixed predictions on real test samples.
         """)
         img = gr.Image(type="filepath", label="Circuit Schematic")
         btn = gr.Button("Extract Netlist", variant="primary")
@@ -39,10 +38,9 @@ def examples_tab():
         return
 
     with gr.Column():
-        gr.Markdown("### V5 LLM-Only LoRA vs Old Model (easy50 Test Set)")
-        gr.Markdown("**Old model:** Full LoRA r=16 → collapsed, all samples output `12\\n100\\n100...`")
-        gr.Markdown("**V5 model:** LLM-only LoRA r=8, frozen projector → diverse, reads circuit content")
-        for i, ex in enumerate(EXAMPLES[:6]):
+        gr.Markdown("### V8-Fixed Predictions (easy100 Pure Test Set)")
+        gr.Markdown(f"**Avg. NED: 0.7791** (Base: 0.9390, -17.0% error reduction)")
+        for i, ex in enumerate(EXAMPLES[:8]):
             with gr.Row():
                 with gr.Column(scale=1):
                     img_path = ex.get("image", "")
@@ -50,49 +48,51 @@ def examples_tab():
                         gr.Image(img_path, label=f"Sample {i+1}")
                     else:
                         gr.Markdown(f"*Image {i+1}*")
-                with gr.Column(scale=1):
-                    gr.Markdown(f"**Ground Truth:**\n```\n{ex.get('gt','')[:150]}\n```")
-            with gr.Row():
-                with gr.Column(scale=1):
-                    gr.Markdown(f"**OLD (collapsed):**\n```\n{ex.get('old_pred','')[:150]}\n```")
-                with gr.Column(scale=1):
-                    gr.Markdown(f"**NEW V5 (diverse):**\n```\n{ex.get('v5_pred','')[:150]}\n```")
+                with gr.Column(scale=2):
+                    gt_preview = ex.get('gt', '')[:200]
+                    v8_preview = ex.get('v8_pred', '')[:200]
+                    gr.Markdown(f"**Ground Truth:**\n```\n{gt_preview}\n```")
+                    gr.Markdown(f"**V8-Fixed Prediction:**\n```\n{v8_preview}\n```")
 
 # ===== Tab 3: Benchmark =====
 def benchmark_tab():
     gr.Markdown("""
     ## Model Evolution
 
-    | Version | LoRA Target | Rank | Diversity | Key Issue |
-    |---------|------------|------|-----------|-----------|
-    | Base | — | — | 100% | Outputs image descriptions, not netlists |
-    | V1 (r=16 Full) | q/k/v/o + Projector | r=16 | 4% | Complete collapse: all outputs `12\\n100\\n100...` |
-    | V2 (Projector-only) | Projector only | r=16 | 90% | Preserved diversity but destroyed visual features |
-    | **V5 (LLM-only)** | **LLM self-attn only** | **r=8** | **90%** | **First diverse model that reads circuits** |
+    | Version | Architecture | Train Samples | Params | easy50 NED | easy100 NED |
+    |---------|-------------|--------------|--------|------------|-------------|
+    | Base | — | 0 | 0 | 0.9424 | 0.9390 |
+    | V5 LLM-Only | Frozen Proj, r=8 | 1,357 | 1.25M | 0.9066 | — |
+    | **V8-Fixed** | **Wide LoRA, r=16** | **1,554** | **5.7M** | **0.7892** | **0.7791** |
 
-    ### V5 Key Innovations
-    - **Freeze Projector**: Preserves pre-trained visual-language alignment
-    - **LLM-Only LoRA**: Teaches LLM to format netlists without destroying vision
-    - **Resolution 384px**: Higher than V2's 168px, keeps text readable
+    ### V8-Fixed Key Innovations
+    - **Causal 1-Token Shift Fix**: Corrected double-shifting that corrupted gradient signals
+    - **BPE Boundary Merging Fix**: Separate prompt/label tokenization eliminates boundary token merging
+    - **Wide LoRA Capacity**: r=16, alpha=32 across 310 projection matrices (5.7M params)
+    - **V5 Golden Dataset**: 2,555 balanced samples (KiCad 1,857 + Masala 698)
 
+    ### Training
+    - 3 epochs (1,800 steps) on RTX 4060 8GB (~2 hours)
+    - Best checkpoint: s1600 (Epoch 2.6)
+    - Loss: 2.71 → 0.30, no modality collapse
     """)
 
 # ===== Tab 4: About =====
 def about_tab():
     gr.Markdown("""
-    ## CircuitOCR V5: First Diverse Circuit OCR Model
+    ## CircuitOCR V8-Fixed: Best Circuit OCR Model
 
-    The first open-source LoRA fine-tuned model for circuit schematic OCR that actually works —
-    90% output diversity, no modality collapse.
+    The first open-source LoRA fine-tuned model for circuit schematic OCR that achieves
+    practical performance — Avg. NED 0.7760 on easy100 test set.
 
-    ### Key Features
-    - **Zero Collapse**: 90% output diversity across all test samples
-    - **LLM-Only LoRA (r=8)**: Freeze projector to protect vision, fine-tune LLM self-attention
-    - **Real Component Recognition**: Identifies ESP32, LM7805, resistors, capacitors
-    - **384px Resolution**: 2.3x higher than previous attempts
+    ### Results
+    - **easy100 Avg. NED: 0.7760** (Base 0.9372, -17.2% error)
+    - **easy50 Avg. NED: 0.8257** (Base 0.9634, -14.3% error)
+    - Structured circuit netlist output with correct EOS token generation
 
     ### Links
     - [GitHub Repository](https://github.com/ZhangJ83/circuit-ocr-paddle)
+    - [LoRA Weights](https://huggingface.co/yingchu83/CircuitOCR-lora)
     - [Technical Report (Chinese)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf)
     - [Technical Report (English)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf)
 
@@ -108,10 +108,10 @@ def about_tab():
     """)
 
 # ===== Build App =====
-with gr.Blocks(title="CircuitOCR", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="CircuitOCR V8-Fixed", theme=gr.themes.Soft()) as demo:
     gr.Markdown("""
-    # CircuitOCR V5: First Diverse Circuit OCR Model
-    ### PaddleOCR-VL-0.9B + LLM-Only LoRA (r=8) — 90% Output Diversity, No Collapse
+    # CircuitOCR V8-Fixed
+    ### PaddleOCR-VL-0.9B + Wide LoRA (r=16) — easy100 NED 0.7760, No Collapse
     """)
 
     with gr.Tabs():
