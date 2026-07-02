@@ -1,4 +1,21 @@
-"""CircuitOCR V8-Fixed HuggingFace Space Demo."""
+# Monkey patch huggingface_hub to include HfFolder to satisfy Gradio's import
+import huggingface_hub
+try:
+    from huggingface_hub import HfFolder
+except ImportError:
+    class DummyHfFolder:
+        @classmethod
+        def get_token(cls):
+            import os
+            return os.environ.get("HF_TOKEN")
+        @classmethod
+        def save_token(cls, token):
+            pass
+        @classmethod
+        def delete_token(cls):
+            pass
+    huggingface_hub.HfFolder = DummyHfFolder
+
 import gradio as gr
 import json
 import os
