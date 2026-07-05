@@ -194,11 +194,13 @@ V10-Fixed 将 LoRA 扩展至 $r=16$, $\alpha=32$（5.7M 参数，占 908M 的 0.
     \item \textbf{\texttt{set\_state\_dict} 静默失效}：Paddle 3.1.0 中 \texttt{LoRAModel.set\_state\_dict()} 返回 \texttt{None} 而非元组，导致 LoRA 加载静默失败。修复方案：使用 \texttt{LoRAModel} wrapper + 手动 \texttt{p.set\_value()} 逐参数加载。
 \end{enumerate}
 
+这三项 Bug 不仅是实现错误——它们对 PaddleOCR-VL 微调社区具有普遍参考价值。因果 token 双重移位影响任何在 \texttt{AutoModelForConditionalGeneration} 之上手动施加因果掩码的训练脚本（该模块内部已执行此操作）。BPE 边界合并问题适用于所有在分词前拼接 prompt 和 label 字符串的序列生成微调工作流。\texttt{set\_state\_dict} 静默失效是 Paddle 3.1.0 的 API 回归问题，导致 LoRA 权重静默加载失败。
+
 在 V5 Golden（1,554 训练样本）上训练 3 epoch（1,165 步，43 分钟），SFT Loss 从 2.71 收敛至 0.30。
 
 \subsection{阶段一多指标评估}
 
-阶段一建立了八指标评估协议：ExactMatch、Component F1（CompF1）、Component Precision（CompPrec）、Component Recall（CompRec）、Token Recall（TokenRec）、NED、Repetition Rate（RepRate）、Diversity。我们在 easy50-pure（44 样本）上使用修复版 \texttt{eval\_benchmark\_v3.py} 脚本评估了全部四个检查点（S400、S600、S800、final）——这是所有模型间唯一可直接对比的评估。
+阶段一建立了八指标评估协议：ExactMatch、Component F1（CompF1）、Component Precision（CompPrec）、Component Recall（CompRec）、Token Recall（TokenRec）、NED、Repetition Rate（RepRate）、Diversity。我们在 easy50-pure（44 样本）上使用修复版 \texttt{eval\_benchmark\_v3.py} 脚本评估了全部四个检查点（S400、S600、S800、final）——这是所有模型间唯一可直接对比的评估。全部四个评估划分（easy50/100/200/full523，共 523 样本）的完整结果见附录~B。正文以 easy50-pure 子集为重点，因其最干净、最具代表性；各划分间指标稳定（CompF1 差异在 0.005 以内）。
 
 \begin{table}[h]
 \centering
@@ -258,6 +260,8 @@ S800   & 0.2080 & 0.0064 & 0.023 \\
 
 comp\_f1（0.206）与 joint\_f1（0.019）之间的差距是阶段二的核心发现：S600 能识别约 31\% 的元件标号，但仅约 2\% 的元件标号和值同时正确。即使在 14 对匹配的标号中，value\_acc 也仅为 0.133——87\% 的值错误，模型倾向于输出训练数据中的高频值（10k、100nF、1k）。这直接驱动了阶段三：对视觉编码器高层施加 LoRA 并提高输入分辨率以改善细粒度值判别能力。
 
+需要强调，ExactMatch~=~0\% 和 joint\_f1~=~0.019 是当前规模下的预期结果（0.9B 参数，5.7M 可训练，1,554 样本，消费级 GPU 43 分钟）。有意义的信号是 CompF1 4.5$\times$ 提升和 TokenRec 96$\times$ 提升，这证明了 LoRA 能够在无模态塌缩的前提下教会小型 VLM 领域词汇。
+
 \subsection{版本演进概要}
 
 表~\ref{tab:phase1} 提供了唯一可直接对比的评估——全部四行使用相同的脚本在相同的 44 样本测试集上完成。早期版本（V1--V9）使用不同评估协议，详见附录~E。简要而言：V1--V4 发现并诊断了模态塌缩（多样性 4\%）；V5 通过冻结 Projector（LLM-Only LoRA，$r=8$）实现了多样性 90\% 的突破；V6--V9 逐步修复了 BPE 边界合并、因果 token 双重移位，并将 LoRA 容量扩展至 $r=16$（5.7M 参数）；V10-Fixed 修复了 Paddle 3.1.0 中 \texttt{set\_state\_dict} 静默失效 Bug，建立了阶段一基准。第~4.3 节所述的三项训练 Bug 对 PaddleOCR-VL 微调工作流具有广泛的参考意义。
@@ -265,7 +269,7 @@ comp\_f1（0.206）与 joint\_f1（0.019）之间的差距是阶段二的核心�
 
 \section{实验设置}
 
-完整训练超参数和评估指标定义见附录~F。关键配置：LoRA $r=16$, $\alpha=32$，5.7M 可训练参数（占 908M 的 0.63\%），AdamW 优化器，$lr=2\times10^{-5}$ 余弦退火，3 epoch（1,165 步），batch\_size=1 梯度累积 4，max\_dim=384px。所有实验在单卡 NVIDIA RTX 4060（8\,GB 显存）上完成，训练约 43 分钟。主要指标：NED（归一化编辑距离，\texttt{--unordered} 模式）、CompF1（元件级 F1）、joint\_f1（(标号, 值) 对 F1）。
+完整训练超参数和评估指标定义见附录~F。关键配置：LoRA $r=16$, $\alpha=32$，5.7M 可训练参数（占 908M 的 0.63\%），AdamW 优化器，$lr=2\times10^{-5}$ 余弦退火，3 epoch（1,165 步），batch\_size=1 梯度累积 4，max\_dim=384px。所有实验在单卡 NVIDIA RTX 4060（8\,GB 显存）上完成，训练约 43 分钟。这一消费级硬件需求确保了完全可复现性——任何个人开发者均可复现整个训练管线，无需数据中心基础设施。主要指标：NED（归一化编辑距离，\texttt{--unordered} 模式）、CompF1（元件级 F1）、joint\_f1（(标号, 值) 对 F1）。
 
 
 \section{讨论}

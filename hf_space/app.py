@@ -35,17 +35,33 @@ EXAMPLES = load_examples()
 def inference_tab():
     with gr.Column():
         gr.Markdown("""
-        ### Upload a circuit schematic image
+        ### ⚠️ Research Prototype — Pre-Computed Results Only
 
-        **Note:** Full model inference requires GPU (RTX 4060 8GB or higher).
-        For quick results, see the **Examples** tab for pre-computed
-        V10-Fixed S600 predictions on real test samples.
+        This Space runs on **CPU-only free tier** and cannot load the full
+        PaddleOCR-VL-0.9B model (908M params + LoRA weights) for live inference.
+        All outputs shown here are **pre-computed** on an RTX 4060 8GB GPU.
+
+        **To run inference locally:**
+        ```bash
+        git clone https://github.com/ZhangJ83/circuit-ocr-paddle
+        # Download LoRA weights from https://huggingface.co/yingchu83/CircuitOCR-lora
+        python eval_benchmark_v3.py --image your_circuit.png
+        ```
+
+        See the **Examples** tab for pre-computed predictions on real test samples
+        with honest annotations of what the model gets right and wrong.
         """)
-        img = gr.Image(type="filepath", label="Circuit Schematic")
+        img = gr.Image(type="filepath", label="Circuit Schematic (for display only)")
         btn = gr.Button("Extract Netlist", variant="primary")
-        out = gr.Textbox(label="Output", lines=8)
-        btn.click(lambda x: "GPU inference available in local version.\nSee Examples tab for pre-computed results.",
-                  inputs=[img], outputs=[out])
+        out = gr.Textbox(label="Status", lines=4)
+        btn.click(
+            lambda x: (
+                "⚠️ Live inference unavailable on CPU-only free tier.\\n"
+                "This is a research prototype — see Examples tab for\\n"
+                "pre-computed results, or run locally with GPU."
+            ),
+            inputs=[img], outputs=[out]
+        )
 
 # ===== Tab 2: Examples =====
 def examples_tab():
@@ -57,82 +73,151 @@ def examples_tab():
 
     with gr.Column():
         gr.Markdown("""
-        ### V10-Fixed S600 vs Base Model — Real Test Samples (easy50-pure)
+        ### V10-Fixed S600 vs Base Model — Annotated Test Samples (easy50-pure)
 
-        **S600 is the optimal checkpoint** (Phase 1 multi-metric evaluation, 44 samples).
-        The base model fails systematically: hallucinating generic document text
-        or collapsing into single-token repetition. S600 correctly identifies
-        component designators (R1, C2), values (10k, 100nF), and net labels (GND, VCC).
+        **Each sample is annotated with what S600 gets right (✓) and wrong (✗).**
+        S600 is the optimal Phase 1 checkpoint: it learns domain vocabulary
+        (refdes, net labels) and avoids the base model's generic-document collapse,
+        but still **hallucinates values** and **memorizes templates** from the
+        limited training data (1,554 samples).
+
+        Scroll to see both successes and honest failure modes.
         """)
-        # Show first 6 examples with base and S600 outputs side by side
-        for i, ex in enumerate(EXAMPLES[:6]):
+
+        for i, ex in enumerate(EXAMPLES):
+            verdict = ex.get("verdict", "")
+            note = ex.get("note", "")
+            if verdict == "partial":
+                badge = "🟡 PARTIAL"
+            elif verdict == "failure":
+                badge = "🔴 FAILURE"
+            else:
+                badge = "⚪"
+
             with gr.Row():
                 with gr.Column(scale=1):
                     img_path = ex.get("image", "")
                     if os.path.exists(img_path):
-                        gr.Image(img_path, label=f"Sample {i+1}")
+                        gr.Image(img_path, label=f"Sample {i+1} {badge}")
                     else:
                         gr.Markdown(f"*Image {i+1} not found*")
                 with gr.Column(scale=2):
-                    gt_preview = ex.get('gt', '')[:200]
-                    base_preview = ex.get('base_pred', '')[:200]
-                    s600_preview = ex.get('s600_pred', '')[:200]
+                    gt_preview = ex.get('gt', '')[:300]
+                    base_preview = ex.get('base_pred', '')[:300]
+                    s600_preview = ex.get('s600_pred', '')[:300]
                     gr.Markdown(f"**Ground Truth:**\n```\n{gt_preview}\n```")
-                    gr.Markdown(f"**Base Model (pre-fine-tune):**\n```\n{base_preview}\n```")
+                    gr.Markdown(f"**Base Model:**\n```\n{base_preview}\n```")
                     gr.Markdown(f"**S600 (fine-tuned):**\n```\n{s600_preview}\n```")
+                    if note:
+                        gr.Markdown(f"> {note}")
 
 # ===== Tab 3: Benchmark =====
 def benchmark_tab():
     gr.Markdown("""
     ## Phase 1 Multi-Metric Benchmark (V10-Fixed, easy50-pure, 44 samples)
 
-    All rows evaluated with the same fixed `eval_benchmark_v3.py` script — directly comparable.
+    All rows evaluated with `eval_benchmark_v3.py` — directly comparable.
 
-    | Model | CompF1 ↑ | TokenRec ↑ | NED ↓ | RepRate | Diversity |
-    |---|---|---:|---:|---:|---:|
-    | Base (no fine-tune) | 0.0455 | 0.0016 | 0.9296 | 6.8% | 90.9% |
-    | S400 | 0.1820 | 0.1302 | 0.8298 | 20.5% | 95.5% |
-    | **S600** ★ | **0.2061** | **0.1540** | **0.8031** | 15.9% | 90.9% |
-    | S800 (overfit) | 0.2080 | 0.1191 | 0.8063 | 40.9% | 93.2% |
+    ### Core Metrics (Phase 1)
 
-    - **CompF1**: 4.5× over baseline | **TokenRec**: 96× over baseline | **NED**: 13.6% relative error reduction
-    - S600 is optimal across NED, TokenRec, and CompRec with healthy diversity
-    - S800 overfits: repetition rate surges to 40.9%, TokenRec collapses to 0.1191
+    | Model | ExactMatch | CompF1 ↑ | TokenRec ↑ | NED ↓ | RepRate | Diversity |
+    |---|---|---:|---:|---:|---:|---:|
+    | Base (no fine-tune) | 0% | 0.0455 | 0.0016 | 0.9296 | 6.8% | 90.9% |
+    | S400 | 0% | 0.1820 | 0.1302 | 0.8298 | 20.5% | 95.5% |
+    | **S600** ★ | **0%** | **0.2061** | **0.1540** | **0.8031** | 15.9% | 90.9% |
+    | S800 (overfit) | 0% | 0.2080 | 0.1191 | 0.8063 | 40.9% | 93.2% |
 
-    ### Version Progression
+    - **CompF1**: 4.5× over baseline | **TokenRec**: 96× over baseline | **NED**: 13.6% relative reduction
+    - **ExactMatch = 0% for all models** — no model can perfectly reconstruct a full netlist yet
+    - S600 optimal: best TokenRec + NED, healthy diversity (90.9%)
+    - S800 overfits: repetition rate surges to 40.9%, TokenRec collapses
 
-    Earlier versions used different evaluation protocols and are **not directly comparable**
-    to the Phase 1 numbers above. See the [technical report](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf)
-    for full version history and evaluation methodology.
+    ### Topology Metrics (Phase 2, eval_topology_v2.py)
+
+    These metrics parse (refdes, value) **pairs** — a component counts only if both ID and value are correct:
+
+    | Model | comp_f1 | joint_f1 | value_acc |
+    |---|---|---:|---:|
+    | Base | 0.0455 | 0.0000 | — |
+    | S400 | 0.1820 | 0.0027 | 0.006 |
+    | **S600** ★ | **0.2061** | **0.0191** | **0.133** |
+    | S800 | 0.2080 | 0.0064 | 0.023 |
+
+    - **comp_f1**: aligned to Phase 1 method — refdes-only F1 (7 prefixes: R/C/D/U/J/L/Q)
+    - **joint_f1**: (refdes, value) pair F1 — the **honest metric**: only 1.9% of components fully correct
+    - **value_acc**: among matched refdes, fraction with correct value — 87% of values are wrong
+    - **Reading values is the core bottleneck** — directly motivates Phase 2/3 (vision encoder unfreeze + higher resolution)
+
+    ### Limitations
+
+    - **ExactMatch = 0%**: the model cannot reconstruct a full netlist end-to-end
+    - **Value hallucination**: 87% of matched component values are incorrect (generic values from training distribution)
+    - **Template memorization**: model latches onto learned templates (e.g., AMS1117, R=10k, Pro Micro) from synthetic V3 data
+    - **Repetition collapse on hard samples**: ~16% of samples exhibit token repetition
+    - **0.9B parameter ceiling**: capacity limited by the base model architecture
+    - **Expected at this scale**: ExactMatch=0% and joint_f1=0.019 are consistent with 0.9B params, 5.7M trainable (0.63%), 1,554 samples, 43 min on consumer GPU. The meaningful gains are CompF1 4.5× and TokenRec 96×.
 
     ### Key Technical Details
 
-    - **Architecture**: PaddleOCR-VL-0.9B (908M params) + LoRA (r=16, α=32, 5.7M trainable)
-    - **Strategy**: LLM-Only LoRA — freeze vision-language Projector to prevent modality collapse
-    - **Dataset**: V5 Golden (1,857 samples: 500 synthetic + 1,357 real KiCad projects)
-    - **Training**: 3 epochs (1,165 steps), single RTX 4060 8GB, ~43 minutes
-    - **Three critical bugs fixed**: causal token double-shift, BPE boundary merging, set_state_dict silent failure (Paddle 3.1.0)
+    - **Architecture**: PaddleOCR-VL-0.9B (908M params) + Wide LoRA (r=16, α=32, 5.7M trainable, 0.63%)
+    - **Strategy**: LLM-Only LoRA — freeze vision encoder + projector to prevent modality collapse
+    - **Dataset**: 1,554 samples (1,097 real KiCad projects + 457 Synthetic V3)
+    - **Training**: 3 epochs (1,165 optimizer steps), single RTX 4060 8GB, ~43 minutes
+    - **Accessibility**: Full training in 43 min on a single RTX 4060 8GB — any individual developer can reproduce without data center infrastructure
+    - **Three training pitfalls discovered** (affect all PaddleOCR-VL fine-tuning): causal token double-shift (AutoModelForConditionalGeneration internal shift), BPE boundary merging (affects all seq2seq training), set_state_dict silent failure (Paddle 3.1.0 API change)
+
+    ### Version Progression
+
+    Earlier versions used different evaluation protocols — see the
+    [technical report](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf)
+    for full version history. Phase 2 (larger dataset, regularization, topology metrics)
+    and Phase 3 (vision encoder LoRA, higher resolution) are in progress.
+
+    Full results across all 4 evaluation splits (easy50/100/200/full523) are in the
+    [technical report](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf)
+    Appendix B.
     """)
 
 # ===== Tab 4: About =====
 def about_tab():
     gr.Markdown("""
-    ## CircuitOCR V10-Fixed
+    ## CircuitOCR V10-Fixed — Research Prototype (Phase 1)
 
     Open-source LoRA fine-tuned model for circuit schematic OCR and netlist extraction,
-    based on PaddleOCR-VL-0.9B. The first model to achieve practical component-level
-    recognition after resolving modality collapse.
+    based on PaddleOCR-VL-0.9B. The **first** to demonstrate that LoRA fine-tuning
+    can teach a small VLM domain-specific circuit vocabulary while avoiding modality collapse.
 
-    ### Results (Phase 1)
-    - **CompF1**: 0.2061 (4.5× over baseline 0.0455)
-    - **Token Recall**: 0.1540 (96× over baseline 0.0016)
-    - **NED**: 0.8031 (13.6% relative error reduction vs baseline 0.9296)
-    - **Diversity**: 90.9% (no modality collapse)
+    ### What It Achieves (Phase 1)
+    - **CompF1**: 0.2061 (4.5× over baseline 0.0455) — identifies ~31% of component refdes
+    - **Token Recall**: 0.1540 (96× over baseline 0.0016) — learns circuit-domain tokens
+    - **NED**: 0.8031 (13.6% reduction vs baseline 0.9296)
+    - **Diversity**: 90.9% — solves modality collapse (baseline already diverse, maintained)
+    - **No modality collapse**: Projector is frozen — a key architectural insight
+
+    ### Scale Context
+    - **0.9B parameters** (small VLM) with only **5.7M trainable** (0.63%) — ExactMatch=0% is expected at this scale
+    - **43 minutes** on consumer RTX 4060 8GB — anyone can reproduce
+    - The 4.5× CompF1 gain and 96× TokenRec gain are the meaningful metrics
+
+    ### What It Does NOT Achieve (Honest Assessment)
+    - **ExactMatch = 0%**: cannot perfectly reconstruct any netlist
+    - **joint_f1 = 0.019**: only ~2% of (refdes, value) pairs are fully correct
+    - **Value hallucination**: model outputs generic values (10k, 100nF, AMS1117) from training distribution
+    - **Template memorization**: synthetic V3 data introduced 6 fixed topologies → model hallucinates them
+    - **Not production-ready**: useful as a research baseline and proof-of-concept
+
+    ### Roadmap
+    | Phase | Goal | Status |
+    |---|---|---|
+    | Phase 1 | Fix modality collapse, establish baseline | ✅ Complete |
+    | Phase 2 | Larger dataset (3,839 samples), topology metrics, regularization | 🔄 In Progress |
+    | Phase 3 | Vision encoder LoRA, higher resolution, two-stage training | 📋 Planned |
+    | Phase 4 | SPICE verification, human-in-the-loop, production readiness | 📋 Planned |
 
     ### Links
     - [GitHub Repository](https://github.com/ZhangJ83/circuit-ocr-paddle)
     - [Dataset Repository](https://github.com/ZhangJ83/circuit-ocr-dataset)
-    - [LoRA Weights](https://huggingface.co/yingchu83/CircuitOCR-lora)
+    - [LoRA Weights (S600)](https://huggingface.co/yingchu83/CircuitOCR-lora)
     - [Technical Report (English)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf)
     - [Technical Report (Chinese)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf)
 
@@ -148,10 +233,10 @@ def about_tab():
     """)
 
 # ===== Build App =====
-with gr.Blocks(title="CircuitOCR V10-Fixed", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="CircuitOCR — Research Prototype", theme=gr.themes.Soft()) as demo:
     gr.Markdown("""
-    # CircuitOCR V10-Fixed (S600)
-    ### PaddleOCR-VL-0.9B + Wide LoRA (r=16) — CompF1 0.2061, NED 0.8031, No Modality Collapse
+    # CircuitOCR V10-Fixed (S600) — Research Prototype
+    ### PaddleOCR-VL-0.9B + Wide LoRA (r=16) · CompF1 0.206 (4.5×) · ExactMatch 0% · Phase 1 Complete
     """)
 
     with gr.Tabs():
