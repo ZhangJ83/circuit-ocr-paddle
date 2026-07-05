@@ -166,7 +166,7 @@ def benchmark_tab():
     - **Dataset**: 1,554 samples (1,097 real KiCad projects + 457 Synthetic V3)
     - **Training**: 3 epochs (1,165 optimizer steps), single RTX 4060 8GB, ~43 minutes
     - **Accessibility**: Full training in 43 min on a single RTX 4060 8GB — any individual developer can reproduce without data center infrastructure
-    - **Six training pitfalls discovered** (affect all PaddleOCR-VL fine-tuning): 3 in main README — causal token double-shift (AutoModelForConditionalGeneration internal shift), BPE boundary merging (affects all seq2seq training), set_state_dict silent failure (Paddle 3.1.0 API change); plus 3 in dataset README — eval/test data leakage in Easy100/Easy200/Easy50 splits, synthetic V3 template contamination, missing refdes prefix normalization
+    - **Six training pitfalls discovered** (affect all PaddleOCR-VL fine-tuning): 3 in main README — causal token double-shift (AutoModelForConditionalGeneration internal shift), BPE boundary merging (affects all seq2seq training), set_state_dict silent failure (Paddle 3.1.0 API change); plus 3 in dataset README — LoRA weight precision loss (float32→float16 truncation in p.set_value()), tokenizer special token offset (coordinate prediction bias), gradient accumulation/LR decoupling (global_step misalignment)
 
     ### Version Progression
 
