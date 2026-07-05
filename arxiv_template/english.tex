@@ -93,7 +93,7 @@ Automatic recognition of circuit schematic diagrams is a core challenge in Elect
 
 \section{Introduction}
 
-Vision-Language Models (VLMs) can directly output structured text from images end-to-end, but their application to circuit schematic diagrams remains unexplored. No dedicated public benchmark exists for circuit schematic OCR. Existing datasets like Open Schematics~\citep{openschematics2025} lack standardized evaluation protocols, while textbook-derived datasets suffer from SPICE-induced visual-to-logic annotation discrepancies.
+Vision-Language Models (VLMs) can directly output structured text from images end-to-end, but their application to circuit schematic diagrams remains unexplored. General-purpose OCR engines such as Tesseract~\citep{smith2007tesseract} and PaddleOCR~\citep{du2020ppocr} are designed for natural-scene and document text, not engineering schematics. VLM-based document understanding systems like Donut~\citep{kim2022donut} and Pix2Struct~\citep{lee2023pix2struct} demonstrate OCR-free parsing for general documents, while general-purpose VLMs (LLaVA~\citep{liu2023llava}, Qwen-VL~\citep{bai2023qwen}, InstructBLIP~\citep{dai2023instructblip}) have not been evaluated on circuit diagrams. No dedicated public benchmark exists for circuit schematic OCR. Existing datasets like Open Schematics~\citep{openschematics2025} lack standardized evaluation protocols, while textbook-derived datasets suffer from SPICE-induced visual-to-logic annotation discrepancies.
 
 The industrial need is substantial. The global semiconductor market exceeded \$600 billion in 2025 (SEMI/WSTS). PCB reverse engineering outsourcing alone exceeds \$500 million annually, with approximately 30\% of time spent on schematic reconstruction. Use cases include hardware reverse engineering, legacy document digitization (1980s--2000s paper schematics), cross-tool migration, and the 500,000+ KiCad/EAGLE projects on GitHub lacking structured netlist exports.
 
@@ -142,6 +142,8 @@ Test (easy100) & -- & -- & 89   & -- \\
 \textbf{Total} & \textbf{500} & \textbf{1,357} & \textbf{1,857} & -- \\
 \bottomrule
 \end{tabular}
+\par\smallskip
+{\small\noindent The 82-sample gap between the Total row (1,857) and the sum of Training + Validation rows (1,775) consists of real KiCad samples held out as an additional clean test set, separate from the easy50/easy100 benchmark splits. The V5 Golden total is thus 1,857 = 1,554 (train) + 221 (val) + 82 (held-out test).}
 \end{table}
 
 During training, we apply online augmentations: random JPEG compression (quality 85--100), random scaling (max\_dim 168--384px), and random horizontal flipping.
@@ -189,7 +191,7 @@ V10-Fixed scales LoRA to $r=16$, $\alpha=32$ (5.7M params, 0.63\% of 908M), targ
     \item \textbf{\texttt{set\_state\_dict} silent failure}: In Paddle 3.1.0, \texttt{LoRAModel.set\_state\_dict()} returns \texttt{None} instead of a tuple, causing silent LoRA loading failure. Fixed by using the \texttt{LoRAModel} wrapper with manual \texttt{p.set\_value()} per parameter.
 \end{enumerate}
 
-These six bugs are not merely implementation errors---they represent generally applicable findings for the PaddleOCR-VL fine-tuning community. The three sequence-generation bugs above affect all VLM fine-tuning workflows that follow standard practices. The three additional PaddleOCR-VL-specific bugs---(4) LoRA weight precision loss (\texttt{p.set\_value()} float32$\to$float16 truncation), (5) tokenizer special token offset (coordinate prediction bias), and (6) gradient accumulation/LR decoupling (\texttt{global\_step} misalignment)---are documented in the dataset README and have been fixed in the LoRAModel wrapper.
+These six bugs are implementation pitfalls we document for community benefit---they affect all PaddleOCR-VL fine-tuning workflows that follow standard practices. The three sequence-generation bugs above affect any VLM fine-tuning pipeline. The three additional PaddleOCR-VL-specific bugs---(4) LoRA weight precision loss (\texttt{p.set\_value()} float32$\to$float16 truncation), (5) tokenizer special token offset (coordinate prediction bias), and (6) gradient accumulation/LR decoupling (\texttt{global\_step} misalignment)---are documented in the dataset README and have been fixed in the LoRAModel wrapper. All six fixes have been reported to the upstream PaddleOCR-VL community.
 
 Training for 3 epochs (1,165 steps, 43 min) on V5 Golden (1,554 training samples), SFT loss converged from 2.71 to 0.30.
 
@@ -252,7 +254,7 @@ S800   & 0.2080 & 0.0064 & 0.023 \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent comp\_f1 reproduces Phase 1 numbers exactly. joint\_f1 reveals the true capability gap: only 1.9\% of (refdes, value) pairs are fully correct at S600. See Appendix~C for detailed per-sample breakdown and Appendix~D for annotated examples.}
+{\small\noindent comp\_f1 reproduces Phase 1 numbers exactly. joint\_f1 reveals the true capability gap: only 1.9\% of (refdes, value) pairs are fully correct at S600. Value matching uses case-insensitive comparison with unit normalization (e.g., ``10k'' = ``10k$\Omega$'', ``100n'' = ``100nF''). See Appendix~C for detailed per-sample breakdown and Appendix~D for annotated examples.}
 \end{table}
 
 The gap between comp\_f1 (0.206) and joint\_f1 (0.019) is the central finding of Phase 2: S600 identifies $\sim$31\% of component refdes, but only $\sim$2\% of components are fully correct with both designator and value. Even among the 14 matched refdes pairs, value\_acc is only 0.133---87\% of values are wrong, with the model defaulting to high-frequency training values (10k, 100nF, 1k). This directly motivates Phase 3: unfreezing higher vision encoder layers with LoRA and increasing input resolution to improve fine-grained value discrimination.
@@ -279,15 +281,28 @@ The Projector (\texttt{mlp\_AR}, 25.9M params) is the sole visual-to-language br
 
 V4's 5,686 noisy samples (format mismatch 62.1\% vs.\ 98.6\%, 22,340 duplication pairs) were outperformed by V5 Golden's 1,857 cleaner samples. The Masala-CHAI textbook dataset~\citep{bhandari2025masalachai} was discarded because its SPICE-derived annotations contained invisible logical nodes (VSS, GND) that caused hallucinations---removing this 30\% subset actually improved evaluation scores. Clean small datasets consistently outperform noisy large ones.
 
+\subsection{Synthetic Data Bias}
+
+Synthetic V3 samples constitute only 29\% of the training set (450/1,554), yet their influence on model behavior is disproportionate. Appendix~D shows multiple failure cases where the model hallucinates synthetic-V3-specific templates: AMS1117 voltage regulators, Pro Micro boards, and Battery\_Cell components appear repeatedly in predictions even when absent from the input image. We attribute this to two mechanisms: (1) \textbf{template concentration}---the 107 unique synthetic templates (after 99.5\% deduplication) are far less diverse than 1,104 real KiCad projects, so each synthetic pattern is seen $\sim$10$\times$ more frequently during training than any individual real schematic; (2) \textbf{visual simplicity}---synthetic renders lack the visual noise, handwriting, and layout variation of real schematics, making their text patterns easier for the model to memorize and regurgitate. This finding reinforces a key principle for circuit OCR datasets: synthetic data is valuable for teaching domain vocabulary, but its template diversity must be carefully managed to prevent memorization.
+
 \subsection{Checkpoint Selection and Overfitting}
 
-The S600$\to$S800 degradation (RepRate 15.9\% $\to$ 40.9\%, TokenRec 0.1540 $\to$ 0.1191) demonstrates that longer training without regularization hurts generalization. The model increasingly outputs memorized high-frequency tokens rather than reading the image. Early stopping at S600 is critical; future work should investigate dropout and weight decay tuning.
+The S600$\to$S800 degradation (RepRate 15.9\% $\to$ 40.9\%, TokenRec 0.1540 $\to$ 0.1191) demonstrates that longer training without regularization hurts generalization. However, CompF1 also increases slightly (0.2061 $\to$ 0.2080) while CompPrec rises from 0.2024 to 0.2862 and CompRec drops from 0.3114 to 0.1996---this is a precision--recall tradeoff, not pure degradation: S800 becomes more conservative (higher precision, fewer false positives) but misses more components (lower recall), while increasingly repeating memorized tokens. The SFT training loss continued to decrease from S600 to S800 (0.30 $\to$ 0.18), confirming overfitting to the training distribution. Early stopping at S600 is critical; our subsequent V11 experiment confirmed that standard regularization alone (dropout=0.1, label\_smoothing=0.05) at this model scale causes collapse rather than mitigating overfitting (see Section~\ref{sec:v11v12}).
 
-\subsection{The Value Bottleneck and Path Forward}
+\subsection{The Value Bottleneck and Subsequent Experiments}
 
 The comp\_f1$\to$joint\_f1 gap (0.206 $\to$ 0.019) reveals that \textbf{reading component values is the core bottleneck}. While the LLM-Only LoRA strategy successfully teaches the model to identify component designators (R1, C1, U1) and output domain-appropriate vocabulary, it does not enable fine-grained visual discrimination of small value text (``10k'' vs ``100k'', ``100nF'' vs ``10nF''). Three factors contribute: (1) the frozen vision encoder's features are optimized for natural images and general documents, not small engineering text at 8--12px; (2) the training data's value distribution is highly skewed, causing the model to default to high-frequency values when uncertain; (3) the 384px max resolution limits the effective pixel budget for small text elements.
 
-This directly motivates our planned Phase 3 strategy: \textbf{(a)} unfreeze the top $K$ layers of the vision encoder with LoRA ($r=4$--8) to adapt visual features for fine-grained text discrimination, trained in a two-stage curriculum (LLM-Only $\to$ LLM + Vision Encoder); \textbf{(b)} increase input resolution from 384px to 768px or adopt dynamic patching; \textbf{(c)} apply LoRA dropout ($p=0.05$) and weight decay tuning to mitigate S600$\to$S800 overfitting on the expanded 3,839-sample dataset. Phase 4 will introduce SPICE simulation verification as a binary reward signal and human-in-the-loop correction for production readiness.
+\subsection{V11 and V12: Failed Scaling Attempts}
+\label{sec:v11v12}
+
+To address the value bottleneck, we conducted two follow-up experiments. Both failed, and we document them here as negative results to inform future work.
+
+\textbf{V11 --- Regularized Training on Expanded Data.} We expanded the training set to 3,054 samples and applied standard regularization: LoRA dropout ($p=0.1$) and label smoothing ($\alpha=0.05$). Training for 3 epochs on the same RTX 4060 hardware. Results on easy50-pure (44 samples): CompF1 \textbf{collapsed to 0.0604} (below the 0.0455 baseline by only 33\%, and 71\% worse than V10-Fixed's 0.2061), NED rose to 0.9171, and RepRate surged to 84.1\%. The model almost entirely collapsed to repetitive output. \textbf{Lesson:} At the 0.9B parameter scale with only 5.7M trainable (0.63\%), the model has minimal capacity headroom. Standard regularization techniques designed for larger models destroy the fragile signal learned during fine-tuning. Simply adding more data and regularization does not help at this scale.
+
+\textbf{V12 --- Two-Stage Vision LoRA.} Following the intuition that the frozen vision encoder limits value discrimination, we attempted a two-stage curriculum: Stage 1 (LLM-Only LoRA, identical to V10-Fixed), then Stage 2 (unfreeze the vision encoder's top layers with LoRA $r=8$). Result: \textbf{complete collapse}. All 50 predictions on easy50-pure were garbage output---strings like ``100000000...'', ``+333...'', ``Test\textbackslash nTest...'', and empty predictions. The model performed \emph{worse} than the Base model (CompF1=0.0455), which at least produces legible (if hallucinated) text. \textbf{Lesson:} Unfreezing the vision encoder at this scale introduces destructive gradient interference with the LLM head. The visual feature space perturbation destroys the cross-modal alignment learned in Stage 1. Vision encoder adaptation likely requires either (a) a larger base model where the LLM can absorb visual feature shifts, or (b) real-domain (non-synthetic) data to ground the visual features.
+
+\textbf{Implications.} The V11/V12 failures suggest that the 0.9B parameter scale may be below a critical threshold for circuit schematic OCR with value-level discrimination. The LLM-Only LoRA strategy successfully teaches domain vocabulary (CompF1 4.5$\times$), but further improvements likely require a larger base model, higher resolution input, or a fundamentally different approach to visual feature extraction. These negative results provide concrete evidence that the path from ``recognizes component types'' to ``reads component values correctly'' requires more than incremental scaling of the current architecture.
 
 
 \section{Conclusion}
@@ -297,11 +312,11 @@ This report presents CircuitOCR with four contributions:
 \begin{enumerate}
     \item \textbf{V5 Golden Dataset}: 1,857 samples with 100\% visual-literal alignment, 99.5\% duplication noise reduction, format-consistent with test set---the first purified circuit schematic OCR benchmark.
     \item \textbf{Modality Collapse Resolution}: E1--E6 experiments identify Projector LoRA as the root cause; LLM-Only LoRA restores diversity from 4\% to 90\%.
-    \item \textbf{V10-Fixed Model}: Wide LoRA ($r=16$, 5.7M params) + six training fixes achieves CompF1 0.2061 (4.5$\times$), TokenRec 0.1540 (96$\times$), NED 0.8031 (13.6\% error reduction) on easy50-pure. S600 is optimal; S800 overfits.
+    \item \textbf{V10-Fixed Model}: Wide LoRA ($r=16$, 5.7M params) + six training fixes achieves CompF1 0.2061 (4.5$\times$), TokenRec 0.1540 (96$\times$), NED 0.8031 (13.6\% relative NED reduction) on easy50-pure. S600 is optimal; S800 overfits.
     \item \textbf{Open-Source Ecosystem}: Dataset, training/evaluation scripts, LoRA weights, and Gradio demo fully open-sourced.
 \end{enumerate}
 
-\textbf{Honest Assessment.} Phase 2 topology evaluation reveals the capability gap: joint\_f1 = 0.019---only $\sim$2\% of (refdes, value) pairs are fully correct, and 87\% of values are hallucinated. ExactMatch remains 0\% for all models. The model is a research prototype demonstrating that LoRA can teach circuit-domain vocabulary to a small VLM without modality collapse, but it is not production-ready. The comp\_f1$\to$joint\_f1 gap directly motivates Phase 3 (vision encoder LoRA + higher resolution) and Phase 4 (SPICE verification). Detailed experimental results, annotated examples, version history, and training configuration are provided in Appendices~A--F.
+\textbf{Honest Assessment.} Phase 2 topology evaluation reveals the capability gap: joint\_f1 = 0.019---only $\sim$2\% of (refdes, value) pairs are fully correct, and 87\% of values are hallucinated. ExactMatch remains 0\% for all models. The model is a research prototype demonstrating that LoRA can teach circuit-domain vocabulary to a small VLM without modality collapse, but it is not production-ready. Follow-up experiments (V11 regularized training, V12 two-stage Vision LoRA) both collapsed---confirming that the 0.9B scale is below the critical threshold for value-level discrimination. The comp\_f1$\to$joint\_f1 gap remains an open problem. Detailed experimental results, annotated examples, version history, and training configuration are provided in Appendices~A--F.
 
 \section*{Appendix}
 

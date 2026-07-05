@@ -98,7 +98,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 
 \section{引言}
 
-视觉语言模型（VLM）能够端到端地从图像输出结构化文本，但在电路原理图领域几乎未被探索。目前尚无专门的电路原理图 OCR 公开基准。现有数据集如 Open Schematics~\citep{openschematics2025} 缺乏标准化评估协议，教科书数据集则因 SPICE 隐性节点导致视觉-逻辑标注偏差。
+视觉语言模型（VLM）能够端到端地从图像输出结构化文本，但在电路原理图领域几乎未被探索。通用 OCR 引擎如 Tesseract~\citep{smith2007tesseract} 和 PaddleOCR~\citep{du2020ppocr} 为自然场景和文档文字设计，而非工程原理图。基于 VLM 的文档理解系统如 Donut~\citep{kim2022donut} 和 Pix2Struct~\citep{lee2023pix2struct} 展示了通用文档的 OCR-free 解析能力，通用 VLM（LLaVA~\citep{liu2023llava}、Qwen-VL~\citep{bai2023qwen}、InstructBLIP~\citep{dai2023instructblip}）尚未在电路图上评估。目前尚无专门的电路原理图 OCR 公开基准。现有数据集如 Open Schematics~\citep{openschematics2025} 缺乏标准化评估协议，教科书数据集则因 SPICE 隐性节点导致视觉-逻辑标注偏差。
 
 工业需求巨大。全球半导体市场 2025 年超 6,000 亿美元（SEMI/WSTS），仅 PCB 逆向工程外包市场每年超 5 亿美元，其中约 30\% 时间花在原理图重建上。应用场景包括硬件逆向工程、遗留文档数字化（1980--2000 年代纸质图纸）、跨工具迁移，以及 GitHub 上 50 万+ KiCad/EAGLE 项目缺乏结构化网表导出。
 
@@ -147,6 +147,8 @@ V5 Golden 基于两个原则重建：（1）GT 与可见文字 100\% 对齐，�
 \textbf{总计} & \textbf{500} & \textbf{1,357} & \textbf{1,857} & -- \\
 \bottomrule
 \end{tabular}
+\par\smallskip
+{\small\noindent 总计行（1,857）与训练+验证行之和（1,775）之间的 82 样本差值为预留的额外真实 KiCad 测试集，独立于 easy50/easy100 基准划分。V5 Golden 总量为 1,857 = 1,554（训练）+ 221（验证）+ 82（预留测试）。}
 \end{table}
 
 训练时应用在线增强：随机 JPEG 压缩（质量 85--100）、随机缩放（max\_dim 168--384px）、随机水平翻转。
@@ -194,7 +196,7 @@ V10-Fixed 将 LoRA 扩展至 $r=16$, $\alpha=32$（5.7M 参数，占 908M 的 0.
     \item \textbf{\texttt{set\_state\_dict} 静默失效}：Paddle 3.1.0 中 \texttt{LoRAModel.set\_state\_dict()} 返回 \texttt{None} 而非元组，导致 LoRA 加载静默失败。修复方案：使用 \texttt{LoRAModel} wrapper + 手动 \texttt{p.set\_value()} 逐参数加载。
 \end{enumerate}
 
-这六项 Bug 不仅是实现错误——它们对 PaddleOCR-VL 微调社区具有普遍参考价值。上述三项序列生成 Bug 影响所有遵循标准实践的 VLM 微调工作流。另三项 PaddleOCR-VL 特定 Bug——（4）LoRA 权重精度损失（\texttt{p.set\_value()} float32$\to$float16 截断误差）、（5）tokenizer 特殊 token 偏移（坐标预测偏差）、（6）梯度累积与学习率解耦（\texttt{global\_step} 错位）——详见 Dataset README，修复方案已合并入 LoRAModel wrapper。
+这六项 Bug 是我们为社区利益记录的实施陷阱——它们影响所有遵循标准实践的 PaddleOCR-VL 微调工作流。上述三项序列生成 Bug 影响任何 VLM 微调管线。另三项 PaddleOCR-VL 特定 Bug——（4）LoRA 权重精度损失（\texttt{p.set\_value()} float32$\to$float16 截断误差）、（5）tokenizer 特殊 token 偏移（坐标预测偏差）、（6）梯度累积与学习率解耦（\texttt{global\_step} 错位）——详见 Dataset README，修复方案已合并入 LoRAModel wrapper。全部六项修复已向上游 PaddleOCR-VL 社区报告。
 
 在 V5 Golden（1,554 训练样本）上训练 3 epoch（1,165 步，43 分钟），SFT Loss 从 2.71 收敛至 0.30。
 
@@ -255,7 +257,7 @@ S800   & 0.2080 & 0.0064 & 0.023 \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent comp\_f1 精确复现阶段一数值。joint\_f1 揭示真实能力差距：S600 仅 1.9\% 的 (标号, 值) 对完全正确。逐样本分解见附录~C，标注示例见附录~D。}
+{\small\noindent comp\_f1 精确复现阶段一数值。joint\_f1 揭示真实能力差距：S600 仅 1.9\% 的 (标号, 值) 对完全正确。值匹配采用大小写不敏感比较并做单位归一化（如 ``10k'' = ``10k$\Omega$''，``100n'' = ``100nF''）。逐样本分解见附录~C，标注示例见附录~D。}
 \end{table}
 
 comp\_f1（0.206）与 joint\_f1（0.019）之间的差距是阶段二的核心发现：S600 能识别约 31\% 的元件标号，但仅约 2\% 的元件标号和值同时正确。即使在 14 对匹配的标号中，value\_acc 也仅为 0.133——87\% 的值错误，模型倾向于输出训练数据中的高频值（10k、100nF、1k）。这直接驱动了阶段三：对视觉编码器高层施加 LoRA 并提高输入分辨率以改善细粒度值判别能力。
@@ -282,15 +284,28 @@ Projector（\texttt{mlp\_AR}，25.9M 参数）是视觉到语言的唯一映射�
 
 V4 的 5,686 个噪声样本（格式失配 62.1\% vs.\ 98.6\%，22,340 个重复噪点）被 V5 Golden 的 1,857 个清洁样本超越。Masala-CHAI 教科书数据集~\citep{bhandari2025masalachai} 因 SPICE 衍生标注包含不可见逻辑节点（VSS、GND）导致幻觉而被弃用——移除这 30\% 样本后评估分数反而提升。精标小数据集始终优于粗标大数据集。
 
+\subsection{合成数据偏差}
+
+合成 V3 样本仅占训练集的 29\%（450/1,554），但其对模型行为的影响不成比例。附录~D 显示多个失败案例中模型幻觉出合成 V3 特有的模板：AMS1117 稳压器、Pro Micro 开发板、Battery\_Cell 组件反复出现在预测中，即使输入图像中并不存在。我们将其归因于两个机制：（1）\textbf{模板集中}——去重后的 107 个独特合成模板远不如 1,104 个真实 KiCad 项目多样，每个合成模式在训练中被看到的频率约为任一真实原理图的 $\sim$10$\times$；（2）\textbf{视觉简单性}——合成渲染缺乏真实原理图的视觉噪声、手写标注和布局变化，使其文本模式更易被模型记忆和复述。这一发现强化了电路 OCR 数据集的关键原则：合成数据对教授领域词汇有价值，但其模板多样性必须谨慎管理以防止记忆。
+
 \subsection{检查点选择与过拟合}
 
-S600$\to$S800 的退化（RepRate 15.9\% $\to$ 40.9\%，TokenRec 0.1540 $\to$ 0.1191）表明更长训练需要正则化。模型开始输出记忆的高频 token 而非阅读图像。S600 处早停至关重要；未来工作应研究 dropout 和 weight decay 调优。
+S600$\to$S800 的退化（RepRate 15.9\% $\to$ 40.9\%，TokenRec 0.1540 $\to$ 0.1191）表明更长训练需要正则化。然而，CompF1 也从 0.2061 微升至 0.2080，同时 CompPrec 从 0.2024 升至 0.2862 而 CompRec 从 0.3114 降至 0.1996——这是精确率--召回率权衡，而非纯粹退化：S800 变得更保守（更高精确率、更少误报），但遗漏更多元件（更低召回率），同时重复 token 急剧增加。SFT 训练 loss 从 S600 到 S800 持续下降（0.30 $\to$ 0.18），确认了对训练分布的过拟合。S600 处早停至关重要；后续 V11 实验证实，在此模型规模下标准正则化（dropout=0.1, label\_smoothing=0.05）会导致塌缩而非缓解过拟合（见第~\ref{sec:v11v12}~节）。
 
-\subsection{参数值瓶颈与前进方向}
+\subsection{参数值瓶颈与后续实验}
 
 comp\_f1$\to$joint\_f1 的差距（0.206 $\to$ 0.019）揭示了\textbf{读取元件参数值是核心瓶颈}。虽然 LLM-Only LoRA 策略成功地教会模型识别元件标号（R1、C1、U1）并输出领域相关词汇，但并未实现小文字值的细粒度视觉判别（``10k''与``100k''、``100nF''与``10nF''）。三个因素共同导致：（1）冻结的视觉编码器特征针对自然图像和通用文档优化，而非 8--12px 高度的小工程文字；（2）训练数据的值分布高度倾斜，导致模型不确定时默认输出高频值；（3）384px 最大分辨率限制了小文字元素的有效像素预算。
 
-这直接驱动了我们规划的阶段三策略：\textbf{(a)} 对视觉编码器顶层 $K$ 层施加 LoRA（$r=4$--8）以适配细粒度文字判别的视觉特征，采用两阶段课程训练（LLM-Only $\to$ LLM + 视觉编码器）；\textbf{(b)} 将输入分辨率从 384px 提升至 768px 或采用动态分块；\textbf{(c)} 在扩展的 3,839 样本数据集上施加 LoRA dropout（$p=0.05$）和 weight decay 调优以缓解 S600$\to$S800 过拟合。阶段四将引入 SPICE 仿真验证作为二元奖励信号和人工在环纠错以实现生产就绪。
+\subsection{V11 与 V12：失败的扩展尝试}
+\label{sec:v11v12}
+
+为解决参数值瓶颈，我们进行了两项追加实验。两项均失败，作为负结果记录于此以供未来工作参考。
+
+\textbf{V11 —— 扩展数据上的正则化训练。} 将训练集扩展至 3,054 样本，施加标准正则化：LoRA dropout（$p=0.1$）和标签平滑（$\alpha=0.05$）。在相同 RTX 4060 硬件上训练 3 epoch。easy50-pure（44 样本）结果：CompF1 \textbf{塌缩至 0.0604}（仅比基座 0.0455 高 33\%，比 V10-Fixed 的 0.2061 低 71\%），NED 升至 0.9171，RepRate 飙升至 84.1\%。模型几乎完全塌缩为重复输出。\textbf{教训：} 在 0.9B 参数规模、仅 5.7M 可训练参数（0.63\%）的条件下，模型几乎没有容量余量。为标准大模型设计的正则化技术在此规模下会摧毁微调学到的脆弱信号。简单地增加数据和正则化在此规模下无效。
+
+\textbf{V12 —— 两阶段 Vision LoRA。} 基于冻结视觉编码器限制值判别的直觉，尝试两阶段课程训练：Stage 1（LLM-Only LoRA，同 V10-Fixed），Stage 2（解冻视觉编码器顶层，施加 LoRA $r=8$）。结果：\textbf{完全塌缩}。easy50-pure 上全部 50 个预测均为垃圾输出——字符串如 ``100000000...''、``+333...''、``Test\textbackslash nTest...'' 及空预测。模型表现\emph{差于} Base 模型（CompF1=0.0455），后者至少能产生可读（尽管幻觉）的文本。\textbf{教训：} 在此规模下解冻视觉编码器会引入对 LLM 头的破坏性梯度干扰。视觉特征空间的扰动摧毁了 Stage 1 学到的跨模态对齐。视觉编码器适配可能需要 (a) 更大的基座模型使 LLM 能吸收视觉特征偏移，或 (b) 真实域（非合成）数据来锚定视觉特征。
+
+\textbf{启示。} V11/V12 的失败表明 0.9B 参数规模可能低于电路原理图 OCR 值级判别的关键阈值。LLM-Only LoRA 策略成功教会了领域词汇（CompF1 4.5$\times$），但进一步的改进可能需要更大的基座模型、更高分辨率输入，或根本不同的视觉特征提取方法。这些负结果为"从识别元件类型到正确读取元件值"的路径提供了具体证据：它需要的不仅仅是当前架构的增量扩展。
 
 
 \section{结论}
@@ -300,13 +315,13 @@ comp\_f1$\to$joint\_f1 的差距（0.206 $\to$ 0.019）揭示了\textbf{读取�
 \begin{enumerate}
     \item \textbf{V5 Golden 数据集}：1,857 样本，100\% 视觉字面对齐，重复噪点削减 99.5\%，格式与测试集一致——首个纯化电路原理图 OCR 基准。
     \item \textbf{模态塌缩解决}：E1--E6 实验定位 Projector LoRA 为根因；LLM-Only LoRA 将多样性从 4\% 恢复至 90\%。
-    \item \textbf{V10-Fixed 模型}：宽 LoRA（$r=16$, 5.7M 参数）+ 三项训练修复，在 easy50-pure 上取得 CompF1 0.2061（4.5$\times$）、TokenRec 0.1540（96$\times$）、NED 0.8031（误差降低 13.6\%）。S600 最优；S800 过拟合。
+    \item \textbf{V10-Fixed 模型}：宽 LoRA（$r=16$, 5.7M 参数）+ 三项训练修复，在 easy50-pure 上取得 CompF1 0.2061（4.5$\times$）、TokenRec 0.1540（96$\times$）、NED 0.8031（相对 NED 降低 13.6\%）。S600 最优；S800 过拟合。
     \item \textbf{开源生态}：数据集、训练/评估脚本、LoRA 权重、Gradio Demo 全部开源。
 \end{enumerate}
 
-\textbf{诚实评估。} 阶段二拓扑评估揭示了能力差距：joint\_f1 = 0.019——仅约 2\% 的 (标号, 值) 对完全正确，87\% 的参数值被幻觉。ExactMatch 对所有模型仍为 0\%。该模型是一个研究原型，证明了 LoRA 能够在不发生模态塌缩的前提下教会小型 VLM 电路领域词汇，但尚未达到生产可用水平。comp\_f1$\to$joint\_f1 的差距直接驱动阶段三（视觉编码器 LoRA + 更高分辨率）和阶段四（SPICE 验证）。详细实验结果、标注示例、版本历史和训练配置见附录~A--F。
+\textbf{诚实评估。} 阶段二拓扑评估揭示了能力差距：joint\_f1 = 0.019——仅约 2\% 的 (标号, 值) 对完全正确，87\% 的参数值被幻觉。ExactMatch 对所有模型仍为 0\%。该模型是一个研究原型，证明了 LoRA 能够在不发生模态塌缩的前提下教会小型 VLM 电路领域词汇，但尚未达到生产可用水平。追加实验（V11 正则化训练、V12 两阶段 Vision LoRA）均塌缩——确认 0.9B 规模低于值级判别的关键阈值。comp\_f1$\to$joint\_f1 的差距仍是开放问题。详细实验结果、标注示例、版本历史和训练配置见附录~A--F。
 
-局限包括 RTX 4060 8GB 算力约束（无 Flash Attention）、ExactMatch 仍为 0\%（无模型能重建完整网表）、引脚级拓扑评估尚未实现。未来方向：完整拓扑指标、更大 GPU 上的 Flash Attention、SPICE 仿真验证作为奖励信号、正则化技术防止 S600$\to$S800 过拟合。
+局限包括 RTX 4060 8GB 算力约束（无 Flash Attention）、ExactMatch 仍为 0\%（无模型能重建完整网表）、引脚级拓扑评估尚未实现、V11/V12 扩展实验均塌缩。未来方向：更大基座模型上的验证、Flash Attention 加速、SPICE 仿真验证作为奖励信号。
 
 \section*{附录}
 
