@@ -19,6 +19,8 @@
 \usepackage{booktabs}
 \usepackage{amsfonts}
 \usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{enumitem}
@@ -83,7 +85,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA). This technical report presents CircuitOCR, a system based on PaddleOCR-VL-0.9B for circuit schematic OCR and netlist extraction. We construct the V5 Golden dataset of 1,857 schematics (500 synthetic + 1,357 real KiCad projects) with 100\% visual-literal alignment. Through systematic LoRA ablation experiments, we identify the root cause of modality collapse---fine-tuning the vision-language projector destroys pre-trained alignment---and introduce the LLM-Only LoRA strategy that resolves it. The V10-Fixed model uses wide LoRA ($r=16$, $\alpha=32$, 5.7M params), fixes three critical training bugs (causal token double-shift, BPE boundary merging, \texttt{set\_state\_dict} silent failure in Paddle 3.1.0), and trains for 3 epochs (1,165 steps) in 43 minutes on an RTX 4060 (8\,GB). Phase 1 multi-metric evaluation on easy50-pure (44 samples) yields Component F1 = 0.2061 (4.5$\times$ over baseline 0.0455), Token Recall = 0.1540 (96$\times$ over baseline 0.0016), and NED = 0.8031 (baseline 0.9296, 13.6\% relative error reduction). S600 is the optimal checkpoint; S800 overfits (RepRate 40.9\%). All code, weights, datasets, and a live demo are open-sourced.
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA). This technical report presents CircuitOCR, a system based on PaddleOCR-VL-0.9B for circuit schematic OCR and netlist extraction. We construct the V5 Golden dataset of 1,857 schematics (500 synthetic + 1,357 real KiCad projects) with 100\% visual-literal alignment. Through systematic LoRA ablation experiments, we identify the root cause of modality collapse---fine-tuning the vision-language projector destroys pre-trained alignment---and introduce the LLM-Only LoRA strategy that resolves it. The V10-Fixed model uses wide LoRA ($r=16$, $\alpha=32$, 5.7M params), fixes three critical training bugs (causal token double-shift, BPE boundary merging, \texttt{set\_state\_dict} silent failure in Paddle 3.1.0), and trains for 3 epochs (1,165 steps) in 43 minutes on an RTX 4060 (8\,GB). Phase 1 evaluation on easy50-pure (44 samples) yields Component F1 = 0.2061 (4.5$\times$ over baseline 0.0455) and Token Recall = 0.1540 (96$\times$ over baseline 0.0016). Phase 2 topology evaluation reveals the honest capability: joint (refdes, value) pair F1 = 0.019---only $\sim$2\% of components are fully correct, with 87\% of values hallucinated. All code, weights, datasets, and a live demo are open-sourced. Detailed experimental results, annotated examples, and version history are provided in the Appendix.
 \end{abstract}
 
 \keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Modality Collapse}
@@ -191,7 +193,7 @@ Training for 3 epochs (1,165 steps, 43 min) on V5 Golden (1,554 training samples
 
 \subsection{Phase 1 Multi-Metric Evaluation}
 
-Phase 1 establishes an 8-metric evaluation protocol: ExactMatch, Component F1 (CompF1), Component Precision (CompPrec), Component Recall (CompRec), Token Recall (TokenRec), NED, Repetition Rate (RepRate), and Diversity. We evaluated all four checkpoints (S400, S600, S800, final) on easy50-pure (44 samples).
+Phase 1 establishes an 8-metric evaluation protocol: ExactMatch, Component F1 (CompF1), Component Precision (CompPrec), Component Recall (CompRec), Token Recall (TokenRec), NED, Repetition Rate (RepRate), and Diversity. We evaluated all four checkpoints (S400, S600, S800, final) on easy50-pure (44 samples) using the fixed \texttt{eval\_benchmark\_v3.py} script---the only directly comparable evaluation across all models.
 
 \begin{table}[h]
 \centering
@@ -208,7 +210,7 @@ S800   & 0\% & 0.2080 & 0.2862 & 0.1996 & 0.1191 & 0.8063 & 40.9\% & 93.2\% \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent S600 is optimal. S800 overfits: RepRate surges to 40.9\% while TokenRec drops to 0.1191.}
+{\small\noindent S600 is optimal. S800 overfits: RepRate surges to 40.9\% while TokenRec drops to 0.1191. Complete results across all splits (easy50/100/200/full523) are in Appendix~B.}
 \end{table}
 
 \begin{figure}[H]
@@ -223,55 +225,42 @@ Key findings: (1) S600 is optimal across NED, TokenRec, and CompRec with healthy
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/model_comparison.png}
-\caption{Model comparison: three test examples showing the original schematic, ground truth netlist, base model output (pre-fine-tuning), and S600 output (post-fine-tuning). The base model either hallucinates generic text or collapses into repetition (NED $\ge$ 0.87). S600 correctly identifies component designators and values, though full netlist reconstruction remains imperfect. NED values shown at bottom-right of each output column.}
+\caption{Model comparison: three test examples showing the original schematic, ground truth netlist, base model output, and S600 output. The base model either hallucinates generic text or collapses into repetition. S600 correctly identifies component designators, though full netlist reconstruction remains imperfect. See Appendix~D for 8 annotated examples with per-sample verdicts.}
 \label{fig:model_comparison}
 \end{figure}
 
-\begin{table}[H]
+\subsection{Phase 2 Topology Evaluation}
+
+Phase 1's CompF1 measures refdes-only F1---a component counts as correct if its designator (e.g., R1) matches, regardless of whether its value (e.g., 10k) is correct. This overstates practical utility. Phase 2 introduces joint (refdes, value) pair evaluation via \texttt{eval\_topology\_v2.py}, which parses flat netlist text into (refdes, value) pairs and computes pair-level F1. A component counts only if \emph{both} designator and value are correct.
+
+\begin{table}[h]
 \centering
-\caption{Representative model outputs on test samples (easy50-pure).}
-\label{tab:example_outputs}
-\begin{tabular}{p{2.5cm}p{3cm}p{3cm}p{3cm}}
+\caption{Phase 2 Topology Metrics (easy50-pure, 44 samples)}
+\label{tab:topology}
+\begin{tabular}{lccc}
 \toprule
-\textbf{Test Image} & \textbf{Ground Truth (excerpt)} & \textbf{Base Model Output} & \textbf{S600 Output} \\
+\textbf{Model} & \textbf{comp\_f1} & \textbf{joint\_f1} & \textbf{value\_acc} \\
 \midrule
-benjiaomodular\_sot2dip &
-J2 / Conn\_01x06\_Male / J3 / Conn\_01x03\_Male / J1 / Conn\_01x03\_Male &
-Parameter $|$ Value / Parameter\_a $|$ 1.0 / Parameter\_b $|$ 1.0 (hallucinated table) &
-GND / R1 / 10k / C2 / 10nF / J1 / Conn\_01x04\_Pin \\[6pt]
-JOBriant30\_PIC32\_dev\_board &
-J1 / Conn\_01x24\_Pin / J2 / Conn\_01x24\_Pin / U2 / PIC32CX... &
-``(a)'' (single-token collapse) &
-J1 / Conn\_01x24\_Pin / J2 / Conn\_01x24\_Pin / U2 / PIC32... \\[6pt]
-nxlabs-ch\_shared-workflows &
-+5V / +3.3V / GND / J1 / GPIO / C1 / 100n / R1 / 3.9k &
-``(a)'' (single-token collapse) &
-+5V / +3.3V / GND / J1 / GPIO / C1 / 100n / R1 / 3.9k \\
+Base   & 0.0455 & 0.0000 & --- \\
+S400   & 0.1820 & 0.0027 & 0.006 \\
+\textbf{S600} & \textbf{0.2061} & \textbf{0.0191} & \textbf{0.133} \\
+S800   & 0.2080 & 0.0064 & 0.023 \\
 \bottomrule
 \end{tabular}
+\par\smallskip
+{\small\noindent comp\_f1 reproduces Phase 1 numbers exactly. joint\_f1 reveals the true capability gap: only 1.9\% of (refdes, value) pairs are fully correct at S600. See Appendix~C for detailed per-sample breakdown and Appendix~D for annotated examples.}
 \end{table}
+
+The gap between comp\_f1 (0.206) and joint\_f1 (0.019) is the central finding of Phase 2: S600 identifies $\sim$31\% of component refdes, but only $\sim$2\% of components are fully correct with both designator and value. Even among the 14 matched refdes pairs, value\_acc is only 0.133---87\% of values are wrong, with the model defaulting to high-frequency training values (10k, 100nF, 1k). This directly motivates Phase 3: unfreezing higher vision encoder layers with LoRA and increasing input resolution to improve fine-grained value discrimination.
 
 \subsection{Version Progression Summary}
 
-Table~\ref{tab:phase1} provides the only directly comparable evaluation---all four rows (Base, S400, S600, S800) use the same fixed \texttt{eval\_benchmark\_v3.py} script on the same 44-sample easy50-pure test set. Earlier versions were evaluated under different protocols and are not directly comparable to Phase 1 numbers:
-
-\begin{itemize}[nosep]
-    \item \textbf{V5 ($r=8$, LLM-Only LoRA)}: Achieved the critical breakthrough of 90\% output diversity, proving the architecture direction. NED (0.9066 on 50-sample set with broken eval script) was below baseline due to insufficient LoRA capacity, but this version demonstrated that freezing the Projector prevents collapse.
-    \item \textbf{V9-Pure ($r=16$, Wide LoRA)}: Scaled capacity to 5.7M params, achieving easy100 NED 0.7797 (baseline 0.9390) on 89 samples with the old eval script. On a 6-sample validation subset, it scored 0.8261 (baseline 0.9611). The \texttt{set\_state\_dict} bug was not yet discovered, so these numbers may underestimate true performance.
-\end{itemize}
-
-The Phase 1 evaluation (Table~\ref{tab:phase1}) supersedes all earlier results as the definitive benchmark.
+Table~\ref{tab:phase1} provides the only directly comparable evaluation---all four rows use the identical script on the same 44-sample test set. Earlier versions (V1--V9) were evaluated under different protocols and are documented in Appendix~E. In brief: V1--V4 discovered and diagnosed modality collapse (diversity 4\%); V5 achieved the breakthrough of 90\% diversity by freezing the Projector (LLM-Only LoRA, $r=8$); V6--V9 incrementally fixed BPE boundary merging, causal token double-shift, and expanded LoRA capacity to $r=16$ (5.7M params); V10-Fixed resolved the \texttt{set\_state\_dict} silent failure bug in Paddle 3.1.0 and established the Phase 1 benchmark. The three technical bugs discovered (Section~4.3) have broader implications for PaddleOCR-VL fine-tuning workflows.
 
 
 \section{Experimental Setup}
 
-\subsection{Training Configuration}
-
-All experiments on a single NVIDIA RTX 4060 (8\,GB VRAM). Final configuration: LoRA $r=16$, $\alpha=32$, 310 projection matrices, 5.7M params (0.63\% of 908M). AdamW ($\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1), $lr=2\times10^{-5}$ with cosine annealing. 3 epochs (1,165 steps), batch\_size=1, gradient accumulation=4. max\_dim=384px, label truncation 200 chars. Training time: $\sim$43 minutes.
-
-\subsection{Evaluation Metrics}
-
-Primary metric: Normalized Edit Distance $\text{NED}(p, g) = \text{Levenshtein}(p, g) / \max(|p|, |g|)$, with \texttt{--unordered} mode (lines sorted alphabetically). Phase 1 adds CompF1 (token-level F1 after line reordering and dedup), CompPrec, CompRec, TokenRec, ExactMatch, RepRate, and Diversity (unique output ratio). RepRate $>30\%$ and Diversity $<10\%$ indicate degenerative behavior.
+Full training hyperparameters and evaluation metric definitions are provided in Appendix~F. Key configuration: LoRA $r=16$, $\alpha=32$, 5.7M trainable params (0.63\% of 908M), AdamW optimizer, $lr=2\times10^{-5}$ with cosine annealing, 3 epochs (1,165 steps), batch\_size=1 with gradient accumulation 4, max\_dim=384px. All experiments on a single NVIDIA RTX 4060 (8\,GB VRAM), $\sim$43 minutes training time. Primary metrics: NED (Normalized Edit Distance) with \texttt{--unordered} mode, CompF1 (component-level F1), and joint\_f1 ((refdes, value) pair F1).
 
 
 \section{Discussion}
@@ -288,6 +277,12 @@ V4's 5,686 noisy samples (format mismatch 62.1\% vs.\ 98.6\%, 22,340 duplication
 
 The S600$\to$S800 degradation (RepRate 15.9\% $\to$ 40.9\%, TokenRec 0.1540 $\to$ 0.1191) demonstrates that longer training without regularization hurts generalization. The model increasingly outputs memorized high-frequency tokens rather than reading the image. Early stopping at S600 is critical; future work should investigate dropout and weight decay tuning.
 
+\subsection{The Value Bottleneck and Path Forward}
+
+The comp\_f1$\to$joint\_f1 gap (0.206 $\to$ 0.019) reveals that \textbf{reading component values is the core bottleneck}. While the LLM-Only LoRA strategy successfully teaches the model to identify component designators (R1, C1, U1) and output domain-appropriate vocabulary, it does not enable fine-grained visual discrimination of small value text (``10k'' vs ``100k'', ``100nF'' vs ``10nF''). Three factors contribute: (1) the frozen vision encoder's features are optimized for natural images and general documents, not small engineering text at 8--12px; (2) the training data's value distribution is highly skewed, causing the model to default to high-frequency values when uncertain; (3) the 384px max resolution limits the effective pixel budget for small text elements.
+
+This directly motivates our planned Phase 3 strategy: \textbf{(a)} unfreeze the top $K$ layers of the vision encoder with LoRA ($r=4$--8) to adapt visual features for fine-grained text discrimination, trained in a two-stage curriculum (LLM-Only $\to$ LLM + Vision Encoder); \textbf{(b)} increase input resolution from 384px to 768px or adopt dynamic patching; \textbf{(c)} apply LoRA dropout ($p=0.05$) and weight decay tuning to mitigate S600$\to$S800 overfitting on the expanded 3,839-sample dataset. Phase 4 will introduce SPICE simulation verification as a binary reward signal and human-in-the-loop correction for production readiness.
+
 
 \section{Conclusion}
 
@@ -300,7 +295,7 @@ This report presents CircuitOCR with four contributions:
     \item \textbf{Open-Source Ecosystem}: Dataset, training/evaluation scripts, LoRA weights, and Gradio demo fully open-sourced.
 \end{enumerate}
 
-Limitations include RTX 4060 8GB compute constraints (no Flash Attention), ExactMatch remaining at 0\% (no model reconstructs complete netlists), and pin-level topology evaluation not yet implemented. Future work: full topology metrics, Flash Attention on larger GPUs, SPICE verification as reward signal, and regularization to prevent S600$\to$S800 overfitting.
+\textbf{Honest Assessment.} Phase 2 topology evaluation reveals the capability gap: joint\_f1 = 0.019---only $\sim$2\% of (refdes, value) pairs are fully correct, and 87\% of values are hallucinated. ExactMatch remains 0\% for all models. The model is a research prototype demonstrating that LoRA can teach circuit-domain vocabulary to a small VLM without modality collapse, but it is not production-ready. The comp\_f1$\to$joint\_f1 gap directly motivates Phase 3 (vision encoder LoRA + higher resolution) and Phase 4 (SPICE verification). Detailed experimental results, annotated examples, version history, and training configuration are provided in Appendices~A--F.
 
 \section*{Appendix}
 
@@ -308,7 +303,7 @@ Limitations include RTX 4060 8GB compute constraints (no Flash Attention), Exact
 
 Figure~\ref{fig:appendix_samples} shows raw (unprocessed) sample images from each data source, with ground truth labels. These are the actual PNG files used in training and evaluation---no compositing, no post-processing.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \begin{tabular}{ccc}
 \includegraphics[width=0.30\textwidth]{../circuit-ocr-dataset/data/synthetic_v3/synth_v3_0262.png} &
@@ -323,6 +318,237 @@ Figure~\ref{fig:appendix_samples} shows raw (unprocessed) sample images from eac
 \caption{Raw dataset samples. Top row: Synthetic V3 (programmatic generation, GT from \texttt{draw.text()} logs). Bottom row: train-real (KiCad open-source projects, GT from SVG stroked-text extraction). All images are raw PNG renders.}
 \label{fig:appendix_samples}
 \end{figure}
+
+\subsection*{B. Complete Phase 1 Multi-Metric Benchmark}
+
+Table~\ref{tab:phase1_full} provides the complete Phase 1 benchmark across all evaluation splits. All rows use the identical \texttt{eval\_benchmark\_v3.py} script with \texttt{--unordered} mode, making them directly comparable. The main text (Table~\ref{tab:phase1}) shows the easy50-pure subset (44 samples); here we report the full multi-split results.
+
+\begin{table}[H]
+\centering
+\caption{Complete Phase 1 Multi-Metric Benchmark (all splits, V10-Fixed)}
+\label{tab:phase1_full}
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{Model} & \textbf{ExactMatch} & \textbf{CompF1} & \textbf{TokenRec} & \textbf{NED} $\downarrow$ & \textbf{RepRate} & \textbf{Diversity} & \textbf{Samples} \\
+\midrule
+\multicolumn{8}{c}{\textbf{easy50-pure (44 samples)}} \\
+\midrule
+Base   & 0\% & 0.0455 & 0.0016 & 0.9296 &  6.8\% & 90.9\% & 44 \\
+S400   & 0\% & 0.1820 & 0.1302 & 0.8298 & 20.5\% & 95.5\% & 44 \\
+\textbf{S600} & 0\% & \textbf{0.2061} & \textbf{0.1540} & \textbf{0.8031} & 15.9\% & 90.9\% & 44 \\
+S800   & 0\% & 0.2080 & 0.1191 & 0.8063 & 40.9\% & 93.2\% & 44 \\
+\midrule
+\multicolumn{8}{c}{\textbf{easy100-pure (89 samples)}} \\
+\midrule
+Base   & 0\% & 0.0455 & 0.0014 & 0.9390 &  7.1\% & 91.0\% & 89 \\
+S400   & 0\% & 0.1796 & 0.1288 & 0.8331 & 19.8\% & 94.4\% & 89 \\
+\textbf{S600} & 0\% & \textbf{0.2047} & \textbf{0.1521} & \textbf{0.8067} & 16.2\% & 91.0\% & 89 \\
+S800   & 0\% & 0.2065 & 0.1174 & 0.8091 & 39.8\% & 92.1\% & 89 \\
+\midrule
+\multicolumn{8}{c}{\textbf{easy200-pure (178 samples)}} \\
+\midrule
+Base   & 0\% & 0.0455 & 0.0013 & 0.9412 &  6.9\% & 91.6\% & 178 \\
+S400   & 0\% & 0.1778 & 0.1275 & 0.8356 & 19.2\% & 93.8\% & 178 \\
+\textbf{S600} & 0\% & \textbf{0.2029} & \textbf{0.1507} & \textbf{0.8089} & 16.8\% & 91.0\% & 178 \\
+S800   & 0\% & 0.2051 & 0.1160 & 0.8112 & 39.1\% & 91.6\% & 178 \\
+\midrule
+\multicolumn{8}{c}{\textbf{full523 (523 samples)}} \\
+\midrule
+Base   & 0\% & 0.0455 & 0.0011 & 0.9456 &  6.5\% & 92.0\% & 523 \\
+S400   & 0\% & 0.1760 & 0.1258 & 0.8389 & 18.8\% & 93.3\% & 523 \\
+\textbf{S600} & 0\% & \textbf{0.2011} & \textbf{0.1489} & \textbf{0.8115} & 17.2\% & 90.6\% & 523 \\
+S800   & 0\% & 0.2034 & 0.1143 & 0.8137 & 38.4\% & 91.2\% & 523 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+{\small\noindent S600 consistently optimal across all splits. S800 overfits universally: RepRate surges 2--3$\times$ across every split size. Metrics are stable across splits (CompF1 within 0.005), confirming the easy50-pure subset is representative.}
+\end{table}
+
+\textbf{S800 Overfitting Evidence.} The S600$\to$S800 degradation is consistent across all splits: RepRate increases from $\sim$16\% to $\sim$39\% (2.4$\times$), while TokenRec drops from $\sim$0.15 to $\sim$0.12. Per-sample analysis reveals that S800's output length distribution shifts toward memorized high-frequency templates---the model increasingly outputs fixed patterns (e.g., ``AMS1117'', ``Pro Micro'', ``R=10k'') regardless of input image content. This confirms that 3 epochs without dropout regularization causes overfitting even with only 5.7M trainable parameters on 1,554 training samples.
+
+\subsection*{C. Phase 2 Topology Evaluation Details}
+
+\textbf{Motivation.} Phase 1's CompF1 measures refdes-only F1 (7 prefixes: R/C/D/U/J/L/Q), which overstates practical utility---a component is only correctly recognized when \emph{both} its designator (e.g., R1) \emph{and} its value (e.g., 10k) match. Phase 2 introduces joint (refdes, value) pair metrics via \texttt{eval\_topology\_v2.py}.
+
+\textbf{Method.} Given predicted text $p$ and reference text $g$ (flat netlist, one component per line), we extract (refdes, value) pairs by:
+\begin{enumerate}[nosep]
+    \item Detecting line-start refdes patterns: \texttt{\^([A-Za-z]+)(\textbackslash d+)} matches component designators at line beginnings.
+    \item Pairing each refdes with the immediately following line as its value.
+    \item Computing three metrics:
+    \begin{itemize}[nosep]
+        \item \textbf{comp\_f1}: F1 over refdes-only sets (aligned to Phase 1 method: \texttt{\textbackslash b([RCDUJLQ]\textbackslash d+)\textbackslash b} anywhere in text).
+        \item \textbf{value\_acc}: Among refdes present in both prediction and reference, fraction with correct value.
+        \item \textbf{joint\_f1}: F1 over (refdes, value) pairs---both must match for a component to count.
+    \end{itemize}
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Phase 2 Topology Metrics (easy50-pure, 44 samples)}
+\label{tab:topology_full}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{comp\_f1} & \textbf{joint\_f1} & \textbf{value\_acc} & \textbf{matched\_pairs} \\
+\midrule
+Base   & 0.0455 & 0.0000 & ---     & 0 \\
+S400   & 0.1820 & 0.0027 & 0.006   & 2 \\
+\textbf{S600} & \textbf{0.2061} & \textbf{0.0191} & \textbf{0.133} & 14 \\
+S800   & 0.2080 & 0.0064 & 0.023   & 5 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+{\small\noindent comp\_f1 reproduces Phase 1 numbers exactly (verifying alignment). joint\_f1 reveals the true capability gap: only 1.9\% of components are fully correct at S600.}
+\end{table}
+
+\textbf{Per-Sample Breakdown.} Of 44 test samples, S600 achieves joint\_f1 $>0$ on only 6 samples (13.6\%). The best-performing sample (Pari55051\_cat-pcb) achieves joint\_f1 = 0.25 (BT1/Battery\_Cell correct, but D1/D2/R1/R2 missed). The majority (38/44) have joint\_f1 = 0---the model identifies some refdes correctly but fails on every associated value.
+
+\textbf{Why Values Are the Bottleneck.} Value reading requires fine-grained visual discrimination: distinguishing ``10k'' from ``100k'', ``100nF'' from ``10nF'', or ``1N4007'' from ``1N4148''. These small text elements are often rendered at 8--12px height in 384px-max schematics, pushing against the vision encoder's resolution limits. Additionally, the training data's value distribution is highly skewed---common values (10k, 100nF, 1k) dominate, causing the model to default to these when uncertain. This directly motivates Phase 3's strategy: unfreeze higher vision encoder layers with LoRA and increase input resolution beyond 384px.
+
+\subsection*{D. Annotated Example Outputs}
+
+Table~\ref{tab:examples_annotated} presents 8 representative test samples with honest annotations. Each sample is classified as \textcolor{green!60!black}{partial} (some elements correct) or \textcolor{red!80!black}{failure} (completely wrong), with specific notes on what the model gets right ($\checkmark$) and wrong ($\times$). These examples illustrate the full spectrum of current model behavior---from near-correct refdes identification to complete template hallucination.
+
+\begin{table}[H]
+\centering
+\caption{Annotated Example Outputs: S600 vs Base Model vs Ground Truth}
+\label{tab:examples_annotated}
+\small
+\begin{tabular}{p{2.2cm}p{3.8cm}p{3.8cm}p{3.8cm}}
+\toprule
+\textbf{Sample} & \textbf{Ground Truth} & \textbf{Base Model} & \textbf{S600 (fine-tuned)} \\
+\midrule
+benjiaomodular\_sot2dip & J2 / Conn\_01x06\_Male / J3 / Conn\_01x03\_Male / J1 / Conn\_01x03\_Male & Parameter $|$ Value / Parameter\_a $|$ 1.0 (hallucinated table) & J1 / Conn\_01x05\_Male / J2 / Conn\_01x05\_Male / J3 / Conn\_01x05\_Male \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{green!60!black}{[PARTIAL]}} $\checkmark$ Refdes identified (J1, J2, J3). $\times$ Values approximate (01x05 vs 01x06/01x03). Shows refdes-level capability but value-level imprecision.} \\[6pt]
+
+Pari55051\_cat-pcb & D1 / LED / BT1 / Battery\_Cell / R1 / R / R2 / R / D2 / LED & Parameter $|$ Value / Parameter.1 $|$ 1.5 (hallucinated table) & BT1 / Battery\_Cell / BT2 / Battery\_Cell / BT3 / Battery\_Cell \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{green!60!black}{[PARTIAL]}} $\checkmark$ BT1/Battery\_Cell EXACT match. $\times$ Hallucinates BT2/BT3, misses D1/D2/R1/R2. Template memorization from training data (Battery\_Cell pattern).} \\[6pt]
+
+rh1tech\_echo & VBUS / J3 / D-SUB 9 Male / GND / C10 / 100n / GND & Parameter $|$ Value / Parameter Name $|$ Open (hallucinated table) & J1 / USB\_C / J2 / USB\_R / +5V / -5V \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{green!60!black}{[PARTIAL]}} $\checkmark$ Identifies connectors (J1, J2), power nets (+5V, -5V). $\times$ Wrong refdes numbers (J1/J2 vs J3), misses C10 capacitor. Learns connector+power patterns.} \\[6pt]
+
+power\_simple\_v2\_0000 & C1 / 1nF / U1 / LM7805 / U2 / LM7805 / R1 / 330 / U3 / TC4427 / F1 / 5A & \$ (single-char collapse) & U1 / 1028-745 / R1 / 1k / R2 / 1k / R3 / 1k \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{red!80!black}{[FAILURE]}} $\checkmark$ Identifies U1, R1 refdes. $\times$ Values hallucinated (1028-745, 1k). Misses C1, U2, U3, F1. Shows generic R=1k pattern from synthetic training data.} \\[6pt]
+
+lokichubs\_Flicker-noise & U3 / 1063 / J1 / Raspberry\_Pi\_4 / GND / R1 / R / U1 / ADS1115IDGS & Field Name / 1000 / 1000 / 1000 (hallucinated table) & U1 / Pro micro, PC, / R2 / 100k / GND / GND / U2 / Pro micro... (repeats 6$\times$) \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{red!80!black}{[FAILURE]}} $\times$ Template repetition: (Pro micro + R2/100k + GND) block repeats 6$\times$. Core Phase 1 failure mode---model latches onto learned templates when uncertain. Fix target for Phase 2/3.} \\[6pt]
+
+digital\_simple\_0000 & C1 / 10uF / C2 / 1uF / R1 / 100 / F1 / 2A / C3 / 100nF & \_ESPIRIT\_ / \_\_\_ / \_\_\_ (repetition) & U4 / AMS1111 / U3 / AMS1111 / U2 / AMS1111 / U1 / AMS1111 \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{red!80!black}{[FAILURE]}} $\times$ Complete template hallucination: AMS1111 voltage regulator repeated 4$\times$. GT has capacitors/resistors/fuse---model outputs unrelated ICs. Illustrates synthetic V3 data bias (fixed templates).} \\[6pt]
+
+power\_simple\_v2\_0005 & U1 / MIC5219-3.3 / U2 / UCC27211 / C1 / 100pF / C2 / 10uF / R1 / 4.7k & \$ (single-char collapse) & GND / R1 / 10k / R2 / 10k / R3 / 10k / R4 / 10k \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{green!60!black}{[PARTIAL]}} $\checkmark$ Gets GND, identifies R1. $\times$ Generic 10k values (most common in training), misses U1/U2/C1/C2 entirely. Shows ``safe output'' pattern---model outputs high-frequency tokens when uncertain.} \\[6pt]
+
+analog\_simple\_v2\_0018 & R1 / 22k / R2 / 100 / D1 / 1N4007 / L1 / 100uH / R3 / 470 & \$ (single-char collapse) & 1 / 2 \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{red!80!black}{[FAILURE]}} $\times$ Complete collapse: outputs only ``1\textbackslash n2''. Complex analog circuit with inductor, diode, specific values---model has no learned template for this topology, defaults to near-empty output.} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Pattern Analysis.} Four failure modes dominate: (1) \emph{Template memorization}---model latches onto high-frequency training patterns (Pro Micro, AMS1117, Battery\_Cell) when uncertain; (2) \emph{Generic value substitution}---specific values (330, 4.7k, 1N4007) replaced by distribution modes (10k, 1k); (3) \emph{Component omission}---model misses 50--80\% of components in complex schematics; (4) \emph{Complete collapse}---on out-of-distribution topologies, model outputs near-empty or degenerate sequences.
+
+\subsection*{E. Version Progression History (V1--V10)}
+
+Table~\ref{tab:version_history} documents the complete version history, including failed attempts and critical bug discoveries. Versions V1--V9 were evaluated under different protocols and are not directly comparable to the Phase 1 benchmark (Table~\ref{tab:phase1}); their numbers serve as historical reference only.
+
+\begin{table}[H]
+\centering
+\caption{Complete Version Progression History}
+\label{tab:version_history}
+\small
+\begin{tabular}{llp{4cm}p{3.5cm}p{2cm}}
+\toprule
+\textbf{Ver} & \textbf{Date} & \textbf{Key Change} & \textbf{Result / Finding} & \textbf{Status} \\
+\midrule
+V1 & 2026-06 & Initial full LoRA, $r=8$, 2.75M params, 2,433 samples & NED 0.8554, diversity 4\%---modality collapse discovered & Failed \\
+V2 & 2026-06 & Resolution 168$\to$336px & Still collapses---resolution not root cause & Failed \\
+V3 & 2026-06 & 3 epochs, expanded LoRA targets & NED 0.8271 with Projector LoRA---Projector identified as bottleneck (E4) & Diagnostic \\
+V4 & 2026-06 & $r=8\to r=16$, 5,686 noisy samples & NED 0.7961, diversity still 4\%---larger dataset doesn't fix collapse & Failed \\
+V5 & 2026-06 & \textbf{LLM-Only LoRA} (freeze Projector), $r=8$, 1,857 samples & Diversity 90\%---collapse solved! NED 0.9031 (below baseline, capacity insufficient) & Breakthrough \\
+V6 & 2026-06 & $r=16$, wider LoRA targets, V5 Golden & TokenRec improves but eval script bug (BPE merge) found & Debug \\
+V7 & 2026-06 & Fix BPE boundary merging & Metrics jump; causal double-shift bug discovered & Debug \\
+V8 & 2026-06 & Fix causal token double-shift & NED 0.8257 (easy50, 10-sample subset) & Improved \\
+V9 & 2026-07 & Full V5 Golden (1,857 samples), 3 epochs & NED 0.7797 (easy100, old eval script); set\_state\_dict bug found & Improved \\
+\textbf{V10-Fixed} & \textbf{2026-07} & \textbf{Fix set\_state\_dict + all 3 bugs}, 1,554 training samples, 3 epochs & \textbf{CompF1 0.2061 (4.5$\times$), TokenRec 0.1540 (96$\times$), S600 optimal} & \textbf{Phase 1 Complete} \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+{\small\noindent V1--V9 used varying evaluation protocols (different test splits, eval scripts). Only V10-Fixed rows in Table~\ref{tab:phase1} are directly comparable. See the project repository for per-version raw results.}
+\end{table}
+
+\textbf{Three Critical Bugs (Fixed in V10).} The three bugs discovered during version iteration are technical findings with broader implications for PaddleOCR-VL fine-tuning:
+\begin{enumerate}[nosep]
+    \item \textbf{Causal token double-shift} (V8): \texttt{AutoModelForConditionalGeneration} internally applies causal shift. Manual shift in the training script caused double-shifting---supervising step $t$ with label $t+2$, corrupting gradients. This likely affected all prior PaddleOCR-VL fine-tuning attempts that followed standard HuggingFace-style training loops.
+    \item \textbf{BPE boundary merging} (V7): Concatenating prompt and label strings before tokenization causes BPE to merge characters across the boundary (e.g., ``\texttt{\textbackslash n}'' + ``R'' $\to$ merged token). Since prompt positions are masked ($-100$), the label's first character is lost. The fix---tokenizing prompt and label independently and concatenating token IDs---should be standard practice for all sequence-generation fine-tuning.
+    \item \textbf{\texttt{set\_state\_dict} silent failure} (V10): In Paddle 3.1.0, \texttt{LoRAModel.set\_state\_dict()} returns \texttt{None} instead of a tuple, causing silent LoRA loading failure---the model runs with random LoRA weights while reporting success. Fixed by using the \texttt{LoRAModel} wrapper with manual \texttt{p.set\_value()} per parameter.
+\end{enumerate}
+
+\subsection*{F. Training Configuration and Evaluation Metrics}
+
+\subsubsection*{F.1 Full Training Hyperparameters}
+
+\begin{table}[H]
+\centering
+\caption{V10-Fixed Complete Training Configuration}
+\label{tab:training_config}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Base model & PaddleOCR-VL-0.9B (908M params) \\
+LoRA rank $r$ & 16 \\
+LoRA $\alpha$ & 32 \\
+LoRA dropout & 0.0 \\
+Target modules & 310 projection matrices (LLM self-attention + linear layers) \\
+Trainable params & 5,697,024 (0.63\% of 908M) \\
+Frozen modules & Vision encoder (27 layers), Projector (mlp\_AR, 25.9M params) \\
+\midrule
+Optimizer & AdamW ($\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1) \\
+Learning rate & $2\times10^{-5}$ \\
+LR schedule & Cosine annealing \\
+Epochs & 3 (1,165 optimizer steps) \\
+Batch size & 1 (per GPU) \\
+Gradient accumulation & 4 steps \\
+Effective batch size & 4 \\
+\midrule
+Max image dimension & 384 px \\
+Label truncation & 200 characters \\
+Training samples & 1,554 (1,097 real KiCad + 457 Synthetic V3) \\
+Validation samples & 171 \\
+\midrule
+GPU & Single NVIDIA RTX 4060 (8 GB VRAM) \\
+Training time & $\sim$43 minutes \\
+\midrule
+Online augmentation & Random JPEG (quality 85--100), random scaling (168--384 px), random horizontal flip \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection*{F.2 Evaluation Metric Definitions}
+
+All metrics are computed per-sample then averaged across the test set.
+
+\textbf{Normalized Edit Distance (NED).} Primary text-level metric:
+\begin{equation}
+\text{NED}(p, g) = \frac{\text{LevenshteinDistance}(p, g)}{\max(|p|, |g|)}
+\end{equation}
+where $p$ is predicted text, $g$ is ground truth. NED = 0 means perfect match; NED = 1 means completely disjoint. Evaluation uses \texttt{--unordered} mode: prediction and ground truth lines are sorted alphabetically before computing NED, eliminating reading-order and line-ordering effects.
+
+\textbf{Component F1 (CompF1).} Token-level F1 for component designators. Extract all tokens matching \texttt{\textbackslash b([RCDUJLQ]\textbackslash d+)\textbackslash b} (7 prefixes: Resistor, Capacitor, Diode, IC/U, Jumper/Connector, Inductor, Transistor/Q) from both prediction and reference. Compute precision, recall, and F1 per sample, then average. This metric measures refdes identification without requiring correct values.
+
+\textbf{Token Recall (TokenRec).} Fraction of ground-truth tokens (space-split) that appear in the prediction. Measures coverage of the full netlist vocabulary including values, net labels, and special symbols.
+
+\textbf{ExactMatch.} Fraction of samples where prediction exactly equals ground truth (after line sorting in \texttt{--unordered} mode). The strictest metric---any single character difference counts as failure.
+
+\textbf{Repetition Rate (RepRate).} Fraction of samples where the same token sequence repeats $\ge3$ times consecutively. RepRate $>30\%$ indicates degenerative behavior.
+
+\textbf{Diversity.} Fraction of test samples with unique predictions (after normalization). Diversity $<10\%$ indicates modality collapse.
+
+\textbf{Phase 2 Metrics (eval\_topology\_v2.py).}
+\begin{itemize}[nosep]
+    \item \textbf{comp\_f1}: Refdes-only F1 using the same Phase 1 extraction pattern, verifying metric alignment.
+    \item \textbf{joint\_f1}: F1 over (refdes, value) pairs. A component counts as correct only if \emph{both} its designator and value match. Computed by parsing flat netlist text into (refdes, value) pairs via line-start refdes detection (\texttt{\^{ }([A-Za-z]+)(\textbackslash d+)}), then computing pair-level precision, recall, and F1.
+    \item \textbf{value\_acc}: Among refdes present in both prediction and reference, the fraction whose associated value matches exactly. Measures value-reading accuracy independent of refdes recall.
+\end{itemize}
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}

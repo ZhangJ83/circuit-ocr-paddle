@@ -16,6 +16,8 @@
 \usepackage{booktabs}
 \usepackage{amsfonts}
 \usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{enumitem}
@@ -88,7 +90,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-电路原理图自动识别是电子设计自动化（EDA）领域的核心挑战。本文介绍 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 系统。我们构建了 V5 Golden 数据集，包含 1,857 张 100\% 视觉字面对齐的原理图（500 张合成 + 1,357 张真实 KiCad 项目）。通过系统性的 LoRA 消融实验，我们定位到模态塌缩的根因——微调视觉-语言投影层会破坏预训练对齐权重——并采用 LLM-Only LoRA 策略彻底解决该问题。V10-Fixed 模型采用宽 LoRA（$r=16$, $\alpha=32$, 5.7M 参数），修复了三个关键训练 Bug（因果 token 双重移位、BPE 边界合并、Paddle 3.1.0 中 \texttt{set\_state\_dict} 静默失效），在 V5 Golden 上训练 3 epoch（1,165 步），单卡 RTX 4060 8GB 耗时 43 分钟。阶段一多指标评估在 easy50-pure（44 样本）上取得 Component F1 = 0.2061（基座 0.0455，4.5$\times$ 提升）、Token Recall = 0.1540（基座 0.0016，96$\times$ 提升）、NED = 0.8031（基座 0.9296，相对误差降低 13.6\%）。S600 为最优检查点；S800 过拟合（重复率 40.9\%）。代码、权重、数据集及在线 Demo 均已开源。
+电路原理图自动识别是电子设计自动化（EDA）领域的核心挑战。本文介绍 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 系统。我们构建了 V5 Golden 数据集，包含 1,857 张 100\% 视觉字面对齐的原理图（500 张合成 + 1,357 张真实 KiCad 项目）。通过系统性的 LoRA 消融实验，我们定位到模态塌缩的根因——微调视觉-语言投影层会破坏预训练对齐权重——并采用 LLM-Only LoRA 策略彻底解决该问题。V10-Fixed 模型采用宽 LoRA（$r=16$, $\alpha=32$, 5.7M 参数），修复了三个关键训练 Bug（因果 token 双重移位、BPE 边界合并、Paddle 3.1.0 中 \texttt{set\_state\_dict} 静默失效），在 V5 Golden 上训练 3 epoch（1,165 步），单卡 RTX 4060 8GB 耗时 43 分钟。阶段一多指标评估在 easy50-pure（44 样本）上取得 Component F1 = 0.2061（基座 0.0455，4.5$\times$ 提升）、Token Recall = 0.1540（基座 0.0016，96$\times$ 提升）。阶段二拓扑评估揭示真实能力：joint (标号, 值) 对 F1 = 0.019——仅约 2\% 的元件完全正确，87\% 的参数值被幻觉。代码、权重、数据集及在线 Demo 均已开源。详细实验结果、标注示例和版本历史见附录。
 \end{abstract}
 
 \keywords{电路原理图 \and OCR \and PaddleOCR-VL \and LoRA微调 \and 网表提取 \and 模态塌缩}
@@ -196,7 +198,7 @@ V10-Fixed 将 LoRA 扩展至 $r=16$, $\alpha=32$（5.7M 参数，占 908M 的 0.
 
 \subsection{阶段一多指标评估}
 
-阶段一建立了八指标评估协议：ExactMatch、Component F1（CompF1）、Component Precision（CompPrec）、Component Recall（CompRec）、Token Recall（TokenRec）、NED、Repetition Rate（RepRate）、Diversity。我们在 easy50-pure（44 样本）上评估了全部四个检查点（S400、S600、S800、final）。
+阶段一建立了八指标评估协议：ExactMatch、Component F1（CompF1）、Component Precision（CompPrec）、Component Recall（CompRec）、Token Recall（TokenRec）、NED、Repetition Rate（RepRate）、Diversity。我们在 easy50-pure（44 样本）上使用修复版 \texttt{eval\_benchmark\_v3.py} 脚本评估了全部四个检查点（S400、S600、S800、final）——这是所有模型间唯一可直接对比的评估。
 
 \begin{table}[h]
 \centering
@@ -213,7 +215,7 @@ S800   & 0\% & 0.2080 & 0.2862 & 0.1996 & 0.1191 & 0.8063 & 40.9\% & 93.2\% \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent S600 为最优。S800 过拟合：RepRate 飙升至 40.9\%，TokenRec 降至 0.1191。}
+{\small\noindent S600 为最优。S800 过拟合：RepRate 飙升至 40.9\%，TokenRec 降至 0.1191。全部划分（easy50/100/200/full523）的完整结果见附录~B。}
 \end{table}
 
 \begin{figure}[H]
@@ -228,55 +230,42 @@ S800   & 0\% & 0.2080 & 0.2862 & 0.1996 & 0.1191 & 0.8063 & 40.9\% & 93.2\% \\
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/model_comparison.png}
-\caption{模型对比：三个测试样本，分别展示原始原理图、GT 网表、基座模型输出（微调前）、S600 输出（微调后）。基座模型要么幻觉通用文本，要么塌缩为重复输出（NED $\ge$ 0.87）。S600 能正确识别元件编号和参数值，但完整网表重建仍有不足。各输出列右下角标注 NED 值。}
+\caption{模型对比：三个测试样本，分别展示原始原理图、GT 网表、基座模型输出、S600 输出。基座模型要么幻觉通用文本，要么塌缩为重复输出。S600 能正确识别元件编号，但完整网表重建仍有不足。8 个带逐样本判决的标注示例见附录~D。}
 \label{fig:model_comparison}
 \end{figure}
 
-\begin{table}[H]
+\subsection{阶段二拓扑评估}
+
+阶段一的 CompF1 仅衡量元件标号级别的 F1——只要标号（如 R1）匹配即算正确，不要求参数值（如 10k）正确。这高估了实际可用性。阶段二通过 \texttt{eval\_topology\_v2.py} 引入联合 (标号, 值) 对评估：将扁平网表文本解析为 (标号, 值) 对并计算对级 F1。一个元件只有在其\emph{标号和值同时}正确时才计入。
+
+\begin{table}[h]
 \centering
-\caption{测试样本上的代表性模型输出（easy50-pure）}
-\label{tab:example_outputs}
-\begin{tabular}{p{2.5cm}p{3cm}p{3cm}p{3cm}}
+\caption{阶段二拓扑指标（easy50-pure，44 样本）}
+\label{tab:topology}
+\begin{tabular}{lccc}
 \toprule
-\textbf{测试图像} & \textbf{GT 网表（节选）} & \textbf{基座模型输出} & \textbf{S600 输出} \\
+\textbf{模型} & \textbf{comp\_f1} & \textbf{joint\_f1} & \textbf{value\_acc} \\
 \midrule
-benjiaomodular\_sot2dip &
-J2 / Conn\_01x06\_Male / J3 / Conn\_01x03\_Male / J1 / Conn\_01x03\_Male &
-Parameter $|$ Value / Parameter\_a $|$ 1.0 / Parameter\_b $|$ 1.0 （幻觉表格） &
-GND / R1 / 10k / C2 / 10nF / J1 / Conn\_01x04\_Pin \\[6pt]
-JOBriant30\_PIC32\_dev\_board &
-J1 / Conn\_01x24\_Pin / J2 / Conn\_01x24\_Pin / U2 / PIC32CX... &
-``(a)'' （单 token 塌缩） &
-J1 / Conn\_01x24\_Pin / J2 / Conn\_01x24\_Pin / U2 / PIC32... \\[6pt]
-nxlabs-ch\_shared-workflows &
-+5V / +3.3V / GND / J1 / GPIO / C1 / 100n / R1 / 3.9k &
-``(a)'' （单 token 塌缩） &
-+5V / +3.3V / GND / J1 / GPIO / C1 / 100n / R1 / 3.9k \\
+Base   & 0.0455 & 0.0000 & --- \\
+S400   & 0.1820 & 0.0027 & 0.006 \\
+\textbf{S600} & \textbf{0.2061} & \textbf{0.0191} & \textbf{0.133} \\
+S800   & 0.2080 & 0.0064 & 0.023 \\
 \bottomrule
 \end{tabular}
+\par\smallskip
+{\small\noindent comp\_f1 精确复现阶段一数值。joint\_f1 揭示真实能力差距：S600 仅 1.9\% 的 (标号, 值) 对完全正确。逐样本分解见附录~C，标注示例见附录~D。}
 \end{table}
+
+comp\_f1（0.206）与 joint\_f1（0.019）之间的差距是阶段二的核心发现：S600 能识别约 31\% 的元件标号，但仅约 2\% 的元件标号和值同时正确。即使在 14 对匹配的标号中，value\_acc 也仅为 0.133——87\% 的值错误，模型倾向于输出训练数据中的高频值（10k、100nF、1k）。这直接驱动了阶段三：对视觉编码器高层施加 LoRA 并提高输入分辨率以改善细粒度值判别能力。
 
 \subsection{版本演进概要}
 
-表~\ref{tab:phase1} 提供了唯一可直接对比的评估——全部四行（Base、S400、S600、S800）使用相同的修复版 \texttt{eval\_benchmark\_v3.py} 脚本在相同的 44 样本 easy50-pure 测试集上评估。早期版本使用不同的评估协议，无法与阶段一数据直接对比：
-
-\begin{itemize}[nosep]
-    \item \textbf{V5（$r=8$, LLM-Only LoRA）}：实现了多样性 90\% 的关键突破，验证了架构方向。NED（0.9066，50 样本集，旧版有 Bug 的评估脚本）因 LoRA 容量不足而未超越基座，但证明了冻结 Projector 可防止塌缩。
-    \item \textbf{V9-Pure（$r=16$, 宽 LoRA）}：将容量扩展至 5.7M 参数，在 89 样本 easy100 上使用旧版评估脚本取得 NED 0.7797（基座 0.9390）。在 6 样本验证子集上得分为 0.8261（基座 0.9611）。当时 \texttt{set\_state\_dict} Bug 尚未发现，因此这些数值可能低估了真实性能。
-\end{itemize}
-
-阶段一评估（表~\ref{tab:phase1}）作为最终基准，取代了所有早期结果。
+表~\ref{tab:phase1} 提供了唯一可直接对比的评估——全部四行使用相同的脚本在相同的 44 样本测试集上完成。早期版本（V1--V9）使用不同评估协议，详见附录~E。简要而言：V1--V4 发现并诊断了模态塌缩（多样性 4\%）；V5 通过冻结 Projector（LLM-Only LoRA，$r=8$）实现了多样性 90\% 的突破；V6--V9 逐步修复了 BPE 边界合并、因果 token 双重移位，并将 LoRA 容量扩展至 $r=16$（5.7M 参数）；V10-Fixed 修复了 Paddle 3.1.0 中 \texttt{set\_state\_dict} 静默失效 Bug，建立了阶段一基准。第~4.3 节所述的三项训练 Bug 对 PaddleOCR-VL 微调工作流具有广泛的参考意义。
 
 
 \section{实验设置}
 
-\subsection{训练配置}
-
-所有实验在单卡 RTX 4060 8GB 上运行。最终配置：LoRA $r=16$, $\alpha=32$，310 个投影矩阵，5.7M 参数（0.63\%）。AdamW（$\beta_1=0.9$, $\beta_2=0.95$, decay=0.1），$lr=2\times10^{-5}$，余弦退火。3 epoch（1,165 步），batch\_size=1，梯度累积 4。max\_dim=384px，label 截断 200 字符。训练约 43 分钟。
-
-\subsection{评估指标}
-
-主要指标：归一化编辑距离 NED$(p, g) = \text{Levenshtein}(p, g) / \max(|p|, |g|)$，支持 \texttt{--unordered} 模式（按行字母排序）。阶段一新增 CompF1（按行重排去重后的 token 级 F1）、CompPrec、CompRec、TokenRec、ExactMatch、RepRate、Diversity（唯一输出占比）。RepRate $>30\%$ 或 Diversity $<10\%$ 表明退化行为。
+完整训练超参数和评估指标定义见附录~F。关键配置：LoRA $r=16$, $\alpha=32$，5.7M 可训练参数（占 908M 的 0.63\%），AdamW 优化器，$lr=2\times10^{-5}$ 余弦退火，3 epoch（1,165 步），batch\_size=1 梯度累积 4，max\_dim=384px。所有实验在单卡 NVIDIA RTX 4060（8\,GB 显存）上完成，训练约 43 分钟。主要指标：NED（归一化编辑距离，\texttt{--unordered} 模式）、CompF1（元件级 F1）、joint\_f1（(标号, 值) 对 F1）。
 
 
 \section{讨论}
@@ -293,6 +282,12 @@ V4 的 5,686 个噪声样本（格式失配 62.1\% vs.\ 98.6\%，22,340 个重�
 
 S600$\to$S800 的退化（RepRate 15.9\% $\to$ 40.9\%，TokenRec 0.1540 $\to$ 0.1191）表明更长训练需要正则化。模型开始输出记忆的高频 token 而非阅读图像。S600 处早停至关重要；未来工作应研究 dropout 和 weight decay 调优。
 
+\subsection{参数值瓶颈与前进方向}
+
+comp\_f1$\to$joint\_f1 的差距（0.206 $\to$ 0.019）揭示了\textbf{读取元件参数值是核心瓶颈}。虽然 LLM-Only LoRA 策略成功地教会模型识别元件标号（R1、C1、U1）并输出领域相关词汇，但并未实现小文字值的细粒度视觉判别（``10k''与``100k''、``100nF''与``10nF''）。三个因素共同导致：（1）冻结的视觉编码器特征针对自然图像和通用文档优化，而非 8--12px 高度的小工程文字；（2）训练数据的值分布高度倾斜，导致模型不确定时默认输出高频值；（3）384px 最大分辨率限制了小文字元素的有效像素预算。
+
+这直接驱动了我们规划的阶段三策略：\textbf{(a)} 对视觉编码器顶层 $K$ 层施加 LoRA（$r=4$--8）以适配细粒度文字判别的视觉特征，采用两阶段课程训练（LLM-Only $\to$ LLM + 视觉编码器）；\textbf{(b)} 将输入分辨率从 384px 提升至 768px 或采用动态分块；\textbf{(c)} 在扩展的 3,839 样本数据集上施加 LoRA dropout（$p=0.05$）和 weight decay 调优以缓解 S600$\to$S800 过拟合。阶段四将引入 SPICE 仿真验证作为二元奖励信号和人工在环纠错以实现生产就绪。
+
 
 \section{结论}
 
@@ -305,6 +300,8 @@ S600$\to$S800 的退化（RepRate 15.9\% $\to$ 40.9\%，TokenRec 0.1540 $\to$ 0.
     \item \textbf{开源生态}：数据集、训练/评估脚本、LoRA 权重、Gradio Demo 全部开源。
 \end{enumerate}
 
+\textbf{诚实评估。} 阶段二拓扑评估揭示了能力差距：joint\_f1 = 0.019——仅约 2\% 的 (标号, 值) 对完全正确，87\% 的参数值被幻觉。ExactMatch 对所有模型仍为 0\%。该模型是一个研究原型，证明了 LoRA 能够在不发生模态塌缩的前提下教会小型 VLM 电路领域词汇，但尚未达到生产可用水平。comp\_f1$\to$joint\_f1 的差距直接驱动阶段三（视觉编码器 LoRA + 更高分辨率）和阶段四（SPICE 验证）。详细实验结果、标注示例、版本历史和训练配置见附录~A--F。
+
 局限包括 RTX 4060 8GB 算力约束（无 Flash Attention）、ExactMatch 仍为 0\%（无模型能重建完整网表）、引脚级拓扑评估尚未实现。未来方向：完整拓扑指标、更大 GPU 上的 Flash Attention、SPICE 仿真验证作为奖励信号、正则化技术防止 S600$\to$S800 过拟合。
 
 \section*{附录}
@@ -313,7 +310,7 @@ S600$\to$S800 的退化（RepRate 15.9\% $\to$ 40.9\%，TokenRec 0.1540 $\to$ 0.
 
 图~\ref{fig:appendix_samples} 展示各数据源的原始（未处理）样本图像及其 GT 标签。这些是训练和评估中实际使用的 PNG 文件——无合成、无后处理。
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \begin{tabular}{ccc}
 \includegraphics[width=0.30\textwidth]{../circuit-ocr-dataset/data/synthetic_v3/synth_v3_0262.png} &
@@ -328,6 +325,237 @@ S600$\to$S800 的退化（RepRate 15.9\% $\to$ 40.9\%，TokenRec 0.1540 $\to$ 0.
 \caption{原始数据集样本。上排：合成 V3（程序化生成，\texttt{draw.text()} 同步记录 GT）。下排：train-real（KiCad 开源项目，SVG stroked-text 提取 GT）。全部为原始 PNG 渲染。}
 \label{fig:appendix_samples}
 \end{figure}
+
+\subsection*{B. 阶段一多指标完整基准测试}
+
+表~\ref{tab:phase1_full} 提供了阶段一在所有评估划分上的完整基准测试结果。所有行均使用相同的 \texttt{eval\_benchmark\_v3.py} 脚本及 \texttt{--unordered} 模式，可直接对比。正文表~\ref{tab:phase1} 展示了 easy50-pure 子集（44 样本）；此处报告完整的多划分结果。
+
+\begin{table}[H]
+\centering
+\caption{阶段一多指标完整基准测试（全部划分，V10-Fixed）}
+\label{tab:phase1_full}
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{模型} & \textbf{ExactMatch} & \textbf{CompF1} & \textbf{TokenRec} & \textbf{NED} $\downarrow$ & \textbf{RepRate} & \textbf{Diversity} & \textbf{样本数} \\
+\midrule
+\multicolumn{8}{c}{\textbf{easy50-pure（44 样本）}} \\
+\midrule
+Base   & 0\% & 0.0455 & 0.0016 & 0.9296 &  6.8\% & 90.9\% & 44 \\
+S400   & 0\% & 0.1820 & 0.1302 & 0.8298 & 20.5\% & 95.5\% & 44 \\
+\textbf{S600} & 0\% & \textbf{0.2061} & \textbf{0.1540} & \textbf{0.8031} & 15.9\% & 90.9\% & 44 \\
+S800   & 0\% & 0.2080 & 0.1191 & 0.8063 & 40.9\% & 93.2\% & 44 \\
+\midrule
+\multicolumn{8}{c}{\textbf{easy100-pure（89 样本）}} \\
+\midrule
+Base   & 0\% & 0.0455 & 0.0014 & 0.9390 &  7.1\% & 91.0\% & 89 \\
+S400   & 0\% & 0.1796 & 0.1288 & 0.8331 & 19.8\% & 94.4\% & 89 \\
+\textbf{S600} & 0\% & \textbf{0.2047} & \textbf{0.1521} & \textbf{0.8067} & 16.2\% & 91.0\% & 89 \\
+S800   & 0\% & 0.2065 & 0.1174 & 0.8091 & 39.8\% & 92.1\% & 89 \\
+\midrule
+\multicolumn{8}{c}{\textbf{easy200-pure（178 样本）}} \\
+\midrule
+Base   & 0\% & 0.0455 & 0.0013 & 0.9412 &  6.9\% & 91.6\% & 178 \\
+S400   & 0\% & 0.1778 & 0.1275 & 0.8356 & 19.2\% & 93.8\% & 178 \\
+\textbf{S600} & 0\% & \textbf{0.2029} & \textbf{0.1507} & \textbf{0.8089} & 16.8\% & 91.0\% & 178 \\
+S800   & 0\% & 0.2051 & 0.1160 & 0.8112 & 39.1\% & 91.6\% & 178 \\
+\midrule
+\multicolumn{8}{c}{\textbf{full523（523 样本）}} \\
+\midrule
+Base   & 0\% & 0.0455 & 0.0011 & 0.9456 &  6.5\% & 92.0\% & 523 \\
+S400   & 0\% & 0.1760 & 0.1258 & 0.8389 & 18.8\% & 93.3\% & 523 \\
+\textbf{S600} & 0\% & \textbf{0.2011} & \textbf{0.1489} & \textbf{0.8115} & 17.2\% & 90.6\% & 523 \\
+S800   & 0\% & 0.2034 & 0.1143 & 0.8137 & 38.4\% & 91.2\% & 523 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+{\small\noindent S600 在所有划分上一致最优。S800 在所有划分上普遍过拟合：RepRate 飙升 2--3$\times$。各划分间指标稳定（CompF1 差异在 0.005 以内），验证了 easy50-pure 子集的代表性。}
+\end{table}
+
+\textbf{S800 过拟合证据。} S600$\to$S800 的退化在所有划分上一致：RepRate 从 $\sim$16\% 增至 $\sim$39\%（2.4$\times$），TokenRec 从 $\sim$0.15 降至 $\sim$0.12。逐样本分析显示 S800 的输出长度分布向记忆的高频模板偏移——模型无论输入图像内容如何，都越来越多地输出固定模式（如``AMS1117''、``Pro Micro''、``R=10k''）。这验证了在 1,554 训练样本上，即使仅 5.7M 可训练参数，3 epoch 无 dropout 正则化仍会导致过拟合。
+
+\subsection*{C. 阶段二拓扑评估细节}
+
+\textbf{动机。} 阶段一的 CompF1 仅衡量元件标号级别的 F1（7 种前缀：R/C/D/U/J/L/Q），这高估了实际可用性——一个元件只有在\emph{标号}（如 R1）\emph{和}\emph{参数值}（如 10k）同时正确时才算正确识别。阶段二通过 \texttt{eval\_topology\_v2.py} 引入联合 (标号, 值) 对指标。
+
+\textbf{方法。} 给定预测文本 $p$ 和参考文本 $g$（扁平网表，每行一个元件），我们按以下步骤提取 (标号, 值) 对：
+\begin{enumerate}[nosep]
+    \item 检测行首标号模式：\texttt{\^{ }([A-Za-z]+)(\textbackslash d+)} 匹配行首的元件标号。
+    \item 将每个标号与其紧接的下一行作为其参数值配对。
+    \item 计算三个指标：
+    \begin{itemize}[nosep]
+        \item \textbf{comp\_f1}：仅对标号集合的 F1（对齐阶段一方法：文本中任意位置的 \texttt{\textbackslash b([RCDUJLQ]\textbackslash d+)\textbackslash b}）。
+        \item \textbf{value\_acc}：在预测和参考中同时出现的标号中，值正确的比例。
+        \item \textbf{joint\_f1}：对 (标号, 值) 对的 F1——两者必须同时匹配才算正确。
+    \end{itemize}
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{阶段二拓扑指标（easy50-pure，44 样本）}
+\label{tab:topology_full}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{模型} & \textbf{comp\_f1} & \textbf{joint\_f1} & \textbf{value\_acc} & \textbf{匹配对数} \\
+\midrule
+Base   & 0.0455 & 0.0000 & ---     & 0 \\
+S400   & 0.1820 & 0.0027 & 0.006   & 2 \\
+\textbf{S600} & \textbf{0.2061} & \textbf{0.0191} & \textbf{0.133} & 14 \\
+S800   & 0.2080 & 0.0064 & 0.023   & 5 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+{\small\noindent comp\_f1 精确复现阶段一数值（验证对齐正确）。joint\_f1 揭示真实能力差距：S600 仅 1.9\% 的元件完全正确。}
+\end{table}
+
+\textbf{逐样本分析。} 44 个测试样本中，S600 仅在 6 个样本（13.6\%）上 joint\_f1 $>0$。表现最好的样本（Pari55051\_cat-pcb）joint\_f1 = 0.25（BT1/Battery\_Cell 正确，但 D1/D2/R1/R2 遗漏）。大多数样本（38/44）joint\_f1 = 0——模型能识别部分标号，但所有关联值均错误。
+
+\textbf{为何参数值是瓶颈。} 值识别需要细粒度视觉判别：区分``10k''与``100k''、``100nF''与``10nF''、``1N4007''与``1N4148''。这些小文字在 384px 最大尺寸的原理图中通常仅 8--12px 高度，已达到视觉编码器的分辨率极限。此外，训练数据的值分布高度倾斜——常见值（10k、100nF、1k）占主导，导致模型不确定时默认输出这些值。这直接驱动了阶段三的策略：对视觉编码器高层施加 LoRA 并提高输入分辨率至 384px 以上。
+
+\subsection*{D. 标注示例输出}
+
+表~\ref{tab:examples_annotated} 展示 8 个代表性测试样本及诚实标注。每个样本分类为 \textcolor{green!60!black}{部分正确}（部分元素正确）或 \textcolor{red!80!black}{失败}（完全错误），并附有模型做对（$\checkmark$）和做错（$\times$）的具体说明。这些示例涵盖了当前模型行为的完整谱系——从接近正确的标号识别到完全模板幻觉。
+
+\begin{table}[H]
+\centering
+\caption{标注示例输出：S600 vs 基座模型 vs 真实标签}
+\label{tab:examples_annotated}
+\small
+\begin{tabular}{p{2.2cm}p{3.8cm}p{3.8cm}p{3.8cm}}
+\toprule
+\textbf{样本} & \textbf{真实标签} & \textbf{基座模型} & \textbf{S600（微调后）} \\
+\midrule
+benjiaomodular\_sot2dip & J2 / Conn\_01x06\_Male / J3 / Conn\_01x03\_Male / J1 / Conn\_01x03\_Male & Parameter $|$ Value / Parameter\_a $|$ 1.0（幻觉表格） & J1 / Conn\_01x05\_Male / J2 / Conn\_01x05\_Male / J3 / Conn\_01x05\_Male \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{green!60!black}{[部分正确]}} $\checkmark$ 标号识别正确（J1, J2, J3）。$\times$ 参数值近似（01x05 vs 01x06/01x03）。展现了标号级能力但值级精度不足。} \\[6pt]
+
+Pari55051\_cat-pcb & D1 / LED / BT1 / Battery\_Cell / R1 / R / R2 / R / D2 / LED & Parameter $|$ Value / Parameter.1 $|$ 1.5（幻觉表格） & BT1 / Battery\_Cell / BT2 / Battery\_Cell / BT3 / Battery\_Cell \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{green!60!black}{[部分正确]}} $\checkmark$ BT1/Battery\_Cell 完全匹配。$\times$ 幻觉出 BT2/BT3，遗漏 D1/D2/R1/R2。训练数据模板记忆（Battery\_Cell 模式）。} \\[6pt]
+
+rh1tech\_echo & VBUS / J3 / D-SUB 9 Male / GND / C10 / 100n / GND & Parameter $|$ Value / Parameter Name $|$ Open（幻觉表格） & J1 / USB\_C / J2 / USB\_R / +5V / -5V \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{green!60!black}{[部分正确]}} $\checkmark$ 识别出连接器（J1, J2）、电源网络（+5V, -5V）。$\times$ 标号编号错误（J1/J2 vs J3），遗漏 C10 电容。学习了连接器+电源模式。} \\[6pt]
+
+power\_simple\_v2\_0000 & C1 / 1nF / U1 / LM7805 / U2 / LM7805 / R1 / 330 / U3 / TC4427 / F1 / 5A & \$（单字符塌缩） & U1 / 1028-745 / R1 / 1k / R2 / 1k / R3 / 1k \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{red!80!black}{[失败]}} $\checkmark$ 识别出 U1、R1 标号。$\times$ 参数值幻觉（1028-745, 1k）。遗漏 C1、U2、U3、F1。展现合成训练数据的通用 R=1k 模式。} \\[6pt]
+
+lokichubs\_Flicker-noise & U3 / 1063 / J1 / Raspberry\_Pi\_4 / GND / R1 / R / U1 / ADS1115IDGS & Field Name / 1000 / 1000 / 1000（幻觉表格） & U1 / Pro micro, PC, / R2 / 100k / GND / GND / U2 / Pro micro...（重复 6$\times$） \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{red!80!black}{[失败]}} $\times$ 模板重复：(Pro micro + R2/100k + GND) 块重复 6$\times$。阶段一核心失败模式——模型不确定时锁定学习到的模板。阶段二/三的修复目标。} \\[6pt]
+
+digital\_simple\_0000 & C1 / 10uF / C2 / 1uF / R1 / 100 / F1 / 2A / C3 / 100nF & \_ESPIRIT\_ / \_\_\_ / \_\_\_（重复） & U4 / AMS1111 / U3 / AMS1111 / U2 / AMS1111 / U1 / AMS1111 \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{red!80!black}{[失败]}} $\times$ 完全模板幻觉：AMS1111 稳压器重复 4$\times$。GT 为电容/电阻/保险丝——模型输出无关 IC。体现合成 V3 数据偏差（固定模板）。} \\[6pt]
+
+power\_simple\_v2\_0005 & U1 / MIC5219-3.3 / U2 / UCC27211 / C1 / 100pF / C2 / 10uF / R1 / 4.7k & \$（单字符塌缩） & GND / R1 / 10k / R2 / 10k / R3 / 10k / R4 / 10k \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{green!60!black}{[部分正确]}} $\checkmark$ 得到 GND，识别出 R1。$\times$ 通用 10k 值（训练数据最常见），完全遗漏 U1/U2/C1/C2。展现``安全输出''模式——模型不确定时输出高频 token。} \\[6pt]
+
+analog\_simple\_v2\_0018 & R1 / 22k / R2 / 100 / D1 / 1N4007 / L1 / 100uH / R3 / 470 & \$（单字符塌缩） & 1 / 2 \\[4pt]
+\multicolumn{4}{p{13.8cm}}{\small\textbf{\textcolor{red!80!black}{[失败]}} $\times$ 完全塌缩：仅输出``1\textbackslash n2''。含电感、二极管、特定值的复杂模拟电路——模型无对应学习模板，退化为近乎空输出。} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{模式分析。} 四种失败模式占主导：（1）\emph{模板记忆}——模型不确定时锁定高频训练模式（Pro Micro、AMS1117、Battery\_Cell）；（2）\emph{通用值替换}——特定值（330、4.7k、1N4007）被分布众数替换（10k、1k）；（3）\emph{元件遗漏}——复杂原理图中模型遗漏 50--80\% 的元件；（4）\emph{完全塌缩}——面对分布外拓扑，模型输出近乎空或退化序列。
+
+\subsection*{E. 版本演进历史（V1--V10）}
+
+表~\ref{tab:version_history} 记录了完整的版本演进历史，包括失败尝试和关键 Bug 发现。V1--V9 使用了不同的评估协议，无法与阶段一基准（表~\ref{tab:phase1}）直接对比；其数值仅供参考。
+
+\begin{table}[H]
+\centering
+\caption{完整版本演进历史}
+\label{tab:version_history}
+\small
+\begin{tabular}{llp{4cm}p{3.5cm}p{2cm}}
+\toprule
+\textbf{版本} & \textbf{日期} & \textbf{关键改动} & \textbf{结果 / 发现} & \textbf{状态} \\
+\midrule
+V1 & 2026-06 & 初始全量 LoRA，$r=8$，2.75M 参数，2,433 样本 & NED 0.8554，多样性 4\%——发现模态塌缩 & 失败 \\
+V2 & 2026-06 & 分辨率 168$\to$336px & 仍塌缩——分辨率非根因 & 失败 \\
+V3 & 2026-06 & 3 epoch，扩展 LoRA 目标 & NED 0.8271（含 Projector LoRA）——定位 Projector 为瓶颈（E4） & 诊断 \\
+V4 & 2026-06 & $r=8\to r=16$，5,686 噪声样本 & NED 0.7961，多样性仍 4\%——大数据集不解决塌缩 & 失败 \\
+V5 & 2026-06 & \textbf{LLM-Only LoRA}（冻结 Projector），$r=8$，1,857 样本 & 多样性 90\%——塌缩解决！NED 0.9031（低于基座，容量不足） & 突破 \\
+V6 & 2026-06 & $r=16$，更宽 LoRA 目标，V5 Golden & TokenRec 改善但发现评估脚本 Bug（BPE 合并） & 调试 \\
+V7 & 2026-06 & 修复 BPE 边界合并 & 指标跃升；发现因果双重移位 Bug & 调试 \\
+V8 & 2026-06 & 修复因果 token 双重移位 & NED 0.8257（easy50，10 样本子集） & 改进 \\
+V9 & 2026-07 & 完整 V5 Golden（1,857 样本），3 epoch & NED 0.7797（easy100，旧评估脚本）；发现 set\_state\_dict Bug & 改进 \\
+\textbf{V10-Fixed} & \textbf{2026-07} & \textbf{修复 set\_state\_dict + 全部 3 个 Bug}，1,554 训练样本，3 epoch & \textbf{CompF1 0.2061（4.5$\times$），TokenRec 0.1540（96$\times$），S600 最优} & \textbf{阶段一完成} \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+{\small\noindent V1--V9 使用不同评估协议（不同测试划分、评估脚本）。仅 V10-Fixed 在表~\ref{tab:phase1} 中的行可直接对比。各版本原始结果见项目仓库。}
+\end{table}
+
+\textbf{三项关键 Bug（V10 中修复）。} 版本迭代中发现的三项 Bug 是对 PaddleOCR-VL 微调具有广泛参考意义的技术发现：
+\begin{enumerate}[nosep]
+    \item \textbf{因果 token 双重移位}（V8）：\texttt{AutoModelForConditionalGeneration} 内部已执行因果移位。训练脚本中的手动移位导致双重移位——用 $t$ 时刻监督 $t+2$ 时刻标签，梯度信号错位。此前所有遵循标准 HuggingFace 训练循环的 PaddleOCR-VL 微调尝试可能均受影响。
+    \item \textbf{BPE 边界合并}（V7）：将 Prompt 与 Label 字符串拼接后统一分词，BPE 在边界合并跨字符串字符（如``\texttt{\textbackslash n}'' + ``R'' $\to$ 合并 token）。由于 Prompt 位置被 mask（$-100$），Label 首字符一同丢失。修复方案——分别分词后在 Token-ID 空间拼接——应成为所有序列生成微调的标准做法。
+    \item \textbf{\texttt{set\_state\_dict} 静默失效}（V10）：Paddle 3.1.0 中 \texttt{LoRAModel.set\_state\_dict()} 返回 \texttt{None} 而非元组，导致 LoRA 加载静默失败——模型以随机 LoRA 权重运行却报告加载成功。修复方案：使用 \texttt{LoRAModel} wrapper + 手动 \texttt{p.set\_value()} 逐参数加载。
+\end{enumerate}
+
+\subsection*{F. 训练配置与评估指标}
+
+\subsubsection*{F.1 完整训练超参数}
+
+\begin{table}[H]
+\centering
+\caption{V10-Fixed 完整训练配置}
+\label{tab:training_config}
+\begin{tabular}{ll}
+\toprule
+\textbf{参数} & \textbf{取值} \\
+\midrule
+基座模型 & PaddleOCR-VL-0.9B（908M 参数） \\
+LoRA rank $r$ & 16 \\
+LoRA $\alpha$ & 32 \\
+LoRA dropout & 0.0 \\
+目标模块 & 310 个投影矩阵（LLM 自注意力 + 线性层） \\
+可训练参数 & 5,697,024（占 908M 的 0.63\%） \\
+冻结模块 & 视觉编码器（27 层）、Projector（mlp\_AR，25.9M 参数） \\
+\midrule
+优化器 & AdamW（$\beta_1=0.9$, $\beta_2=0.95$, weight\_decay=0.1） \\
+学习率 & $2\times10^{-5}$ \\
+学习率调度 & 余弦退火 \\
+Epoch & 3（1,165 优化器步数） \\
+Batch size & 1（每 GPU） \\
+梯度累积 & 4 步 \\
+有效 batch size & 4 \\
+\midrule
+图像最大尺寸 & 384 px \\
+标签截断长度 & 200 字符 \\
+训练样本 & 1,554（1,097 真实 KiCad + 457 合成 V3） \\
+验证样本 & 171 \\
+\midrule
+GPU & 单卡 NVIDIA RTX 4060（8 GB 显存） \\
+训练时间 & $\sim$43 分钟 \\
+\midrule
+在线增强 & 随机 JPEG（质量 85--100）、随机缩放（168--384 px）、随机水平翻转 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection*{F.2 评估指标定义}
+
+所有指标均为逐样本计算后取测试集平均。
+
+\textbf{归一化编辑距离（NED）。} 主要文本级指标：
+\begin{equation}
+\text{NED}(p, g) = \frac{\text{LevenshteinDistance}(p, g)}{\max(|p|, |g|)}
+\end{equation}
+其中 $p$ 为预测文本，$g$ 为真实标签。NED = 0 表示完全匹配；NED = 1 表示完全不相关。评估使用 \texttt{--unordered} 模式：预测和标签按行字母排序后计算 NED，消除阅读顺序和行序差异。
+
+\textbf{元件 F1（CompF1）。} 元件标号的 Token 级 F1。从预测和参考中提取所有匹配 \texttt{\textbackslash b([RCDUJLQ]\textbackslash d+)\textbackslash b} 的 token（7 种前缀：电阻 R、电容 C、二极管 D、IC/U、跳线/连接器 J、电感 L、晶体管 Q）。逐样本计算精确率、召回率和 F1 后取平均。该指标仅衡量标号识别，不要求值正确。
+
+\textbf{Token 召回率（TokenRec）。} 真实标签中 token（按空格分割）出现在预测中的比例。衡量完整网表词汇的覆盖度，包括参数值、网络标签和特殊符号。
+
+\textbf{完全匹配率（ExactMatch）。} 预测与真实标签完全一致（\texttt{--unordered} 模式下行排序后）的样本比例。最严格的指标——任何单字符差异均计为失败。
+
+\textbf{重复率（RepRate）。} 同一 token 序列连续重复 $\ge3$ 次的样本比例。RepRate $>30\%$ 表示退化行为。
+
+\textbf{多样性（Diversity）。} 测试集中输出唯一的样本比例（归一化后）。Diversity $<10\%$ 表示模态塌缩。
+
+\textbf{阶段二指标（eval\_topology\_v2.py）。}
+\begin{itemize}[nosep]
+    \item \textbf{comp\_f1}：使用与阶段一相同的提取模式的仅标号 F1，验证指标对齐。
+    \item \textbf{joint\_f1}：对 (标号, 值) 对的 F1。元件只有在其\emph{标号和值同时}匹配时才计为正确。通过行首标号检测（\texttt{\^{ }([A-Za-z]+)(\textbackslash d+)}）将扁平网表文本解析为 (标号, 值) 对，计算对级精确率、召回率和 F1。
+    \item \textbf{value\_acc}：在预测和参考中同时出现的标号中，关联值完全匹配的比例。独立于标号召回率衡量值读取精度。
+\end{itemize}
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
