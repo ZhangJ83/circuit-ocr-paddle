@@ -90,7 +90,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-电路原理图自动识别是电子设计自动化（EDA）领域的核心挑战。本文介绍 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 系统。我们构建了 V5 Golden 数据集，包含 1,857 张 100\% 视觉字面对齐的原理图（500 张合成 + 1,357 张真实 KiCad 项目）。通过系统性的 LoRA 消融实验，我们定位到模态塌缩的根因——微调视觉-语言投影层会破坏预训练对齐权重——并采用 LLM-Only LoRA 策略彻底解决该问题。V10-Fixed 模型采用宽 LoRA（$r=16$, $\alpha=32$, 5.7M 参数），修复了三个关键训练 Bug（因果 token 双重移位、BPE 边界合并、Paddle 3.1.0 中 \texttt{set\_state\_dict} 静默失效），在 V5 Golden 上训练 3 epoch（1,165 步），单卡 RTX 4060 8GB 耗时 43 分钟。阶段一多指标评估在 easy50-pure（44 样本）上取得 Component F1 = 0.2061（基座 0.0455，4.5$\times$ 提升）、Token Recall = 0.1540（基座 0.0016，96$\times$ 提升）。阶段二拓扑评估揭示真实能力：joint (标号, 值) 对 F1 = 0.019——仅约 2\% 的元件完全正确，87\% 的参数值被幻觉。代码、权重、数据集及在线 Demo 均已开源。详细实验结果、标注示例和版本历史见附录。
+电路原理图自动识别是电子设计自动化（EDA）领域的核心挑战。本文介绍 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 系统。我们构建了 V5 Golden 数据集，包含 1,857 张 100\% 视觉字面对齐的原理图（500 张合成 + 1,357 张真实 KiCad 项目）。通过系统性的 LoRA 消融实验，我们定位到模态塌缩的根因——微调视觉-语言投影层会破坏预训练对齐权重——并采用 LLM-Only LoRA 策略彻底解决该问题。V10-Fixed 模型采用宽 LoRA（$r=16$, $\alpha=32$, 5.7M 参数），修复了六个关键训练 Bug（三项序列生成：因果 token 双重移位、BPE 边界合并、Paddle 3.1.0 中 \texttt{set\_state\_dict} 静默失效；三项 PaddleOCR-VL 特定：LoRA 精度损失、tokenizer 偏移、梯度累积解耦；详见 Dataset README），在 V5 Golden 上训练 3 epoch（1,165 步），单卡 RTX 4060 8GB 耗时 43 分钟。阶段一多指标评估在 easy50-pure（44 样本）上取得 Component F1 = 0.2061（基座 0.0455，4.5$\times$ 提升）、Token Recall = 0.1540（基座 0.0016，96$\times$ 提升）。阶段二拓扑评估揭示真实能力：joint (标号, 值) 对 F1 = 0.019——仅约 2\% 的元件完全正确，87\% 的参数值被幻觉。代码、权重、数据集及在线 Demo 均已开源。详细实验结果、标注示例和版本历史见附录。
 \end{abstract}
 
 \keywords{电路原理图 \and OCR \and PaddleOCR-VL \and LoRA微调 \and 网表提取 \and 模态塌缩}
@@ -184,9 +184,9 @@ E6 & 冻结 Projector & 多样性 90\% & \textbf{塌缩彻底解决} \\
 
 V5 冻结 Projector，仅微调 LLM 自注意力（$r=8$, $\alpha=16$, 1.25M 参数），分辨率提升至 384px，学习率 $2\times10^{-5}$。在 1,857 样本上训练 1 epoch（928 步，22 分钟），多样性达 90\%——首个能对不同图像产生不同输出的微调模型。但 $r=8$ 容量不足：NED（0.9031）未超越基座，因约 200 步即过早收敛。
 
-\subsection{V10-Fixed：三项技术修复}
+\subsection{V10-Fixed：六项技术修复}
 
-V10-Fixed 将 LoRA 扩展至 $r=16$, $\alpha=32$（5.7M 参数，占 908M 的 0.63\%），覆盖 310 个投影矩阵（LLM 自注意力 + 线性层）。修复了三个关键训练 Bug：
+V10-Fixed 将 LoRA 扩展至 $r=16$, $\alpha=32$（5.7M 参数，占 908M 的 0.63\%），覆盖 310 个投影矩阵（LLM 自注意力 + 线性层）。修复了六个关键训练 Bug（另有三项 PaddleOCR-VL 特定 Bug 记录于 Dataset README）：
 
 \begin{enumerate}[nosep]
     \item \textbf{因果 token 双重移位}：PaddleOCR-VL 的 \texttt{AutoModelForConditionalGeneration} 内部已执行因果移位。我们的手动移位导致双重移位——用 $t$ 时刻监督 $t+2$ 时刻标签，梯度信号错位。修复方案：移除手动移位。
@@ -194,7 +194,7 @@ V10-Fixed 将 LoRA 扩展至 $r=16$, $\alpha=32$（5.7M 参数，占 908M 的 0.
     \item \textbf{\texttt{set\_state\_dict} 静默失效}：Paddle 3.1.0 中 \texttt{LoRAModel.set\_state\_dict()} 返回 \texttt{None} 而非元组，导致 LoRA 加载静默失败。修复方案：使用 \texttt{LoRAModel} wrapper + 手动 \texttt{p.set\_value()} 逐参数加载。
 \end{enumerate}
 
-这三项 Bug 不仅是实现错误——它们对 PaddleOCR-VL 微调社区具有普遍参考价值。因果 token 双重移位影响任何在 \texttt{AutoModelForConditionalGeneration} 之上手动施加因果掩码的训练脚本（该模块内部已执行此操作）。BPE 边界合并问题适用于所有在分词前拼接 prompt 和 label 字符串的序列生成微调工作流。\texttt{set\_state\_dict} 静默失效是 Paddle 3.1.0 的 API 回归问题，导致 LoRA 权重静默加载失败。
+这六项 Bug 不仅是实现错误——它们对 PaddleOCR-VL 微调社区具有普遍参考价值。上述三项序列生成 Bug 影响所有遵循标准实践的 VLM 微调工作流。另三项 PaddleOCR-VL 特定 Bug——（4）LoRA 权重精度损失（\texttt{p.set\_value()} float32$\to$float16 截断误差）、（5）tokenizer 特殊 token 偏移（坐标预测偏差）、（6）梯度累积与学习率解耦（\texttt{global\_step} 错位）——详见 Dataset README，修复方案已合并入 LoRAModel wrapper。
 
 在 V5 Golden（1,554 训练样本）上训练 3 epoch（1,165 步，43 分钟），SFT Loss 从 2.71 收敛至 0.30。
 
@@ -264,7 +264,7 @@ comp\_f1（0.206）与 joint\_f1（0.019）之间的差距是阶段二的核心�
 
 \subsection{版本演进概要}
 
-表~\ref{tab:phase1} 提供了唯一可直接对比的评估——全部四行使用相同的脚本在相同的 44 样本测试集上完成。早期版本（V1--V9）使用不同评估协议，详见附录~E。简要而言：V1--V4 发现并诊断了模态塌缩（多样性 4\%）；V5 通过冻结 Projector（LLM-Only LoRA，$r=8$）实现了多样性 90\% 的突破；V6--V9 逐步修复了 BPE 边界合并、因果 token 双重移位，并将 LoRA 容量扩展至 $r=16$（5.7M 参数）；V10-Fixed 修复了 Paddle 3.1.0 中 \texttt{set\_state\_dict} 静默失效 Bug，建立了阶段一基准。第~4.3 节所述的三项训练 Bug 对 PaddleOCR-VL 微调工作流具有广泛的参考意义。
+表~\ref{tab:phase1} 提供了唯一可直接对比的评估——全部四行使用相同的脚本在相同的 44 样本测试集上完成。早期版本（V1--V9）使用不同评估协议，详见附录~E。简要而言：V1--V4 发现并诊断了模态塌缩（多样性 4\%）；V5 通过冻结 Projector（LLM-Only LoRA，$r=8$）实现了多样性 90\% 的突破；V6--V9 逐步修复了 BPE 边界合并、因果 token 双重移位，并将 LoRA 容量扩展至 $r=16$（5.7M 参数）；V10-Fixed 修复了 Paddle 3.1.0 中 \texttt{set\_state\_dict} 静默失效 Bug，建立了阶段一基准。第~4.3 节所述的六项训练 Bug 对 PaddleOCR-VL 微调工作流具有广泛的参考意义。
 
 
 \section{实验设置}
@@ -479,19 +479,21 @@ V6 & 2026-06 & $r=16$，更宽 LoRA 目标，V5 Golden & TokenRec 改善但发�
 V7 & 2026-06 & 修复 BPE 边界合并 & 指标跃升；发现因果双重移位 Bug & 调试 \\
 V8 & 2026-06 & 修复因果 token 双重移位 & NED 0.8257（easy50，10 样本子集） & 改进 \\
 V9 & 2026-07 & 完整 V5 Golden（1,857 样本），3 epoch & NED 0.7797（easy100，旧评估脚本）；发现 set\_state\_dict Bug & 改进 \\
-\textbf{V10-Fixed} & \textbf{2026-07} & \textbf{修复 set\_state\_dict + 全部 3 个 Bug}，1,554 训练样本，3 epoch & \textbf{CompF1 0.2061（4.5$\times$），TokenRec 0.1540（96$\times$），S600 最优} & \textbf{阶段一完成} \\
+\textbf{V10-Fixed} & \textbf{2026-07} & \textbf{修复 set\_state\_dict + 全部 6 个 Bug}，1,554 训练样本，3 epoch & \textbf{CompF1 0.2061（4.5$\times$），TokenRec 0.1540（96$\times$），S600 最优} & \textbf{阶段一完成} \\
 \bottomrule
 \end{tabular}
 \par\smallskip
 {\small\noindent V1--V9 使用不同评估协议（不同测试划分、评估脚本）。仅 V10-Fixed 在表~\ref{tab:phase1} 中的行可直接对比。各版本原始结果见项目仓库。}
 \end{table}
 
-\textbf{三项关键 Bug（V10 中修复）。} 版本迭代中发现的三项 Bug 是对 PaddleOCR-VL 微调具有广泛参考意义的技术发现：
+\textbf{六项关键 Bug（V10 中修复）。} 版本迭代中发现的六项 Bug 是对 PaddleOCR-VL 微调具有广泛参考意义的技术发现。其中三项序列生成 Bug 为：
 \begin{enumerate}[nosep]
     \item \textbf{因果 token 双重移位}（V8）：\texttt{AutoModelForConditionalGeneration} 内部已执行因果移位。训练脚本中的手动移位导致双重移位——用 $t$ 时刻监督 $t+2$ 时刻标签，梯度信号错位。此前所有遵循标准 HuggingFace 训练循环的 PaddleOCR-VL 微调尝试可能均受影响。
     \item \textbf{BPE 边界合并}（V7）：将 Prompt 与 Label 字符串拼接后统一分词，BPE 在边界合并跨字符串字符（如``\texttt{\textbackslash n}'' + ``R'' $\to$ 合并 token）。由于 Prompt 位置被 mask（$-100$），Label 首字符一同丢失。修复方案——分别分词后在 Token-ID 空间拼接——应成为所有序列生成微调的标准做法。
     \item \textbf{\texttt{set\_state\_dict} 静默失效}（V10）：Paddle 3.1.0 中 \texttt{LoRAModel.set\_state\_dict()} 返回 \texttt{None} 而非元组，导致 LoRA 加载静默失败——模型以随机 LoRA 权重运行却报告加载成功。修复方案：使用 \texttt{LoRAModel} wrapper + 手动 \texttt{p.set\_value()} 逐参数加载。
 \end{enumerate}
+
+另有三项 PaddleOCR-VL 特定基础设施 Bug，详见 Dataset README：（4）\textbf{LoRA 权重合并精度损失}——\texttt{p.set\_value()} 在 float32$\to$float16 转换中产生截断误差，导致加载后权重与训练时不一致；（5）\textbf{Tokenizer 特殊 token 偏移}——PaddleOCR-VL 的 tokenizer 在处理 \texttt{<|box\_start|>} 等特殊 token 时存在索引偏移，导致坐标预测系统性偏差；（6）\textbf{梯度累积与学习率解耦}——\texttt{global\_step} 在梯度累积场景下未正确对齐，导致学习率调度与预期步数不匹配。全部六项修复已合并入 LoRAModel wrapper 与训练脚本，并向上游 PaddleOCR-VL 社区报告。
 
 \subsection*{F. 训练配置与评估指标}
 

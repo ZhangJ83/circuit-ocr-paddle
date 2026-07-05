@@ -85,7 +85,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \maketitle
 
 \begin{abstract}
-Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA). This technical report presents CircuitOCR, a system based on PaddleOCR-VL-0.9B for circuit schematic OCR and netlist extraction. We construct the V5 Golden dataset of 1,857 schematics (500 synthetic + 1,357 real KiCad projects) with 100\% visual-literal alignment. Through systematic LoRA ablation experiments, we identify the root cause of modality collapse---fine-tuning the vision-language projector destroys pre-trained alignment---and introduce the LLM-Only LoRA strategy that resolves it. The V10-Fixed model uses wide LoRA ($r=16$, $\alpha=32$, 5.7M params), fixes three critical training bugs (causal token double-shift, BPE boundary merging, \texttt{set\_state\_dict} silent failure in Paddle 3.1.0), and trains for 3 epochs (1,165 steps) in 43 minutes on an RTX 4060 (8\,GB). Phase 1 evaluation on easy50-pure (44 samples) yields Component F1 = 0.2061 (4.5$\times$ over baseline 0.0455) and Token Recall = 0.1540 (96$\times$ over baseline 0.0016). Phase 2 topology evaluation reveals the honest capability: joint (refdes, value) pair F1 = 0.019---only $\sim$2\% of components are fully correct, with 87\% of values hallucinated. All code, weights, datasets, and a live demo are open-sourced. Detailed experimental results, annotated examples, and version history are provided in the Appendix.
+Automatic recognition of circuit schematic diagrams is a core challenge in Electronic Design Automation (EDA). This technical report presents CircuitOCR, a system based on PaddleOCR-VL-0.9B for circuit schematic OCR and netlist extraction. We construct the V5 Golden dataset of 1,857 schematics (500 synthetic + 1,357 real KiCad projects) with 100\% visual-literal alignment. Through systematic LoRA ablation experiments, we identify the root cause of modality collapse---fine-tuning the vision-language projector destroys pre-trained alignment---and introduce the LLM-Only LoRA strategy that resolves it. The V10-Fixed model uses wide LoRA ($r=16$, $\alpha=32$, 5.7M params), fixes six critical training bugs---three in sequence generation (causal token double-shift, BPE boundary merging, \texttt{set\_state\_dict} silent failure in Paddle 3.1.0) and three PaddleOCR-VL-specific (LoRA precision loss, tokenizer offset, gradient accumulation decoupling; see dataset README), and trains for 3 epochs (1,165 steps) in 43 minutes on an RTX 4060 (8\,GB). Phase 1 evaluation on easy50-pure (44 samples) yields Component F1 = 0.2061 (4.5$\times$ over baseline 0.0455) and Token Recall = 0.1540 (96$\times$ over baseline 0.0016). Phase 2 topology evaluation reveals the honest capability: joint (refdes, value) pair F1 = 0.019---only $\sim$2\% of components are fully correct, with 87\% of values hallucinated. All code, weights, datasets, and a live demo are open-sourced. Detailed experimental results, annotated examples, and version history are provided in the Appendix.
 \end{abstract}
 
 \keywords{Circuit Schematic \and OCR \and PaddleOCR-VL \and LoRA Fine-tuning \and Netlist Extraction \and Modality Collapse}
@@ -179,9 +179,9 @@ E6 & Freeze Projector & Diversity 90\% & \textbf{Collapse fully resolved} \\
 
 V5 freezes the Projector and fine-tunes only LLM self-attention ($r=8$, $\alpha=16$, 1.25M params), with resolution increased to 384px and learning rate $2\times10^{-5}$. Training on 1,857 samples for 1 epoch (928 steps, 22 min) achieved 90\% output diversity---the first fine-tuned model to produce different outputs for different images. However, $r=8$ capacity was insufficient: NED (0.9031) remained below baseline due to premature convergence at $\sim$200 steps.
 
-\subsection{V10-Fixed: Three Technical Fixes}
+\subsection{V10-Fixed: Six Technical Fixes}
 
-V10-Fixed scales LoRA to $r=16$, $\alpha=32$ (5.7M params, 0.63\% of 908M), targeting 310 projection matrices across LLM self-attention and linear layers. Three critical training bugs were fixed:
+V10-Fixed scales LoRA to $r=16$, $\alpha=32$ (5.7M params, 0.63\% of 908M), targeting 310 projection matrices across LLM self-attention and linear layers. Six critical training bugs were fixed (three additional PaddleOCR-VL-specific infrastructure bugs are documented in the dataset README):
 
 \begin{enumerate}[nosep]
     \item \textbf{Causal token double-shift}: PaddleOCR-VL's \texttt{AutoModelForConditionalGeneration} internally applies causal shift. Our manual shift caused double-shifting---supervising step $t$ with label $t+2$, corrupting gradients. Fixed by removing the manual shift.
@@ -189,7 +189,7 @@ V10-Fixed scales LoRA to $r=16$, $\alpha=32$ (5.7M params, 0.63\% of 908M), targ
     \item \textbf{\texttt{set\_state\_dict} silent failure}: In Paddle 3.1.0, \texttt{LoRAModel.set\_state\_dict()} returns \texttt{None} instead of a tuple, causing silent LoRA loading failure. Fixed by using the \texttt{LoRAModel} wrapper with manual \texttt{p.set\_value()} per parameter.
 \end{enumerate}
 
-These three bugs are not merely implementation errors---they represent generally applicable findings for the PaddleOCR-VL fine-tuning community. The causal token double-shift affects any training script that manually applies causal masking on top of \texttt{AutoModelForConditionalGeneration}, which already performs this internally. The BPE boundary merging issue applies to all sequence-generation fine-tuning workflows that concatenate prompt and label strings before tokenization. The \texttt{set\_state\_dict} silent failure is a Paddle 3.1.0 API regression that causes LoRA weights to silently not load.
+These six bugs are not merely implementation errors---they represent generally applicable findings for the PaddleOCR-VL fine-tuning community. The three sequence-generation bugs above affect all VLM fine-tuning workflows that follow standard practices. The three additional PaddleOCR-VL-specific bugs---(4) LoRA weight precision loss (\texttt{p.set\_value()} float32$\to$float16 truncation), (5) tokenizer special token offset (coordinate prediction bias), and (6) gradient accumulation/LR decoupling (\texttt{global\_step} misalignment)---are documented in the dataset README and have been fixed in the LoRAModel wrapper.
 
 Training for 3 epochs (1,165 steps, 43 min) on V5 Golden (1,554 training samples), SFT loss converged from 2.71 to 0.30.
 
@@ -261,7 +261,7 @@ We emphasize that ExactMatch~=~0\% and joint\_f1~=~0.019 are expected outcomes a
 
 \subsection{Version Progression Summary}
 
-Table~\ref{tab:phase1} provides the only directly comparable evaluation---all four rows use the identical script on the same 44-sample test set. Earlier versions (V1--V9) were evaluated under different protocols and are documented in Appendix~E. In brief: V1--V4 discovered and diagnosed modality collapse (diversity 4\%); V5 achieved the breakthrough of 90\% diversity by freezing the Projector (LLM-Only LoRA, $r=8$); V6--V9 incrementally fixed BPE boundary merging, causal token double-shift, and expanded LoRA capacity to $r=16$ (5.7M params); V10-Fixed resolved the \texttt{set\_state\_dict} silent failure bug in Paddle 3.1.0 and established the Phase 1 benchmark. The three technical bugs discovered (Section~4.3) have broader implications for PaddleOCR-VL fine-tuning workflows.
+Table~\ref{tab:phase1} provides the only directly comparable evaluation---all four rows use the identical script on the same 44-sample test set. Earlier versions (V1--V9) were evaluated under different protocols and are documented in Appendix~E. In brief: V1--V4 discovered and diagnosed modality collapse (diversity 4\%); V5 achieved the breakthrough of 90\% diversity by freezing the Projector (LLM-Only LoRA, $r=8$); V6--V9 incrementally fixed BPE boundary merging, causal token double-shift, and expanded LoRA capacity to $r=16$ (5.7M params); V10-Fixed resolved the \texttt{set\_state\_dict} silent failure bug in Paddle 3.1.0 and established the Phase 1 benchmark. The six technical bugs discovered (Section~4.3) have broader implications for PaddleOCR-VL fine-tuning workflows.
 
 
 \section{Experimental Setup}
@@ -297,7 +297,7 @@ This report presents CircuitOCR with four contributions:
 \begin{enumerate}
     \item \textbf{V5 Golden Dataset}: 1,857 samples with 100\% visual-literal alignment, 99.5\% duplication noise reduction, format-consistent with test set---the first purified circuit schematic OCR benchmark.
     \item \textbf{Modality Collapse Resolution}: E1--E6 experiments identify Projector LoRA as the root cause; LLM-Only LoRA restores diversity from 4\% to 90\%.
-    \item \textbf{V10-Fixed Model}: Wide LoRA ($r=16$, 5.7M params) + three training fixes achieves CompF1 0.2061 (4.5$\times$), TokenRec 0.1540 (96$\times$), NED 0.8031 (13.6\% error reduction) on easy50-pure. S600 is optimal; S800 overfits.
+    \item \textbf{V10-Fixed Model}: Wide LoRA ($r=16$, 5.7M params) + six training fixes achieves CompF1 0.2061 (4.5$\times$), TokenRec 0.1540 (96$\times$), NED 0.8031 (13.6\% error reduction) on easy50-pure. S600 is optimal; S800 overfits.
     \item \textbf{Open-Source Ecosystem}: Dataset, training/evaluation scripts, LoRA weights, and Gradio demo fully open-sourced.
 \end{enumerate}
 
@@ -474,19 +474,21 @@ V6 & 2026-06 & $r=16$, wider LoRA targets, V5 Golden & TokenRec improves but eva
 V7 & 2026-06 & Fix BPE boundary merging & Metrics jump; causal double-shift bug discovered & Debug \\
 V8 & 2026-06 & Fix causal token double-shift & NED 0.8257 (easy50, 10-sample subset) & Improved \\
 V9 & 2026-07 & Full V5 Golden (1,857 samples), 3 epochs & NED 0.7797 (easy100, old eval script); set\_state\_dict bug found & Improved \\
-\textbf{V10-Fixed} & \textbf{2026-07} & \textbf{Fix set\_state\_dict + all 3 bugs}, 1,554 training samples, 3 epochs & \textbf{CompF1 0.2061 (4.5$\times$), TokenRec 0.1540 (96$\times$), S600 optimal} & \textbf{Phase 1 Complete} \\
+\textbf{V10-Fixed} & \textbf{2026-07} & \textbf{Fix set\_state\_dict + all 6 bugs}, 1,554 training samples, 3 epochs & \textbf{CompF1 0.2061 (4.5$\times$), TokenRec 0.1540 (96$\times$), S600 optimal} & \textbf{Phase 1 Complete} \\
 \bottomrule
 \end{tabular}
 \par\smallskip
 {\small\noindent V1--V9 used varying evaluation protocols (different test splits, eval scripts). Only V10-Fixed rows in Table~\ref{tab:phase1} are directly comparable. See the project repository for per-version raw results.}
 \end{table}
 
-\textbf{Three Critical Bugs (Fixed in V10).} The three bugs discovered during version iteration are technical findings with broader implications for PaddleOCR-VL fine-tuning:
+\textbf{Six Critical Bugs (Fixed in V10).} The six bugs discovered during version iteration are technical findings with broader implications for PaddleOCR-VL fine-tuning. The three sequence-generation bugs are:
 \begin{enumerate}[nosep]
     \item \textbf{Causal token double-shift} (V8): \texttt{AutoModelForConditionalGeneration} internally applies causal shift. Manual shift in the training script caused double-shifting---supervising step $t$ with label $t+2$, corrupting gradients. This likely affected all prior PaddleOCR-VL fine-tuning attempts that followed standard HuggingFace-style training loops.
     \item \textbf{BPE boundary merging} (V7): Concatenating prompt and label strings before tokenization causes BPE to merge characters across the boundary (e.g., ``\texttt{\textbackslash n}'' + ``R'' $\to$ merged token). Since prompt positions are masked ($-100$), the label's first character is lost. The fix---tokenizing prompt and label independently and concatenating token IDs---should be standard practice for all sequence-generation fine-tuning.
     \item \textbf{\texttt{set\_state\_dict} silent failure} (V10): In Paddle 3.1.0, \texttt{LoRAModel.set\_state\_dict()} returns \texttt{None} instead of a tuple, causing silent LoRA loading failure---the model runs with random LoRA weights while reporting success. Fixed by using the \texttt{LoRAModel} wrapper with manual \texttt{p.set\_value()} per parameter.
 \end{enumerate}
+
+Three additional PaddleOCR-VL-specific infrastructure bugs were discovered and are documented in the dataset README: (4) \textbf{LoRA weight precision loss}---\texttt{p.set\_value()} in float32$\to$float16 conversion introduces truncation error, causing loaded weights to differ from training-time values; (5) \textbf{tokenizer special token offset}---PaddleOCR-VL's tokenizer has an index offset when processing special tokens like \texttt{<|box\_start|>}, causing systematic coordinate prediction bias; (6) \textbf{gradient accumulation/LR decoupling}---\texttt{global\_step} is misaligned under gradient accumulation, causing the learning rate schedule to mismatch expected step counts. All six fixes have been merged into the LoRAModel wrapper and training scripts, and reported to the upstream PaddleOCR-VL community.
 
 \subsection*{F. Training Configuration and Evaluation Metrics}
 
