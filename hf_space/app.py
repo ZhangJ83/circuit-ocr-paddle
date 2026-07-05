@@ -155,6 +155,8 @@ def benchmark_tab():
     - **Template memorization**: model latches onto learned templates (e.g., AMS1117, R=10k, Pro Micro) from synthetic V3 data
     - **Repetition collapse on hard samples**: ~16% of samples exhibit token repetition
     - **0.9B parameter ceiling**: capacity limited by the base model architecture
+    - **V11 (Phase 2, regularized training)**: dropout=0.1 + label_smoothing=0.05 on 3,054 samples → CompF1 **collapsed to 0.0604** (worse than baseline 0.0455), NED=0.9171, RepRate=84.1%. Regularization alone cannot overcome the limited training data and model capacity.
+    - **V12 (Phase 3, Vision LoRA)**: two-stage training (LLM LoRA then Vision LoRA) → CompF1 collapsed further. Unfreezing the vision encoder at this scale introduces destructive gradient interference with the LLM head.
     - **Expected at this scale**: ExactMatch=0% and joint_f1=0.019 are consistent with 0.9B params, 5.7M trainable (0.63%), 1,554 samples, 43 min on consumer GPU. The meaningful gains are CompF1 4.5× and TokenRec 96×.
 
     ### Key Technical Details
@@ -164,14 +166,14 @@ def benchmark_tab():
     - **Dataset**: 1,554 samples (1,097 real KiCad projects + 457 Synthetic V3)
     - **Training**: 3 epochs (1,165 optimizer steps), single RTX 4060 8GB, ~43 minutes
     - **Accessibility**: Full training in 43 min on a single RTX 4060 8GB — any individual developer can reproduce without data center infrastructure
-    - **Three training pitfalls discovered** (affect all PaddleOCR-VL fine-tuning): causal token double-shift (AutoModelForConditionalGeneration internal shift), BPE boundary merging (affects all seq2seq training), set_state_dict silent failure (Paddle 3.1.0 API change)
+    - **Six training pitfalls discovered** (affect all PaddleOCR-VL fine-tuning): 3 in main README — causal token double-shift (AutoModelForConditionalGeneration internal shift), BPE boundary merging (affects all seq2seq training), set_state_dict silent failure (Paddle 3.1.0 API change); plus 3 in dataset README — eval/test data leakage in Easy100/Easy200/Easy50 splits, synthetic V3 template contamination, missing refdes prefix normalization
 
     ### Version Progression
 
     Earlier versions used different evaluation protocols — see the
     [technical report](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf)
-    for full version history. Phase 2 (larger dataset, regularization, topology metrics)
-    and Phase 3 (vision encoder LoRA, higher resolution) are in progress.
+    for full version history. V11 (Phase 2: larger dataset + regularization) and
+    V12 (Phase 3: Vision LoRA) both completed but collapsed — see Limitations above.
 
     Full results across all 4 evaluation splits (easy50/100/200/full523) are in the
     [technical report](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf)
@@ -210,9 +212,10 @@ def about_tab():
     | Phase | Goal | Status |
     |---|---|---|
     | Phase 1 | Fix modality collapse, establish baseline | ✅ Complete |
-    | Phase 2 | Larger dataset (3,839 samples), topology metrics, regularization | 🔄 In Progress |
-    | Phase 3 | Vision encoder LoRA, higher resolution, two-stage training | 📋 Planned |
-    | Phase 4 | SPICE verification, human-in-the-loop, production readiness | 📋 Planned |
+    | Phase 2 | Larger dataset (3,054 samples), topology metrics, regularization (V11) | ❌ Completed — collapsed (CompF1=0.0604, RepRate=84.1%) |
+    | Phase 3 | Vision encoder LoRA, higher resolution, two-stage training (V12) | ❌ Completed — collapsed further (destructive gradient interference) |
+    | Lessons | Regularization alone insufficient at this scale; Vision LoRA introduces destructive gradient interference with LLM head; dataset quality (synthetic contamination, label consistency) matters more than dataset size; 0.9B architecture may be below critical mass for this task | 💡 Learned |
+    | Phase 4 | SPICE verification, human-in-the-loop, production readiness | 📋 Planned (requires architectural breakthrough) |
 
     ### Links
     - [GitHub Repository](https://github.com/ZhangJ83/circuit-ocr-paddle)

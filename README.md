@@ -30,6 +30,8 @@ The first open-source benchmark and fine-tuning pipeline for circuit schematic O
 | **S600 (LoRA step 600)** ★ | 0% | **0.2061** | 0.2024 | **0.3114** | **0.1540** | **0.8031** | 15.9% | 90.9% |
 | S800 (LoRA step 800) | 0% | 0.2080 | 0.2862 | 0.1996 | 0.1191 | 0.8063 | 40.9% | 93.2% |
 
+> **Note:** V11 (regularized training, evaluated on the same easy50-pure split, 44 samples) performed worse than baseline in most metrics: CompF1=0.0604, NED=0.9171, RepRate=84.1%, Diversity=50%. The regularized training approach with synthetic data was counterproductive.
+
 ### Phase 2 Topology Metrics (V10-Fixed S600, easy50-pure)
 
 > Full 4-split results (easy50/100/200/full523) are available in the [technical report Appendix B](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf).
@@ -69,7 +71,7 @@ Despite ExactMatch=0%, the results represent genuine progress for a 0.9B-scale m
 | V1–V4 | Full LoRA | **Modality collapse**: Projector LoRA destroys pre-trained alignment → 4% diversity |
 | V5 | LLM-Only LoRA (r=8) | Freeze Projector → diversity recovers to 90%, proves architecture direction |
 | V6–E6 | Controlled experiments | 6 systematic experiments isolating variables (blank image, resolution, epochs, projector layers, LoRA rank, freeze strategy) → identified Projector LoRA as sole root cause of modality collapse |
-| V8-Fixed | Wide LoRA (r=16) | 3 training pitfalls discovered and documented for the community: (1) causal token double-shift affects ALL PaddleOCR-VL fine-tuning, (2) BPE boundary merging affects ALL sequence-generation fine-tuning, (3) set_state_dict→None is a Paddle 3.1.0 API compatibility issue |
+| V8-Fixed | Wide LoRA (r=16) | 3 training pitfalls discovered and documented for the community: (1) causal token double-shift affects ALL PaddleOCR-VL fine-tuning, (2) BPE boundary merging affects ALL sequence-generation fine-tuning, (3) set_state_dict→None is a Paddle 3.1.0 API compatibility issue. Three additional training infrastructure bugs (LoRA weight precision loss, tokenizer special token offset, gradient accumulation/LR decoupling) are documented in the [dataset README](circuit-ocr-dataset/README.md). |
 | V9-Pure | Final training | 1,554 samples, 3 epochs, easy100 NED 0.7797 |
 | **V10-Fixed** | **Phase 1 eval** | Multi-metric evaluation: CompF1, TokenRec, NED, RepRate, Diversity |
 
@@ -77,8 +79,8 @@ Despite ExactMatch=0%, the results represent genuine progress for a 0.9B-scale m
 
 | Version | Approach | Status | Key Result |
 |---------|----------|--------|------------|
-| V11 (Phase 2) | Regularized: dropout=0.1, label_smoothing=0.05, data augmentation, 3,054 samples | Completed | Mode collapse — RepRate monotonically increased to 93.2%. Synthetic data visual distribution mismatch confirmed. |
-| V12 (Phase 3) | Two-stage: LLM LoRA warmup (V10 S600) → Vision LoRA r=4, 448px resolution | Training (Stage 2) | Aims to address 87% value hallucination rate by improving visual encoder features. Results pending. |
+| V11 (Phase 2) | Regularized: dropout=0.1, label_smoothing=0.05, data augmentation, 3,054 samples | Completed | Mode collapse — RepRate monotonically increased to 84.1%. Synthetic data visual distribution mismatch confirmed. |
+| V12 (Phase 3) | Two-stage: LLM LoRA warmup (V10 S600) → Vision LoRA r=4, 448px resolution | Completed — collapsed | Vision LoRA retraining destroyed the LLM's text generation capability. All 50 predictions are garbage: numeric strings ("100000..."), repeated "+333...", empty strings, or repeated "VCC"/"GND". Two-stage approach confirmed harmful. |
 
 ### Previous Benchmark (V9-Pure)
 
@@ -138,6 +140,8 @@ python demo.py
 | **S600 (LoRA step 600)** ★ | 0% | **0.2061** | 0.2024 | **0.3114** | **0.1540** | **0.8031** | 15.9% | 90.9% |
 | S800 (LoRA step 800) | 0% | 0.2080 | 0.2862 | 0.1996 | 0.1191 | 0.8063 | 40.9% | 93.2% |
 
+> **注：** V11（正则化训练，同一 easy50-pure 测试集，44 样本）在大多数指标上劣于基线：CompF1=0.0604，NED=0.9171，RepRate=84.1%，Diversity=50%。正则化+合成数据的方案适得其反。
+
 ### 阶段二拓扑指标（V10-Fixed S600, easy50-pure）
 
 > 完整的四组测试结果（easy50/100/200/full523）详见[技术报告附录 B](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf)。
@@ -177,7 +181,7 @@ python demo.py
 | V1–V4 | 全量 LoRA | **模态坍塌**：Projector LoRA 破坏预训练对齐 → 多样性仅 4% |
 | V5 | LLM-Only LoRA (r=8) | 冻结 Projector → 多样性恢复至 90%，验证架构方向 |
 | V6–E6 | 受控实验 | 6 组系统实验，逐一隔离变量（空白图、分辨率、epoch、Projector 层、LoRA rank、冻结策略）→ 锁定 Projector LoRA 为模态坍塌的唯一根因 |
-| V8-Fixed | Wide LoRA (r=16) | 三大训练陷阱的发现与社区文档化：(1) causal token 双重偏移影响所有 PaddleOCR-VL 微调，(2) BPE 边界合并影响所有序列生成微调，(3) set_state_dict→None 是 Paddle 3.1.0 API 兼容性问题 |
+| V8-Fixed | Wide LoRA (r=16) | 三大训练陷阱的发现与社区文档化：(1) causal token 双重偏移影响所有 PaddleOCR-VL 微调，(2) BPE 边界合并影响所有序列生成微调，(3) set_state_dict→None 是 Paddle 3.1.0 API 兼容性问题。另外三个训练基础设施 Bug（LoRA 权重精度丢失、分词器特殊 token 偏移、梯度累积/学习率解耦）记录于[数据集 README](circuit-ocr-dataset/README.md)。 |
 | V9-Pure | 最终训练 | 1,554 样本，3 epoch，easy100 NED 0.7797 |
 | **V10-Fixed** | **阶段一评估** | 多指标评估体系：CompF1、TokenRec、NED、RepRate、Diversity |
 
@@ -185,8 +189,8 @@ python demo.py
 
 | 版本 | 方案 | 状态 | 关键结果 |
 |------|------|------|---------|
-| V11（阶段二） | 正则化训练：dropout=0.1, label_smoothing=0.05, 数据增强, 3,054 样本 | 已完成 | 模态坍塌——RepRate 单调上升至 93.2%。确认合成数据视觉分布不匹配。 |
-| V12（阶段三） | 两阶段训练：LLM LoRA 预热（V10 S600）→ Vision LoRA r=4, 448px 分辨率 | 训练中（Stage 2） | 目标：通过改善视觉编码器特征，解决 87% 数值幻觉率。结果待出。 |
+| V11（阶段二） | 正则化训练：dropout=0.1, label_smoothing=0.05, 数据增强, 3,054 样本 | 已完成 | 模态坍塌——RepRate 单调上升至 84.1%。确认合成数据视觉分布不匹配。 |
+| V12（阶段三） | 两阶段训练：LLM LoRA 预热（V10 S600）→ Vision LoRA r=4, 448px 分辨率 | 已完成 — 崩溃 | Vision LoRA 重新训练完全破坏了 LLM 的文本生成能力。全部 50 个预测均为垃圾输出：纯数字串（"100000..."）、重复 "+333..."、空字符串、或重复 "VCC"/"GND"。两阶段方案被证实有害。 |
 
 ### 先前基准（V9-Pure）
 
