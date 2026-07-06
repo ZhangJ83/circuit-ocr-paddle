@@ -1,101 +1,105 @@
 \relax 
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand*\HyPL@Entry[1]{}
+\citation{openschematics2025}
 \HyPL@Entry{0<</S/D>>}
-\citation{openschematics2025}
-\citation{bhandari2025masalachai}
+\@writefile{toc}{\contentsline {section}{\numberline {1}引言}{1}{section.1}\protected@file@percent }
 \citation{cui2025paddleocrvl}
-\citation{li2022ppocrv3}
-\@writefile{toc}{\contentsline {section}{\numberline {1}引言}{2}{section.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}研究背景与稀缺性}{2}{subsection.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}工业需求价值}{2}{subsection.1.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}背景与系统设置}{2}{section.2}\protected@file@percent }
-\newlabel{sec:headings}{{2}{2}{背景与系统设置}{section.2}{}}
-\newlabel{sec:headings@cref}{{[section][2][]2}{[1][2][]2}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}基座模型规格}{2}{subsection.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}工程场景定义}{2}{subsection.2.2}\protected@file@percent }
-\citation{zhang2026circuitocrfinal}
-\citation{openschematics2025}
-\citation{bhandari2025masalachai}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}任务结构：OCR + 拓扑追踪双任务联合学习}{3}{subsection.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}原生大语言模型的局限性}{3}{subsection.2.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}系统的数据集构建}{3}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}原始数据收集与来源}{3}{subsection.3.1}\protected@file@percent }
 \citation{zhang2026circuitocr}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}筛选、去重与质量控制}{4}{subsection.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.1}数据清洗去重}{4}{subsubsection.3.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{质检流水线}{5}{section*.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.2}大模型质量打分净化}{5}{subsubsection.3.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{人工检验}{5}{section*.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{人工排查复查}{5}{section*.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{执行清洗}{5}{section*.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{数据清洗与多源质控统计}{5}{section*.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{数据集划分与 PaddleOCR-VL SFT 格式转换}{5}{section*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{数据集分层层面}{5}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}数据分布与统计}{5}{subsection.3.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces 数据集构成与来源统计}}{6}{table.caption.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}系统设置}{2}{section.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces LLM-Only LoRA 架构。蓝色模块为冻结；橙色 LLM 模块接收低秩适配器。Projector（\texttt  {mlp\_AR}）是唯一的视觉-语言桥梁——扰动它会导致模态塌缩（E4，第~4.1 节）——因此保持冻结。仅 LLM 自注意力和线性投影矩阵（310 个目标）被适配。}}{2}{figure.caption.1}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{tab:dataset}{{1}{6}{数据集构成与来源统计}{table.caption.8}{}}
-\newlabel{tab:dataset@cref}{{[table][1][]1}{[1][5][]6}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces 数据集来源一：Open Schematics——真实开源硬件项目原理图。来自 GitHub/KiCad 社区的 8,450 张实物原理图，涵盖消费电子、工控、开源硬件等多样化设计，采用真实世界元件命名（如 ATMEGA328P、TPS5430）。}}{6}{figure.caption.9}\protected@file@percent }
-\newlabel{fig:dataset_oss}{{1}{6}{数据集来源一：Open Schematics——真实开源硬件项目原理图。来自 GitHub/KiCad 社区的 8,450 张实物原理图，涵盖消费电子、工控、开源硬件等多样化设计，采用真实世界元件命名（如 ATMEGA328P、TPS5430）。}{figure.caption.9}{}}
-\newlabel{fig:dataset_oss@cref}{{[figure][1][]1}{[1][5][]6}{}{}{}}
+\newlabel{fig:architecture}{{1}{2}{LLM-Only LoRA 架构。蓝色模块为冻结；橙色 LLM 模块接收低秩适配器。Projector（\texttt {mlp\_AR}）是唯一的视觉-语言桥梁——扰动它会导致模态塌缩（E4，第~4.1 节）——因此保持冻结。仅 LLM 自注意力和线性投影矩阵（310 个目标）被适配。}{figure.caption.1}{}}
+\newlabel{fig:architecture@cref}{{[figure][1][]1}{[1][2][]2}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}V5 Golden 数据集}{2}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}旧版缺陷与设计原则}{2}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}数据来源与统计}{3}{subsection.3.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces 数据集构成与划分}}{3}{table.caption.3}\protected@file@percent }
+\newlabel{tab:dataset}{{1}{3}{数据集构成与划分}{table.caption.3}{}}
+\newlabel{tab:dataset@cref}{{[table][1][]1}{[1][3][]3}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}模型微调}{3}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}模态塌缩：发现与根因}{3}{subsection.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces 模态塌缩消融实验}}{3}{table.caption.5}\protected@file@percent }
+\newlabel{tab:ablation}{{2}{3}{模态塌缩消融实验}{table.caption.5}{}}
+\newlabel{tab:ablation@cref}{{[table][2][]2}{[1][3][]3}{}{}{}}
 \citation{hu2021lora}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces 数据集来源二：Masala-CHAI——电子教材电路图。来自教科书和教学材料的 7,500 张电路图，每张直接配有标准 Spice 网表真值，覆盖模拟、数字、混合信号等教学场景。}}{7}{figure.caption.10}\protected@file@percent }
-\newlabel{fig:dataset_masala}{{2}{7}{数据集来源二：Masala-CHAI——电子教材电路图。来自教科书和教学材料的 7,500 张电路图，每张直接配有标准 Spice 网表真值，覆盖模拟、数字、混合信号等教学场景。}{figure.caption.10}{}}
-\newlabel{fig:dataset_masala@cref}{{[figure][2][]2}{[1][5][]7}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}数据增强策略}{7}{subsection.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}模型微调与性能提升路线}{7}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}模型微调}{7}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}性能提升路线：从 3.8\% 到 9.6\% 的验证与后续方向}{7}{subsection.4.2}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces 数据集来源三：程序化合成渲染图。通过 Python 脚本随机生成约 14,000 张原理图渲染图，覆盖模拟/数字/混合/电源四大类电路。每张图施加 5 种退化增强（纸张老化、扫描噪点、透视变形、手写标注、低分辨率），标注精度 100\%。}}{8}{figure.caption.11}\protected@file@percent }
-\newlabel{fig:dataset_synth}{{3}{8}{数据集来源三：程序化合成渲染图。通过 Python 脚本随机生成约 14,000 张原理图渲染图，覆盖模拟/数字/混合/电源四大类电路。每张图施加 5 种退化增强（纸张老化、扫描噪点、透视变形、手写标注、低分辨率），标注精度 100\%。}{figure.caption.11}{}}
-\newlabel{fig:dataset_synth@cref}{{[figure][3][]3}{[1][5][]8}{}{}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}已识别的瓶颈}{8}{subsubsection.4.2.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces 测试集样本。从 3,707 个测试样本中按标注长度划分为四个梯度层级：easy50（27--109 字符）、easy100（27--163 字符）、easy200（27--296 字符）和 full523（全部 523 样本），支持系统性的模型能力评估。}}{9}{figure.caption.12}\protected@file@percent }
-\newlabel{fig:dataset_test}{{4}{9}{测试集样本。从 3,707 个测试样本中按标注长度划分为四个梯度层级：easy50（27--109 字符）、easy100（27--163 字符）、easy200（27--296 字符）和 full523（全部 523 样本），支持系统性的模型能力评估。}{figure.caption.12}{}}
-\newlabel{fig:dataset_test@cref}{{[figure][4][]4}{[1][5][]9}{}{}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}改进方案（在当前硬件上已大部分验证）}{9}{subsubsection.4.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.3}长期方向（需要更多资源）}{10}{subsubsection.4.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}实验评估}{10}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}实验设置}{10}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}基座模型基准测试}{10}{subsection.5.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces easy50 基准测试完整对比（max\_length=30）}}{11}{table.caption.13}\protected@file@percent }
-\newlabel{tab:baseline}{{2}{11}{easy50 基准测试完整对比（max\_length=30）}{table.caption.13}{}}
-\newlabel{tab:baseline@cref}{{[table][2][]2}{[1][10][]11}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}LoRA 微调实验结果}{11}{subsection.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}性能瓶颈排查实验}{11}{subsection.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}拓扑评估（设计阶段）}{11}{subsection.5.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}实证分析}{11}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}基座模型失效模式分析}{11}{subsection.6.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 性能瓶颈排查实验设计与结果}}{12}{table.caption.15}\protected@file@percent }
-\newlabel{tab:ablation}{{3}{12}{性能瓶颈排查实验设计与结果}{table.caption.15}{}}
-\newlabel{tab:ablation@cref}{{[table][3][]3}{[1][11][]12}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}微调对输出的改变——正面效果与当前局限}{12}{subsection.6.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 训练超参数与系统配置}}{13}{table.caption.16}\protected@file@percent }
-\newlabel{tab:hparams}{{4}{13}{训练超参数与系统配置}{table.caption.16}{}}
-\newlabel{tab:hparams@cref}{{[table][4][]4}{[1][11][]13}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces $r=16$ Projector LoRA 与基座模型在各测试层级的对比}}{14}{table.caption.17}\protected@file@percent }
-\newlabel{tab:tiers}{{5}{14}{$r=16$ Projector LoRA 与基座模型在各测试层级的对比}{table.caption.17}{}}
-\newlabel{tab:tiers@cref}{{[table][5][]5}{[1][14][]14}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}主要创新点}{14}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}数据集的贡献}{15}{subsection.6.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}总结与局限性}{15}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}主要贡献与当前进展}{15}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}已识别的问题与教训}{15}{subsection.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}局限性}{16}{subsection.7.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}展望}{16}{subsection.7.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}开源贡献与社区价值}{16}{subsection.7.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}V5：LLM-Only LoRA 验证}{4}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}V10-Fixed：六项技术修复}{4}{subsection.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}阶段一多指标评估}{4}{subsection.4.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 阶段一多指标基准测试（easy50-pure，44 样本）}}{5}{table.caption.6}\protected@file@percent }
+\newlabel{tab:phase1}{{3}{5}{阶段一多指标基准测试（easy50-pure，44 样本）}{table.caption.6}{}}
+\newlabel{tab:phase1@cref}{{[table][3][]3}{[1][4][]5}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces 阶段一基准测试可视化（七项指标；ExactMatch 省略，因所有模型均为 0\%）。S600（蓝色，星标）取得最佳平衡。S800（橙色）明显过拟合。}}{5}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:phase1_chart}{{4}{5}{阶段一基准测试可视化（七项指标；ExactMatch 省略，因所有模型均为 0\%）。S600（蓝色，星标）取得最佳平衡。S800（橙色）明显过拟合。}{figure.caption.7}{}}
+\newlabel{fig:phase1_chart@cref}{{[figure][4][]4}{[1][5][]5}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}阶段二拓扑评估}{5}{subsection.4.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 阶段二拓扑指标（easy50-pure，44 样本）}}{6}{table.caption.10}\protected@file@percent }
+\newlabel{tab:topology}{{4}{6}{阶段二拓扑指标（easy50-pure，44 样本）}{table.caption.10}{}}
+\newlabel{tab:topology@cref}{{[table][4][]4}{[1][5][]6}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}版本演进概要}{6}{subsection.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}实验设置}{6}{section.5}\protected@file@percent }
+\citation{bhandari2025masalachai}
+\@writefile{toc}{\contentsline {section}{\numberline {6}讨论}{7}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}模态塌缩机制与解决}{7}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}数据质量优于数量}{7}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}合成数据偏差}{7}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}合成数据偏差}{7}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}检查点选择与过拟合}{7}{subsection.6.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}参数值瓶颈与后续实验}{8}{subsection.6.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}V11 与 V12：失败的扩展尝试}{8}{subsection.6.7}\protected@file@percent }
+\newlabel{sec:v11v12}{{6.7}{8}{V11 与 V12：失败的扩展尝试}{subsection.6.7}{}}
+\newlabel{sec:v11v12@cref}{{[subsection][7][6]6.7}{[1][8][]8}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}结论}{8}{section.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces 数据集总览：三类数据源。\textbf  {上排}——合成 V3：程序化随机拓扑生成（5--30 元件，10 种类型），\texttt  {draw.text()} 同步记录 GT。\textbf  {中排}——train-real（KiCad）：GitHub 真实开源项目，kicad-cli SVG$\to $cairosvg PNG 渲染，SVG stroked-text 提取 GT。\textbf  {下排}——测试集（easy50-pure）：留出的真实原理图用于评估。全部为原始 PNG 渲染，零 AI 标注。}}{10}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:dataset_overview}{{2}{10}{数据集总览：三类数据源。\textbf {上排}——合成 V3：程序化随机拓扑生成（5--30 元件，10 种类型），\texttt {draw.text()} 同步记录 GT。\textbf {中排}——train-real（KiCad）：GitHub 真实开源项目，kicad-cli SVG$\to $cairosvg PNG 渲染，SVG stroked-text 提取 GT。\textbf {下排}——测试集（easy50-pure）：留出的真实原理图用于评估。全部为原始 PNG 渲染，零 AI 标注。}{figure.caption.2}{}}
+\newlabel{fig:dataset_overview@cref}{{[figure][2][]2}{[1][3][]10}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces 数据集构成。左：V5 Golden 完整分布（共 1,857）。中：训练集以真实 KiCad 项目为主（71\%）。右：验证集分布类似。合成 V3 数据在所有划分中均为少数（训练集 29\%，验证集 23\%），但其对模型行为的影响不成比例（见第~7.3 节）。}}{11}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:dataset_donut}{{3}{11}{数据集构成。左：V5 Golden 完整分布（共 1,857）。中：训练集以真实 KiCad 项目为主（71\%）。右：验证集分布类似。合成 V3 数据在所有划分中均为少数（训练集 29\%，验证集 23\%），但其对模型行为的影响不成比例（见第~7.3 节）。}{figure.caption.4}{}}
+\newlabel{fig:dataset_donut@cref}{{[figure][3][]3}{[1][3][]11}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces V10-Fixed 多指标检查点扫描。上：CompF1、TokenRec 和 Diversity——S600 取得最佳平衡（标注）。下：NED 和 RepRate——S600 取得最低 NED（0.8031），而 S800 的 RepRate 飙升三倍但 CompF1 仅微增。}}{11}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:checkpoint_sweep}{{5}{11}{V10-Fixed 多指标检查点扫描。上：CompF1、TokenRec 和 Diversity——S600 取得最佳平衡（标注）。下：NED 和 RepRate——S600 取得最低 NED（0.8031），而 S800 的 RepRate 飙升三倍但 CompF1 仅微增。}{figure.caption.8}{}}
+\newlabel{fig:checkpoint_sweep@cref}{{[figure][5][]5}{[1][5][]11}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces 模型对比：三个测试样本，分别展示原始原理图、GT 网表、基座模型输出、S600 输出。基座模型要么幻觉通用文本，要么塌缩为重复输出。S600 能正确识别元件编号，但完整网表重建仍有不足。8 个带逐样本判决的标注示例见附录~D。}}{12}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:model_comparison}{{6}{12}{模型对比：三个测试样本，分别展示原始原理图、GT 网表、基座模型输出、S600 输出。基座模型要么幻觉通用文本，要么塌缩为重复输出。S600 能正确识别元件编号，但完整网表重建仍有不足。8 个带逐样本判决的标注示例见附录~D。}{figure.caption.9}{}}
+\newlabel{fig:model_comparison@cref}{{[figure][6][]6}{[1][5][]12}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces 阶段二拓扑能力落差。comp\_f1（蓝，仅标号）比 joint\_f1（橙，标号+值）高 10.8$\times $。这一差距量化了值幻觉问题：即使标号识别正确，87\% 的元件值仍是错误的。value\_acc（绿）在所有模型中均低于 0.13。}}{13}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:topology_gap}{{7}{13}{阶段二拓扑能力落差。comp\_f1（蓝，仅标号）比 joint\_f1（橙，标号+值）高 10.8$\times $。这一差距量化了值幻觉问题：即使标号识别正确，87\% 的元件值仍是错误的。value\_acc（绿）在所有模型中均低于 0.13。}{figure.caption.11}{}}
+\newlabel{fig:topology_gap@cref}{{[figure][7][]7}{[1][6][]13}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces 从 V3 到 V12 的版本演进。NED（红线，左轴）从 V3 到 V9 逐步下降，V11/V12 中回升。Diversity（绿色菱形，右轴）在 V5（LLM-Only LoRA）从 4\% 跃升至 90\%，并在 V10-Fixed 之前保持高位，随后在 V11/V12 中塌缩。阴影区域标记尚未收敛到可用训练方案的版本。}}{13}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:version_progression}{{8}{13}{从 V3 到 V12 的版本演进。NED（红线，左轴）从 V3 到 V9 逐步下降，V11/V12 中回升。Diversity（绿色菱形，右轴）在 V5（LLM-Only LoRA）从 4\% 跃升至 90\%，并在 V10-Fixed 之前保持高位，随后在 V11/V12 中塌缩。阴影区域标记尚未收敛到可用训练方案的版本。}{figure.caption.12}{}}
+\newlabel{fig:version_progression@cref}{{[figure][8][]8}{[1][6][]13}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces 所有模型变体在三个关键指标上的对比。左：CompF1——S600 取得最优值（0.2061），而 V11 和 V12 塌缩至基线附近或以下。中：Token Recall——Base 到 S600 的 96$\times $ 增益在 V11/V12 中完全丧失。右：Repetition Rate——V11/V12 塌缩表现为近乎 100\% 的重复输出，远超 S800 的 40.9\%。}}{14}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:model_metrics_bar}{{9}{14}{所有模型变体在三个关键指标上的对比。左：CompF1——S600 取得最优值（0.2061），而 V11 和 V12 塌缩至基线附近或以下。中：Token Recall——Base 到 S600 的 96$\times $ 增益在 V11/V12 中完全丧失。右：Repetition Rate——V11/V12 塌缩表现为近乎 100\% 的重复输出，远超 S800 的 40.9\%。}{figure.caption.13}{}}
+\newlabel{fig:model_metrics_bar@cref}{{[figure][9][]9}{[1][6][]14}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces (a) V10-Fixed（1,165 步）与 V11（800 步）的训练 loss 曲线。V10 SFT loss 从 2.71 平滑收敛至 0.30；标注了检查点 S400、S600、S800。V11 尽管训练集更大（3,054 vs.\ 1,554），loss 更高且更不稳定，反映了正则化在此模型规模下的失稳效应。(b) 两者的余弦退火学习率调度。}}{15}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:training_curves}{{10}{15}{(a) V10-Fixed（1,165 步）与 V11（800 步）的训练 loss 曲线。V10 SFT loss 从 2.71 平滑收敛至 0.30；标注了检查点 S400、S600、S800。V11 尽管训练集更大（3,054 vs.\ 1,554），loss 更高且更不稳定，反映了正则化在此模型规模下的失稳效应。(b) 两者的余弦退火学习率调度。}{figure.caption.14}{}}
+\newlabel{fig:training_curves@cref}{{[figure][10][]10}{[1][7][]15}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces V11 检查点扫描：RepRate（右轴，紫色）随训练步数单调递增，从 S200 的 43.2\% 升至 S800 的 93.2\%，而 CompF1（左轴，红色）从未超过 0.069，最终跌至基线以下。在正则化下延长训练会加剧而非缓解塌缩。}}{16}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:v11_collapse}{{11}{16}{V11 检查点扫描：RepRate（右轴，紫色）随训练步数单调递增，从 S200 的 43.2\% 升至 S800 的 93.2\%，而 CompF1（左轴，红色）从未超过 0.069，最终跌至基线以下。在正则化下延长训练会加剧而非缓解塌缩。}{figure.caption.15}{}}
+\newlabel{fig:v11_collapse@cref}{{[figure][11][]11}{[1][8][]16}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces 原始数据集样本。上排：合成 V3（程序化生成，\texttt  {draw.text()} 同步记录 GT）。下排：train-real（KiCad 开源项目，SVG stroked-text 提取 GT）。全部为原始 PNG 渲染。}}{17}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:appendix_samples}{{12}{17}{原始数据集样本。上排：合成 V3（程序化生成，\texttt {draw.text()} 同步记录 GT）。下排：train-real（KiCad 开源项目，SVG stroked-text 提取 GT）。全部为原始 PNG 渲染。}{figure.caption.18}{}}
+\newlabel{fig:appendix_samples@cref}{{[figure][12][]12}{[1][17][]17}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces 阶段一多指标完整基准测试（全部划分，V10-Fixed）}}{18}{table.caption.20}\protected@file@percent }
+\newlabel{tab:phase1_full}{{5}{18}{阶段一多指标完整基准测试（全部划分，V10-Fixed）}{table.caption.20}{}}
+\newlabel{tab:phase1_full@cref}{{[table][5][]5}{[1][17][]18}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces 阶段二拓扑指标（easy50-pure，44 样本）}}{19}{table.caption.22}\protected@file@percent }
+\newlabel{tab:topology_full}{{6}{19}{阶段二拓扑指标（easy50-pure，44 样本）}{table.caption.22}{}}
+\newlabel{tab:topology_full@cref}{{[table][6][]6}{[1][19][]19}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces 标注示例输出：S600 vs 基座模型 vs 真实标签}}{20}{table.caption.24}\protected@file@percent }
+\newlabel{tab:examples_annotated}{{7}{20}{标注示例输出：S600 vs 基座模型 vs 真实标签}{table.caption.24}{}}
+\newlabel{tab:examples_annotated@cref}{{[table][7][]7}{[1][19][]20}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces 完整版本演进历史}}{21}{table.caption.26}\protected@file@percent }
+\newlabel{tab:version_history}{{8}{21}{完整版本演进历史}{table.caption.26}{}}
+\newlabel{tab:version_history@cref}{{[table][8][]8}{[1][21][]21}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces V10-Fixed 完整训练配置}}{23}{table.caption.29}\protected@file@percent }
+\newlabel{tab:training_config}{{9}{23}{V10-Fixed 完整训练配置}{table.caption.29}{}}
+\newlabel{tab:training_config@cref}{{[table][9][]9}{[1][22][]23}{}{}{}}
 \bibstyle{unsrtnat}
 \bibdata{references}
-\bibcite{cui2025paddleocrvl}{{1}{2025}{{Cui et~al.}}{{Cui, Sun, Liang, Gao, Zhang, Liu, Wang, Zhou, Liu, Lin, Zhang, Zhang, Zheng, Zhang, Zhang, Liu, Yu, and Ma}}}
-\bibcite{li2022ppocrv3}{{2}{2022}{{Li et~al.}}{{Li, Liu, Guo, Yin, Jiang, Du, Du, Zhu, Lai, Hu, Yu, and Ma}}}
-\bibcite{zhang2026circuitocrfinal}{{3}{2026}{{Zhang}}{{}}}
-\bibcite{openschematics2025}{{4}{2025}{{bshada}}{{}}}
+\bibcite{openschematics2025}{{1}{2025}{{bshada}}{{}}}
+\bibcite{cui2025paddleocrvl}{{2}{2025}{{Cui et~al.}}{{Cui, Sun, Liang, Gao, Zhang, Liu, Wang, Zhou, Liu, Lin, Zhang, Zhang, Zheng, Zhang, Zhang, Liu, Yu, and Ma}}}
+\bibcite{zhang2026circuitocr}{{3}{2026}{{Zhang and Chen}}{{}}}
+\bibcite{hu2021lora}{{4}{2021}{{Hu et~al.}}{{Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and Chen}}}
 \bibcite{bhandari2025masalachai}{{5}{2025}{{Bhandari et~al.}}{{Bhandari, Bhat, He, Rahmani, Garg, and Karri}}}
-\bibcite{zhang2026circuitocr}{{6}{2026}{{Zhang and Chen}}{{}}}
-\bibcite{hu2021lora}{{7}{2021}{{Hu et~al.}}{{Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and Chen}}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces 模型对比可视化。每行一个样本，从左至右依次为：原始原理图、标注真值（Ground Truth）、基座模型识别结果、$r=16$ LoRA微调后识别结果。基座模型输出为通用文本或重复token，LoRA微调后输出聚焦于电路域标签但存在塌缩现象。}}{18}{figure.caption.14}\protected@file@percent }
-\newlabel{fig:model_comparison}{{5}{18}{模型对比可视化。每行一个样本，从左至右依次为：原始原理图、标注真值（Ground Truth）、基座模型识别结果、$r=16$ LoRA微调后识别结果。基座模型输出为通用文本或重复token，LoRA微调后输出聚焦于电路域标签但存在塌缩现象。}{figure.caption.14}{}}
-\newlabel{fig:model_comparison@cref}{{[figure][5][]5}{[1][10][]18}{}{}{}}
-\gdef \@abspage@last{18}
+\gdef \@abspage@last{24}

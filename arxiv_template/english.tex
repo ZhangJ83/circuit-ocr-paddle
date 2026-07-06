@@ -29,6 +29,9 @@
 \usepackage{doi}
 \usepackage{float}
 
+\extrafloats{30}
+\usepackage{placeins}
+
 \usepackage{tikz}
 \usetikzlibrary{positioning, arrows.meta, shapes.geometric, calc}
 
@@ -396,6 +399,7 @@ This report presents CircuitOCR with four contributions:
 
 \textbf{Honest Assessment.} Phase 2 topology evaluation reveals the capability gap: joint\_f1 = 0.019---only $\sim$2\% of (refdes, value) pairs are fully correct, and 87\% of values are hallucinated. ExactMatch remains 0\% for all models. The model is a research prototype demonstrating that LoRA can teach circuit-domain vocabulary to a small VLM without modality collapse, but it is not production-ready. Follow-up experiments (V11 regularized training, V12 two-stage Vision LoRA) both collapsed---confirming that the 0.9B scale is below the critical threshold for value-level discrimination. The comp\_f1$\to$joint\_f1 gap remains an open problem. Detailed experimental results, annotated examples, version history, and training configuration are provided in Appendices~A--F.
 
+\FloatBarrier
 \section*{Appendix}
 
 \subsection*{A. Raw Dataset Samples}

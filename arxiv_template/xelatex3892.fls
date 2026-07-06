@@ -1,0 +1,5 @@
+PWD G:/mimo_project/circuit_ocr/arxiv_template
+INPUT e:/080000software/081000_VSCode/texlive/2025/texmf.cnf
+INPUT e:/080000software/081000_VSCode/texlive/2025/texmf-dist/web2c/texmf.cnf
+INPUT e:/080000software/081000_VSCode/texlive/2025/texmf-var/web2c/xetex/xelatex.fmt
+INPUT template.tex

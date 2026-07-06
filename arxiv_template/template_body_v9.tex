@@ -2,7 +2,7 @@
 \maketitle
 
 \begin{abstract}
-电路原理图自动识别是电子设计自动化（EDA）领域的一项核心挑战，涉及视觉文字提取与拓扑图论追踪两大异构任务。本文提出 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 与网表提取系统。我们构建了 V5 Golden 多源平衡数据集，包含 1,857 张 KiCad 原理图（500 张程序化合成渲染图 + 1,357 张真实开源项目图）与 698 张 Masala-CHAI 教材电路图，经 SPICE 伪影清洗、质量评分和分层采样后保留 2,555 个独立样本，按 90/10 划分为训练集（2,299）和验证集（256）。我们通过系统性 LoRA 消融实验识别出\textbf{模态塌缩的根因}——对视觉-语言投影层（Projector）的微调会破坏预训练对齐权重——并提出 LLM-Only LoRA 架构彻底解决了该问题。最终 V8-Fixed 模型采用宽 LoRA 配置（$r=16$, $\alpha=32$, 5.7M 可训练参数），通过修复因果 token 偏移和 BPE 边界合并两大关键问题，在 V5 Golden 数据集上训练 3 epoch（1,800 步）后，于 easy100 全量测试集取得 Avg. NED = 0.7760（基座 0.8999，相对错误率削减 44.4\%），easy50 验证集取得 0.8257（基座 0.9634，相对错误率削减 37.6\%）。训练在单卡 NVIDIA RTX 4060 笔记本 GPU（8GB 显存）上约 2 小时完成。模型权重、数据集和在线 Demo 均已开源发布。
+电路原理图自动识别是电子设计自动化（EDA）领域的一项核心挑战，涉及视觉文字提取与拓扑图论追踪两大异构任务。本文提出 CircuitOCR，一个基于 PaddleOCR-VL-0.9B 的电路原理图 OCR 与网表提取系统。我们构建了 V5 Golden 多源平衡数据集，包含 1,857 张 KiCad 原理图（500 张程序化合成渲染图 + 1,357 张真实开源项目图）与 698 张 Masala-CHAI 教材电路图，经 SPICE 伪影清洗、质量评分和分层采样后保留 2,555 个独立样本，按 90/10 划分为训练集（2,299）和验证集（256）。我们通过系统性 LoRA 消融实验识别出\textbf{模态塌缩的根因}——对视觉-语言投影层（Projector）的微调会破坏预训练对齐权重——并提出 LLM-Only LoRA 架构彻底解决了该问题。最终 V8-Fixed 模型采用宽 LoRA 配置（$r=16$, $\alpha=32$, 5.7M 可训练参数），通过修复因果 token 偏移和 BPE 边界合并两大关键问题，在 V5 Golden 数据集上训练 3 epoch（1,800 步）后，于 easy100 全量测试集取得 Avg. NED = 0.7760（基座 0.9372，相对错误率削减 17.2\%），easy50 验证集取得 0.8257（基座 0.9634，相对错误率削减 14.3\%）。训练在单卡 NVIDIA RTX 4060 笔记本 GPU（8GB 显存）上约 2 小时完成。模型权重、数据集和在线 Demo 均已开源发布。
 \end{abstract}
 
 \keywords{电路原理图 \and OCR \and PaddleOCR-VL \and LoRA微调 \and 网表提取 \and 模态塌缩 \and 低显存训练}
@@ -201,7 +201,7 @@ PaddleOCR-VL 内部已自动执行 logits 的因果移位，但早期训练脚�
 
 \subsubsection{检查点筛选与最终评估}
 
-V8-Fixed 训练 3 epoch（1,800 步），每 200 步保存检查点并在 easy50 验证子集（10 样本）上自动评估以筛选最优权重。结果如表~\ref{tab:v8_checkpoints} 所示：s1600（Epoch 2.6）表现最优，Avg. NED = 0.8257，相比基座 0.9634 实现 37.6\% 的相对错误率削减。final（Epoch 3.0）NED 略有回升（0.8352），提示 2.6 epoch 附近为最优早停点。
+V8-Fixed 训练 3 epoch（1,800 步），每 200 步保存检查点并在 easy50 验证子集（10 样本）上自动评估以筛选最优权重。结果如表~\ref{tab:v8_checkpoints} 所示：s1600（Epoch 2.6）表现最优，Avg. NED = 0.8257，相比基座 0.9634 实现 14.3\% 的相对错误率削减。final（Epoch 3.0）NED 略有回升（0.8352），提示 2.6 epoch 附近为最优早停点。
 
 \begin{table}[h]
 \centering
@@ -220,10 +220,10 @@ final   & Step 1800 / Epoch 3.0 & 0.8352 \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent 注：s1600 相对基座错误率削减 37.6\%。NED 从 s1400 到 s1600 的波动（0.8727 $\to$ 0.8257）反映了小验证集的方差，但 s1600 的显著跃升与 final 的回升确认了 2.6 epoch 为最优早停点。}
+{\small\noindent 注：s1600 相对基座错误率削减 14.3\%。NED 从 s1400 到 s1600 的波动（0.8727 $\to$ 0.8257）反映了小验证集的方差，但 s1600 的显著跃升与 final 的回升确认了 2.6 epoch 为最优早停点。}
 \end{table}
 
-最优检查点 s1600 在 \textbf{easy100 全量测试集（100 样本）上取得 Avg. NED = 0.7760}，相比基座（0.8999）实现 44.4\% 的相对错误率削减。这是本项目目前在标准测试集上的最优成绩。模型输出已从基座的随机乱码/重复退化完全转变为结构化的电路网表格式（如 \texttt{R0\textbackslash nresistor\textbackslash nnet012\textbackslash nVSS\textbackslash nC0\textbackslash ncapacitor}），并能正确生成 EOS 终止符。
+最优检查点 s1600 在 \textbf{easy100 全量测试集（100 样本）上取得 Avg. NED = 0.7760}，相比基座（0.9372）实现 17.2\% 的相对错误率削减。这是本项目目前在标准测试集上的最优成绩。模型输出已从基座的随机乱码/重复退化完全转变为结构化的电路网表格式（如 \texttt{R0\textbackslash nresistor\textbackslash nnet012\textbackslash nVSS\textbackslash nC0\textbackslash ncapacitor}），并能正确生成 EOS 终止符。
 
 \subsection{版本性能演进总览}
 
@@ -237,14 +237,13 @@ final   & Step 1800 / Epoch 3.0 & 0.8352 \\
 \toprule
 \textbf{版本} & \textbf{架构特征} & \textbf{训练样本} & \textbf{可训练参数} & \textbf{easy50 NED} & \textbf{easy100 NED} \\
 \midrule
-基座       & 无微调        & 0      & 0       & 0.8848/0.9634* & 0.8999 \\
-V4 最优    & +Projector, $r=16$ & 2,433  & 2.75M   & 0.7961 & 0.8291 \\
+基座       & 无微调        & 0      & 0       & 0.8848/0.9634* & 0.9372 \\
 V5 LLM-Only & 冻结Projector, $r=8$ & 1,857 & 1.25M & 0.9031 & -- \\
 \textbf{V8-Fixed} & \textbf{冻结Projector, $r=16$} & \textbf{2,299} & \textbf{5.7M} & \textbf{0.8257*} & \textbf{0.7760} \\
 \bottomrule
 \end{tabular}
 \par\smallskip
-{\small\noindent *V8-Fixed 的 easy50 使用 10 样本验证子集（基座 NED=0.9634），V1--V4 的 easy50 使用旧 50 样本测试集（基座 NED=0.8848）。绝对值不可直接对比，以相对错误率削减为统一衡量标准。}
+{\small\noindent *easy50 列使用 10 样本验证子集（基座 = 0.9634）。easy100 列使用 100 样本全量测试集（基座 = 0.9372）。}
 \end{table}
 
 
@@ -296,7 +295,7 @@ V4 $\to$ V5 Golden 的数据集重构经验表明：\textbf{数据质量（GT-�
 
 \subsection{NED 与多样性的权衡}
 
-纯文本 NED 在评估电路 OCR 质量时存在固有局限。V4 最优模型在 easy50 上取得 0.7961 的较好 NED，但多样性仅 4\%——它学会了输出一个在所有测试样本上 NED 分数尚可的``平均''答案，而非真正读图。V5 模型 NED 0.9031 看似更差，但 90\% 的输出多样性意味着模型真正学会了根据输入图像生成不同输出。在电路 OCR 这类结构化输出任务中，需要将 NED 与多样性指标结合判断，避免被塌缩模型的``虚假低 NED''误导。
+% 的输出多样性意味着模型真正学会了根据输入图像生成不同输出。在电路 OCR 这类结构化输出任务中，需要将 NED 与多样性指标结合判断，避免被塌缩模型的``虚假低 NED''误导。
 
 
 \section{结论与展望}
@@ -308,7 +307,7 @@ V4 $\to$ V5 Golden 的数据集重构经验表明：\textbf{数据质量（GT-�
 \begin{enumerate}
     \item \textbf{V5 Golden 多源平衡数据集。} 构建了首个格式对齐、零 AI 标注、多源平衡的电路原理图 OCR 数据集。2,555 个高质量样本（KiCad 1,857 + Masala-CHAI 698），GT 100\% 来自确定性规则，与测试集格式 98.6\% 一致，行内重复噪点仅 107 个（较 V4 降低 99.5\%）。
     \item \textbf{模态塌缩根因的发现与系统性解决。} 通过 E1--E6 共六个控制变量实验，首次识别出 Projector 微调是 VLM 在小数据集下模态塌缩的根因，并提出 LLM-Only LoRA 策略彻底解决了该问题（多样性 4\% $\to$ 90\%）。
-    \item \textbf{V8-Fixed 最优模型。} 通过宽 LoRA 容量扩展（$r=16$, 5.7M 参数）+ 因果 token 偏移修复 + BPE 边界对齐，在 easy100 全量测试集取得 Avg. NED = 0.7760（基座 0.8999，44.4\% 相对错误率削减），为当前最优成绩。
+    \item \textbf{V8-Fixed 最优模型。} 通过宽 LoRA 容量扩展（$r=16$, 5.7M 参数）+ 因果 token 偏移修复 + BPE 边界对齐，在 easy100 全量测试集取得 Avg. NED = 0.7760（基座 0.9372，17.2\% 相对错误率削减），为当前最优成绩。
     \item \textbf{完整开源生态。} 数据集、训练/评估脚本、LoRA 权重、Gradio 在线 Demo 均在 MIT/Apache 2.0 许可证下完全开源。
 \end{enumerate}
 

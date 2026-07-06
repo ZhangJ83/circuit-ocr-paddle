@@ -1,9 +1,54 @@
-\begin{thebibliography}{4}
+\begin{thebibliography}{12}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Smith(2007)]{smith2007tesseract}
+Ray Smith.
+\newblock An overview of the tesseract ocr engine.
+\newblock \emph{Ninth International Conference on Document Analysis and
+  Recognition (ICDAR 2007)}, 2:\penalty0 629--633, 2007.
+
+\bibitem[Du et~al.(2020)Du, Li, Guo, Yin, Liu, Zhou, Bai, Yu, Yang, Dang, and
+  Wang]{du2020ppocr}
+Yuning Du, Chenxia Li, Ruoyu Guo, Xiaoting Yin, Weiwei Liu, Jun Zhou, Yifan
+  Bai, Zilin Yu, Yehua Yang, Qingqing Dang, and Haoshuang Wang.
+\newblock Pp-ocr: A practical ultra lightweight ocr system.
+\newblock In \emph{arXiv preprint arXiv:2009.09941}, 2020.
+
+\bibitem[Kim et~al.(2022)Kim, Hong, Yim, Nam, Park, Yim, Hwang, Yun, Han, and
+  Park]{kim2022donut}
+Geewook Kim, Teakgyu Hong, Moonbin Yim, JeongYeon Nam, Jinyoung Park, Jinyeong
+  Yim, Wonseok Hwang, Sangdoo Yun, Dongyoon Han, and Seunghyun Park.
+\newblock Ocr-free document understanding transformer, 2022.
+
+\bibitem[Lee et~al.(2023)Lee, Joshi, Turc, Hu, Liu, Eisenschlos, Khandelwal,
+  Shaw, Chang, and Toutanova]{lee2023pix2struct}
+Kenton Lee, Mandar Joshi, Iulia Turc, Hexiang Hu, Fangyu Liu, Julian
+  Eisenschlos, Urvashi Khandelwal, Peter Shaw, Ming-Wei Chang, and Kristina
+  Toutanova.
+\newblock Pix2struct: Screenshot parsing as pretraining for visual language
+  understanding, 2023.
+
+\bibitem[Liu et~al.(2023)Liu, Li, Wu, and Lee]{liu2023llava}
+Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong~Jae Lee.
+\newblock Visual instruction tuning, 2023.
+
+\bibitem[Bai et~al.(2023)Bai, Bai, Yang, Wang, Tan, Wang, Lin, Zhou, and
+  Zhou]{bai2023qwen}
+Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan, Peng Wang, Junyang
+  Lin, Chang Zhou, and Jingren Zhou.
+\newblock Qwen-vl: A versatile vision-language model for understanding,
+  localization, text reading, and beyond, 2023.
+
+\bibitem[Dai et~al.(2023)Dai, Li, Li, Tiong, Zhao, Wang, Li, Fung, and
+  Hoi]{dai2023instructblip}
+Wenliang Dai, Junnan Li, Dongxu Li, Anthony Meng~Huat Tiong, Junqi Zhao,
+  Weisheng Wang, Boyang Li, Pascale Fung, and Steven Hoi.
+\newblock Instructblip: Towards general-purpose vision-language models with
+  instruction tuning, 2023.
 
 \bibitem[bshada(2025)]{openschematics2025}
 bshada.
@@ -26,6 +71,12 @@ Jianning Zhang and Yifei Chen.
 \newblock A synthetic dataset for circuit schematic ocr and netlist extraction,
   2026.
 \newblock URL \url{https://github.com/ZhangJ83/circuit-ocr-dataset}.
+
+\bibitem[Hu et~al.(2021)Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and
+  Chen]{hu2021lora}
+Edward~J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+  Wang, Lu~Wang, and Weizhu Chen.
+\newblock Lora: Low-rank adaptation of large language models, 2021.
 
 \bibitem[Bhandari et~al.(2025)Bhandari, Bhat, He, Rahmani, Garg, and
   Karri]{bhandari2025masalachai}
