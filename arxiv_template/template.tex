@@ -101,7 +101,7 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 
 \section{引言}
 
-视觉语言模型（VLM）能够端到端地从图像输出结构化文本，但在电路原理图领域几乎未被探索。通用 OCR 引擎如 Tesseract~\citep{smith2007tesseract} 和 PaddleOCR~\citep{du2020ppocr} 为自然场景和文档文字设计，而非工程原理图。基于 VLM 的文档理解系统如 Donut~\citep{kim2022donut} 和 Pix2Struct~\citep{lee2023pix2struct} 展示了通用文档的 OCR-free 解析能力，通用 VLM（LLaVA~\citep{liu2023llava}、Qwen-VL~\citep{bai2023qwen}、InstructBLIP~\citep{dai2023instructblip}）尚未在电路图上评估。目前尚无专门的电路原理图 OCR 公开基准。现有数据集如 Open Schematics~\citep{openschematics2025} 缺乏标准化评估协议，教科书数据集则因 SPICE 隐性节点导致视觉-逻辑标注偏差。
+视觉语言模型（VLM）能够端到端地从图像输出结构化文本，但在电路原理图领域几乎未被探索。目前尚无专门的电路原理图 OCR 公开基准。现有数据集如 Open Schematics~\citep{openschematics2025} 缺乏标准化评估协议，教科书数据集则因 SPICE 隐性节点导致视觉-逻辑标注偏差。
 
 工业需求巨大。全球半导体市场 2025 年超 6,000 亿美元（SEMI/WSTS），仅 PCB 逆向工程外包市场每年超 5 亿美元，其中约 30\% 时间花在原理图重建上。应用场景包括硬件逆向工程、遗留文档数字化（1980--2000 年代纸质图纸）、跨工具迁移，以及 GitHub 上 50 万+ KiCad/EAGLE 项目缺乏结构化网表导出。
 
@@ -111,6 +111,33 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 \section{系统设置}
 
 选用 PaddleOCR-VL-0.9B~\citep{cui2025paddleocrvl}（908M 参数），集成 NaViT 动态视觉编码器与 ERNIE-4.5-0.3B 语言模型，支持 109 种语言。未微调的基座模型在电路原理图上系统性失效：输出通用文档文字（如参数表格）、记忆性幻觉或重复 token 序列。根因在于预训练数据以通用文档为主，极少包含工程图纸。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    node distance=0.55cm,
+    frozen/.style={rectangle, draw=blue!55!black, fill=blue!8, very thick, minimum width=4.4cm, minimum height=0.8cm, rounded corners=3pt, align=center, font=\small},
+    train/.style={rectangle, draw=orange!80!black, fill=orange!12, very thick, minimum width=4.4cm, minimum height=0.8cm, rounded corners=3pt, align=center, font=\small},
+    io/.style={rectangle, draw=gray!55!black, fill=gray!8, thick, minimum width=3.6cm, minimum height=0.65cm, rounded corners=3pt, align=center, font=\small},
+    arr/.style={-Stealth, thick, gray!60!black},
+    eblab/.style={font=\scriptsize, text=gray!50!black}
+]
+\node[io] (img) {输入原理图 (384\,px)};
+\node[frozen, below=of img] (ve) {NaViT 视觉编码器 \scriptsize(冻结)};
+\node[frozen, below=of ve] (proj) {Projector \texttt{mlp\_AR} (25.9M) \scriptsize(冻结)};
+\node[train, below=of proj] (llm) {ERNIE-4.5-0.3B LLM \scriptsize(LoRA $r{=}16$, 5.7M, 0.63\%)};
+\node[io, below=of llm] (out) {网表文本输出};
+\node[io, left=1.4cm of llm] (prompt) {文本 Prompt};
+\draw[arr] (img) -- (ve);
+\draw[arr] (ve) -- node[eblab, right] {视觉 token} (proj);
+\draw[arr] (proj) -- node[eblab, right] {语言嵌入} (llm);
+\draw[arr] (llm) -- (out);
+\draw[arr] (prompt) -- (llm);
+\end{tikzpicture}
+\caption{LLM-Only LoRA 架构。蓝色模块为冻结；橙色 LLM 模块接收低秩适配器。Projector（\texttt{mlp\_AR}）是唯一的视觉-语言桥梁——扰动它会导致模态塌缩（E4，第~4.1 节）——因此保持冻结。仅 LLM 自注意力和线性投影矩阵（310 个目标）被适配。}
+\label{fig:architecture}
+\end{figure}
+
 
 \begin{figure}[h]
 \centering
@@ -180,7 +207,13 @@ V5 Golden 基于两个原则重建：（1）GT 与可见文字 100\% 对齐，�
 {\small\noindent 总计行（1,857）与训练+验证行之和（1,775）之间的 82 样本差值为预留的额外真实 KiCad 测试集，独立于 easy50/easy100 基准划分。V5 Golden 总量为 1,857 = 1,554（训练）+ 221（验证）+ 82（预留测试）。}
 \end{table}
 
-训练时应用在线增强：随机 JPEG 压缩（质量 85--100）、随机缩放（max\_dim 168--384px）、随机水平翻转。
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.80\textwidth]{../circuit-ocr-dataset/figures/dataset_donut.png}
+\caption{数据集构成。左：V5 Golden 完整分布（共 1,857）。中：训练集以真实 KiCad 项目为主（71\%）。右：验证集分布类似。合成 V3 数据在所有划分中均为少数（训练集 29\%，验证集 23\%），但其对模型行为的影响不成比例（见第~7.3 节）。}
+\label{fig:dataset_donut}
+\end{figure}
+
 
 
 \section{模型微调}
@@ -262,6 +295,13 @@ S800   & 0\% & 0.2080 & 0.2862 & 0.1996 & 0.1191 & 0.8063 & 40.9\% & 93.2\% \\
 
 \begin{figure}[h]
 \centering
+\includegraphics[width=0.80\textwidth]{../circuit-ocr-dataset/figures/checkpoint_sweep.png}
+\caption{V10-Fixed 多指标检查点扫描。上：CompF1、TokenRec 和 Diversity——S600 取得最佳平衡（标注）。下：NED 和 RepRate——S600 取得最低 NED（0.8031），而 S800 的 RepRate 飙升三倍但 CompF1 仅微增。}
+\label{fig:checkpoint_sweep}
+\end{figure}
+
+\begin{figure}[h]
+\centering
 \includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/model_comparison.png}
 \caption{模型对比：三个测试样本，分别展示原始原理图、GT 网表、基座模型输出、S600 输出。基座模型要么幻觉通用文本，要么塌缩为重复输出。S600 能正确识别元件编号，但完整网表重建仍有不足。8 个带逐样本判决的标注示例见附录~D。}
 \label{fig:model_comparison}
@@ -293,9 +333,23 @@ comp\_f1（0.206）与 joint\_f1（0.019）之间的差距是阶段二的核心�
 
 需要强调，ExactMatch~=~0\% 和 joint\_f1~=~0.019 是当前规模下的预期结果（0.9B 参数，5.7M 可训练，1,554 样本，消费级 GPU 43 分钟）。有意义的信号是 CompF1 4.5$\times$ 提升和 TokenRec 96$\times$ 提升，这证明了 LoRA 能够在无模态塌缩的前提下教会小型 VLM 领域词汇。
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{../circuit-ocr-dataset/figures/topology_gap.png}
+\caption{阶段二拓扑能力落差。comp\_f1（蓝，仅标号）比 joint\_f1（橙，标号+值）高 10.8$\times$。这一差距量化了值幻觉问题：即使标号识别正确，87\% 的元件值仍是错误的。value\_acc（绿）在所有模型中均低于 0.13。}
+\label{fig:topology_gap}
+\end{figure}
+
 \subsection{版本演进概要}
 
 表~\ref{tab:phase1} 提供了唯一可直接对比的评估——全部四行使用相同的脚本在相同的 44 样本测试集上完成。早期版本（V1--V9）使用不同评估协议，详见附录~E。简要而言：V1--V4 发现并诊断了模态塌缩（多样性 4\%）；V5 通过冻结 Projector（LLM-Only LoRA，$r=8$）实现了多样性 90\% 的突破；V6--V9 逐步修复了 BPE 边界合并、因果 token 双重移位，并将 LoRA 容量扩展至 $r=16$（5.7M 参数）；V10-Fixed 修复了 Paddle 3.1.0 中 \texttt{set\_state\_dict} 静默失效 Bug，建立了阶段一基准。第~4.3 节所述的六项训练 Bug 对 PaddleOCR-VL 微调工作流具有广泛的参考意义。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/version_progression.png}
+\caption{从 V3 到 V12 的版本演进。NED（红线，左轴）从 V3 到 V9 逐步下降，V11/V12 中回升。Diversity（绿色菱形，右轴）在 V5（LLM-Only LoRA）从 4\% 跃升至 90\%，并在 V10-Fixed 之前保持高位，随后在 V11/V12 中塌缩。阴影区域标记尚未收敛到可用训练方案的版本。}
+\label{fig:version_progression}
+\end{figure}
 
 
 \section{实验设置}
@@ -312,6 +366,13 @@ comp\_f1（0.206）与 joint\_f1（0.019）之间的差距是阶段二的核心�
 \label{fig:model_metrics_bar}
 \end{figure}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/model_metrics_bar.png}
+\caption{所有模型变体在三个关键指标上的对比。左：CompF1——S600 取得最优值（0.2061），而 V11 和 V12 塌缩至基线附近或以下。中：Token Recall——Base 到 S600 的 96$\times$ 增益在 V11/V12 中完全丧失。右：Repetition Rate——V11/V12 塌缩表现为近乎 100\% 的重复输出，远超 S800 的 40.9\%。}
+\label{fig:model_metrics_bar}
+\end{figure}
+
 \subsection{模态塌缩机制与解决}
 
 Projector（\texttt{mlp\_AR}，25.9M 参数）是视觉到语言的唯一映射桥。即使极小比例的 LoRA 扰动（$\sim$0.3\% 参数）也会将其输出扭曲为 LLM 无法解释的向量，导致自回归退化为高频 token 重复。LLM-Only LoRA 通过冻结 Projector 彻底规避了这一问题。该发现适用于任何小数据集 VLM 微调场景。
@@ -319,6 +380,10 @@ Projector（\texttt{mlp\_AR}，25.9M 参数）是视觉到语言的唯一映射�
 \subsection{数据质量优于数量}
 
 V4 的 5,686 个噪声样本（格式失配 62.1\% vs.\ 98.6\%，22,340 个重复噪点）被 V5 Golden 的 1,857 个清洁样本超越。Masala-CHAI 教科书数据集~\citep{bhandari2025masalachai} 因 SPICE 衍生标注包含不可见逻辑节点（VSS、GND）导致幻觉而被弃用——移除这 30\% 样本后评估分数反而提升。精标小数据集始终优于粗标大数据集。
+
+\subsection{合成数据偏差}
+
+合成 V3 样本仅占训练集的 29\%（450/1,554），但其对模型行为的影响不成比例。附录~D 显示多个失败案例中模型幻觉出合成 V3 特有的模板：AMS1117 稳压器、Pro Micro 开发板、Battery\_Cell 组件反复出现在预测中，即使输入图像中并不存在。我们将其归因于两个机制：（1）\textbf{模板集中}——去重后的 107 个独特合成模板远不如 1,104 个真实 KiCad 项目多样，每个合成模式在训练中被看到的频率约为任一真实原理图的 $\sim$10$\times$；（2）\textbf{视觉简单性}——合成渲染缺乏真实原理图的视觉噪声、手写标注和布局变化，使其文本模式更易被模型记忆和复述。这一发现强化了电路 OCR 数据集的关键原则：合成数据对教授领域词汇有价值，但其模板多样性必须谨慎管理以防止记忆。
 
 \subsection{合成数据偏差}
 

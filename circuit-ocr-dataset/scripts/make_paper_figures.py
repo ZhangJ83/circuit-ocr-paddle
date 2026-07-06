@@ -225,5 +225,235 @@ fig.savefig(os.path.join(FIG_DIR, "v11_collapse_detail.png"), bbox_inches="tight
 plt.close()
 print("Saved: figures/v11_collapse_detail.png")
 
+# ── Figure 4: Dataset composition donut ────────────────────────────────────
+fig, axes = plt.subplots(1, 3, figsize=(7.5, 2.8))
+
+# Panel A: Full dataset breakdown
+labels_a = ["Train\n(real 1,104)", "Train\n(synth 450)", "Val\n(real 171)", "Val\n(synth 50)",
+            "Test\n(held-out 82)"]
+sizes_a = [1104, 450, 171, 50, 82]
+colors_a = ["#2166AC", "#92C5DE", "#4393C3", "#D1E5F0", "#053061"]
+explode_a = (0, 0, 0, 0, 0.05)
+wedges1, texts1, autotexts1 = axes[0].pie(
+    sizes_a, explode=explode_a, labels=labels_a, colors=colors_a,
+    autopct="%1.0f%%", startangle=90, pctdistance=0.6, labeldistance=1.12,
+    textprops={"fontsize": 6.5})
+axes[0].set_title("Full V5 Golden\n(1,857 samples)", fontsize=9, fontweight="bold")
+
+# Panel B: Training set (1,554)
+sizes_b = [450, 1104]
+labels_b = ["Synthetic V3\n(450, 29%)", "Real KiCad\n(1,104, 71%)"]
+colors_b = ["#FC8D59", "#2166AC"]
+wedges2, texts2, autotexts2 = axes[1].pie(
+    sizes_b, labels=labels_b, colors=colors_b, autopct="%1.0f%%",
+    startangle=90, pctdistance=0.55, textprops={"fontsize": 7.5})
+axes[1].set_title("Training Set\n(1,554 samples)", fontsize=9, fontweight="bold")
+
+# Panel C: Validation set (221)
+sizes_c = [50, 171]
+labels_c = ["Synthetic V3\n(50, 23%)", "Real KiCad\n(171, 77%)"]
+colors_c = ["#FC8D59", "#2166AC"]
+wedges3, texts3, autotexts3 = axes[2].pie(
+    sizes_c, labels=labels_c, colors=colors_c, autopct="%1.0f%%",
+    startangle=90, pctdistance=0.55, textprops={"fontsize": 7.5})
+axes[2].set_title("Validation Set\n(221 samples)", fontsize=9, fontweight="bold")
+
+fig.tight_layout(pad=1.0)
+fig.savefig(os.path.join(FIG_DIR, "dataset_donut.png"), bbox_inches="tight",
+            facecolor="white", edgecolor="none")
+plt.close()
+print("Saved: figures/dataset_donut.png")
+
+# ── Figure 5: V10 Checkpoint sweep line chart ─────────────────────────────
+checkpoints = ["S400", "S600", "S800"]
+comp_f1_sweep = [0.1820, 0.2061, 0.2080]
+token_rec_sweep = [0.1302, 0.1540, 0.1191]
+ned_sweep = [0.8298, 0.8031, 0.8063]        # lower better
+rep_rate_sweep = [0.205, 0.159, 0.409]
+diversity_sweep = [0.955, 0.909, 0.932]
+
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(5.5, 4.5), sharex=True,
+                                 gridspec_kw={"height_ratios": [1, 1], "hspace": 0.06})
+x = np.arange(len(checkpoints))
+w = 0.18
+
+# Panel A: CompF1 + TokenRec
+b1 = ax1.bar(x - w, comp_f1_sweep, w, color="#2166AC", edgecolor="white", lw=0.3,
+             label="CompF1 $\\uparrow$")
+ax1_twin = ax1.twinx()
+b2 = ax1_twin.bar(x, token_rec_sweep, w, color="#FC8D59", edgecolor="white", lw=0.3,
+                  label="TokenRec $\\uparrow$")
+b3 = ax1_twin.bar(x + w, diversity_sweep, w, color="#4DAF4A", edgecolor="white", lw=0.3,
+                  label="Diversity $\\uparrow$")
+
+ax1.set_ylabel("CompF1 $\\uparrow$", fontsize=8, color="#2166AC")
+ax1.tick_params(axis="y", labelcolor="#2166AC", labelsize=7)
+ax1.set_ylim(0, 0.40)
+ax1.grid(axis="y", alpha=0.15, color="#2166AC")
+ax1_twin.set_ylabel("TokenRec / Diversity $\\uparrow$", fontsize=8, color="#FC8D59")
+ax1_twin.tick_params(axis="y", labelcolor="#FC8D59", labelsize=7)
+ax1_twin.set_ylim(0, 1.05)
+
+# Combined legend
+lines1, labels1 = ax1.get_legend_handles_labels()
+lines2, labels2 = ax1_twin.get_legend_handles_labels()
+ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left", fontsize=7,
+           framealpha=0.9, edgecolor="gray", fancybox=False, ncol=3)
+
+# Highlight S600 as optimal
+for i, (name, val) in enumerate(zip(checkpoints, comp_f1_sweep)):
+    if name == "S600":
+        ax1.annotate("[BEST]", (i - w, val), textcoords="offset points",
+                     xytext=(0, 12), fontsize=7, ha="center", fontweight="bold",
+                     color="#2166AC")
+
+# Panel B: NED + RepRate (both lower is better)
+ax2.plot(x, ned_sweep, "o-", color="#B2182B", lw=1.5, markersize=7, label="NED $\\downarrow$",
+         markerfacecolor="white", markeredgewidth=1.5)
+for i, val in enumerate(ned_sweep):
+    ax2.annotate(f"{val:.4f}", (i, val), textcoords="offset points",
+                 xytext=(0, -14), fontsize=6.5, ha="center", color="#B2182B")
+ax2_twin = ax2.twinx()
+ax2_twin.bar(x, rep_rate_sweep, 0.4, color="#7570B3", alpha=0.6, edgecolor="white", lw=0.3,
+             label="RepRate $\\downarrow$")
+for i, val in enumerate(rep_rate_sweep):
+    ax2_twin.annotate(f"{val:.1%}", (i, val), textcoords="offset points",
+                      xytext=(0, 8), fontsize=6.5, ha="center", color="#7570B3")
+
+ax2.set_ylabel("NED $\\downarrow$", fontsize=8, color="#B2182B")
+ax2.tick_params(axis="y", labelcolor="#B2182B", labelsize=7)
+ax2.set_ylim(0.78, 0.86)
+ax2.grid(axis="y", alpha=0.15)
+ax2_twin.set_ylabel("RepRate $\\downarrow$", fontsize=8, color="#7570B3")
+ax2_twin.tick_params(axis="y", labelcolor="#7570B3", labelsize=7)
+ax2_twin.set_ylim(0, 0.55)
+
+lines3, labels3 = ax2.get_legend_handles_labels()
+lines4, labels4 = ax2_twin.get_legend_handles_labels()
+ax2.legend(lines3 + lines4, labels3 + labels4, loc="upper left", fontsize=7,
+           framealpha=0.9, edgecolor="gray", fancybox=False)
+
+ax2.set_xticks(x)
+ax2.set_xticklabels(checkpoints, fontsize=8)
+ax2.set_xlabel("Checkpoint", fontsize=8)
+
+fig.tight_layout(pad=0.5)
+fig.savefig(os.path.join(FIG_DIR, "checkpoint_sweep.png"), bbox_inches="tight",
+            facecolor="white", edgecolor="none")
+plt.close()
+print("Saved: figures/checkpoint_sweep.png")
+
+# ── Figure 6: Phase 2 Topology capacity gap ────────────────────────────────
+models_p2 = ["Base", "S400", "S600", "S800"]
+comp_f1_p2 = [0.0455, 0.1820, 0.2061, 0.2080]
+joint_f1_p2 = [0.0000, 0.0027, 0.0191, 0.0064]
+value_acc_p2 = [0.0, 0.006, 0.133, 0.023]
+
+fig, ax = plt.subplots(figsize=(5.2, 3.0))
+x = np.arange(len(models_p2))
+w = 0.22
+
+ax.bar(x - w, comp_f1_p2, w, color="#2166AC", edgecolor="white", lw=0.3,
+       label="comp_f1 (refdes-only)")
+ax.bar(x, joint_f1_p2, w, color="#FC8D59", edgecolor="white", lw=0.3,
+       label="joint_f1 (refdes, value)")
+ax.bar(x + w, value_acc_p2, w, color="#4DAF4A", edgecolor="white", lw=0.3,
+       label="value_acc")
+
+# Annotate S600 values
+for i, (jf, cf) in enumerate(zip(joint_f1_p2, comp_f1_p2)):
+    if models_p2[i] == "S600":
+        ax.annotate(f"{cf:.3f}", (i - w, cf), textcoords="offset points",
+                    xytext=(0, 6), fontsize=6.5, ha="center", fontweight="bold", color="#2166AC")
+        ax.annotate(f"only {jf:.3f}", (i, jf), textcoords="offset points",
+                    xytext=(0, 6), fontsize=6.5, ha="center", fontweight="bold", color="#FC8D59")
+    elif jf > 0.001:
+        ax.annotate(f"{jf:.4f}", (i, jf), textcoords="offset points",
+                    xytext=(0, 5), fontsize=5.5, ha="center", color="#FC8D59")
+
+ax.set_ylabel("F1 Score $\\uparrow$")
+ax.set_xticks(x)
+ax.set_xticklabels(models_p2, fontsize=8)
+ax.legend(fontsize=7, framealpha=0.9, edgecolor="gray", fancybox=False, ncol=3)
+ax.grid(axis="y", alpha=0.2)
+ax.set_ylim(0, 0.30)
+
+# Add gap annotation
+ax.annotate("", xy=(2 - w/2, 0.0191), xytext=(2 - w/2, 0.2061),
+            arrowprops=dict(arrowstyle="<->", color="red", lw=1.0, ls="--"))
+ax.annotate("10.8× gap", xy=(1.85, 0.12), fontsize=7, color="red", fontweight="bold")
+
+fig.tight_layout(pad=0.5)
+fig.savefig(os.path.join(FIG_DIR, "topology_gap.png"), bbox_inches="tight",
+            facecolor="white", edgecolor="none")
+plt.close()
+print("Saved: figures/topology_gap.png")
+
+# ── Figure 7: Version progression ──────────────────────────────────────────
+versions = ["V3\n(2026-06)", "V5\n(2026-06)", "V8\n(2026-06)", "V9\n(2026-07)",
+            "V10-Fixed\n(2026-07)", "V11\n(2026-07)", "V12\n(2026-07)"]
+ned_hist = [0.8271, 0.9031, 0.8257, 0.7797, 0.8031, 0.9171, 1.0]
+diversity_hist = [0.04, 0.90, 0.90, 0.90, 0.909, 0.50, 0.0]
+comp_f1_hist = [0.03, 0.05, 0.12, 0.16, 0.2061, 0.0604, 0.0]
+v_colors = ["#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061", "#FC8D59", "#B2182B"]
+
+fig, ax1 = plt.subplots(figsize=(7.0, 3.2))
+x = np.arange(len(versions))
+
+# NED line
+ax1.plot(x, ned_hist, "s-", color="#B2182B", lw=1.5, markersize=6, label="NED $\\downarrow$",
+         markerfacecolor="white", markeredgewidth=1.5)
+ax1.set_ylabel("NED $\\downarrow$", color="#B2182B", fontsize=9)
+ax1.tick_params(axis="y", labelcolor="#B2182B")
+ax1.set_ylim(0.70, 1.05)
+
+# Diversity line
+ax1b = ax1.twinx()
+ax1b.plot(x, diversity_hist, "D-", color="#4DAF4A", lw=1.5, markersize=6,
+          label="Diversity $\\uparrow$", markerfacecolor="white", markeredgewidth=1.5)
+ax1b.set_ylabel("Diversity $\\uparrow$", color="#4DAF4A", fontsize=9)
+ax1b.tick_params(axis="y", labelcolor="#4DAF4A")
+ax1b.set_ylim(-0.05, 1.1)
+
+# Highlight milestones
+# V5: diversity breakthrough
+ax1b.annotate("diversity\nrestored 90%", (1, 0.90), textcoords="offset points",
+              xytext=(-15, -25), fontsize=7, color="#4DAF4A", ha="center",
+              arrowprops=dict(arrowstyle="->", color="#4DAF4A", lw=0.8))
+
+# V9: best NED
+ax1.annotate("best NED\n0.7797", (3, 0.7797), textcoords="offset points",
+             xytext=(5, -30), fontsize=7, color="#B2182B", ha="center",
+             arrowprops=dict(arrowstyle="->", color="#B2182B", lw=0.8))
+
+# V10-Fixed: best CompF1
+ax1.annotate("CompF1 0.206\n4.5× baseline", (4, 0.8031), textcoords="offset points",
+             xytext=(0, 20), fontsize=7, color="#053061", ha="center", fontweight="bold")
+
+# V11 collapse
+ax1.annotate("collapse", (5, 0.9171), textcoords="offset points",
+             xytext=(0, -25), fontsize=7, color="#FC8D59", ha="center", fontstyle="italic")
+ax1.annotate("collapse", (6, 1.0), textcoords="offset points",
+             xytext=(0, -25), fontsize=7, color="#B2182B", ha="center", fontstyle="italic")
+
+# Shade V10 as final
+ax1.axvspan(3.5, 6.5, alpha=0.04, color="gray")
+
+ax1.set_xticks(x)
+ax1.set_xticklabels(versions, fontsize=7)
+ax1.grid(axis="y", alpha=0.15)
+
+# Combined legend
+lines1, labels1 = ax1.get_legend_handles_labels()
+lines2, labels2 = ax1b.get_legend_handles_labels()
+ax1.legend(lines1 + lines2, labels1 + labels2, loc="lower left", fontsize=7.5,
+           framealpha=0.9, edgecolor="gray", fancybox=False)
+
+fig.tight_layout(pad=0.5)
+fig.savefig(os.path.join(FIG_DIR, "version_progression.png"), bbox_inches="tight",
+            facecolor="white", edgecolor="none")
+plt.close()
+print("Saved: figures/version_progression.png")
+
 print("\nAll figures generated successfully.")
 print(f"Output directory: {FIG_DIR}")

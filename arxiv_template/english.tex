@@ -175,6 +175,13 @@ Test (easy100) & -- & -- & 89   & -- \\
 {\small\noindent The 82-sample gap between the Total row (1,857) and the sum of Training + Validation rows (1,775) consists of real KiCad samples held out as an additional clean test set, separate from the easy50/easy100 benchmark splits. The V5 Golden total is thus 1,857 = 1,554 (train) + 221 (val) + 82 (held-out test).}
 \end{table}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.80\textwidth]{../circuit-ocr-dataset/figures/dataset_donut.png}
+\caption{Dataset composition. Left: full V5 Golden breakdown (1,857 total). Center: training set dominated by real KiCad projects (71\%). Right: validation set follows a similar distribution. Synthetic V3 data is the minority in all splits (29\% train, 23\% val), yet its influence on model behavior is disproportionate (see Section~7.3).}
+\label{fig:dataset_donut}
+\end{figure}
+
 During training, we apply online augmentations: random JPEG compression (quality 85--100), random scaling (max\_dim 168--384px), and random horizontal flipping.
 
 
@@ -259,6 +266,13 @@ Key findings: (1) S600 is optimal across NED, TokenRec, and CompRec with healthy
 
 \begin{figure}[h]
 \centering
+\includegraphics[width=0.80\textwidth]{../circuit-ocr-dataset/figures/checkpoint_sweep.png}
+\caption{Multi-metric checkpoint sweep across V10-Fixed training. Top: CompF1, TokenRec, and Diversity --- S600 achieves the best balance (marked). Bottom: NED and RepRate --- S600 achieves lowest NED (0.8031), while S800's RepRate triples with only marginal CompF1 gain.}
+\label{fig:checkpoint_sweep}
+\end{figure}
+
+\begin{figure}[h]
+\centering
 \includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/model_comparison.png}
 \caption{Model comparison: three test examples showing the original schematic, ground truth netlist, base model output, and S600 output. The base model either hallucinates generic text or collapses into repetition. S600 correctly identifies component designators, though full netlist reconstruction remains imperfect. See Appendix~D for 8 annotated examples with per-sample verdicts.}
 \label{fig:model_comparison}
@@ -290,9 +304,23 @@ The gap between comp\_f1 (0.206) and joint\_f1 (0.019) is the central finding of
 
 We emphasize that ExactMatch~=~0\% and joint\_f1~=~0.019 are expected outcomes at this scale (0.9B parameters, 5.7M trainable, 1,554 samples, 43 minutes on consumer GPU). The meaningful signal is the 4.5$\times$ CompF1 improvement and 96$\times$ TokenRec improvement, which demonstrate that LoRA can successfully teach domain vocabulary to a small VLM without modality collapse.
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{../circuit-ocr-dataset/figures/topology_gap.png}
+\caption{Phase 2 topology capacity gap. comp\_f1 (blue, refdes-only) is 10.8$\times$ higher than joint\_f1 (orange, refdes+value). The gap quantifies the value hallucination problem: 87\% of component values are wrong even when the designator is identified. value\_acc (green) remains below 0.13 for all models.}
+\label{fig:topology_gap}
+\end{figure}
+
 \subsection{Version Progression Summary}
 
 Table~\ref{tab:phase1} provides the only directly comparable evaluation---all four rows use the identical script on the same 44-sample test set. Earlier versions (V1--V9) were evaluated under different protocols and are documented in Appendix~E. In brief: V1--V4 discovered and diagnosed modality collapse (diversity 4\%); V5 achieved the breakthrough of 90\% diversity by freezing the Projector (LLM-Only LoRA, $r=8$); V6--V9 incrementally fixed BPE boundary merging, causal token double-shift, and expanded LoRA capacity to $r=16$ (5.7M params); V10-Fixed resolved the \texttt{set\_state\_dict} silent failure bug in Paddle 3.1.0 and established the Phase 1 benchmark. The six technical bugs discovered (Section~4.3) have broader implications for PaddleOCR-VL fine-tuning workflows.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/version_progression.png}
+\caption{Version progression from V3 through V12. NED (red line, left axis) trends downward from V3 to V9 then rises in V11/V12. Diversity (green diamonds, right axis) jumps from 4\% to 90\% at V5 (LLM-Only LoRA) and remains high through V10-Fixed, then collapses in V11/V12. The shaded region marks versions that have not yet converged to a useful training recipe.}
+\label{fig:version_progression}
+\end{figure}
 
 
 \section{Experimental Setup}
