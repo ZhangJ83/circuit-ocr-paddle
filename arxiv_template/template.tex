@@ -26,6 +26,9 @@
 \usepackage{doi}
 \usepackage{float}
 
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, calc}
+
 \usepackage{ctex}
 
 \ifPDFTeX\else
@@ -109,6 +112,32 @@ pdfkeywords={Circuit Schematic, OCR, PaddleOCR-VL, LoRA, Netlist Extraction},
 
 选用 PaddleOCR-VL-0.9B~\citep{cui2025paddleocrvl}（908M 参数），集成 NaViT 动态视觉编码器与 ERNIE-4.5-0.3B 语言模型，支持 109 种语言。未微调的基座模型在电路原理图上系统性失效：输出通用文档文字（如参数表格）、记忆性幻觉或重复 token 序列。根因在于预训练数据以通用文档为主，极少包含工程图纸。
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    node distance=0.55cm,
+    frozen/.style={rectangle, draw=blue!55!black, fill=blue!8, very thick, minimum width=4.4cm, minimum height=0.8cm, rounded corners=3pt, align=center, font=\small},
+    train/.style={rectangle, draw=orange!80!black, fill=orange!12, very thick, minimum width=4.4cm, minimum height=0.8cm, rounded corners=3pt, align=center, font=\small},
+    io/.style={rectangle, draw=gray!55!black, fill=gray!8, thick, minimum width=3.6cm, minimum height=0.65cm, rounded corners=3pt, align=center, font=\small},
+    arr/.style={-Stealth, thick, gray!60!black},
+    eblab/.style={font=\scriptsize, text=gray!50!black}
+]
+\node[io] (img) {输入原理图 (384\,px)};
+\node[frozen, below=of img] (ve) {NaViT 视觉编码器 \scriptsize(冻结)};
+\node[frozen, below=of ve] (proj) {Projector \texttt{mlp\_AR} (25.9M) \scriptsize(冻结)};
+\node[train, below=of proj] (llm) {ERNIE-4.5-0.3B LLM \scriptsize(LoRA $r{=}16$, 5.7M, 0.63\%)};
+\node[io, below=of llm] (out) {网表文本输出};
+\node[io, left=1.4cm of llm] (prompt) {文本 Prompt};
+\draw[arr] (img) -- (ve);
+\draw[arr] (ve) -- node[eblab, right] {视觉 token} (proj);
+\draw[arr] (proj) -- node[eblab, right] {语言嵌入} (llm);
+\draw[arr] (llm) -- (out);
+\draw[arr] (prompt) -- (llm);
+\end{tikzpicture}
+\caption{LLM-Only LoRA 架构。蓝色模块为冻结；橙色 LLM 模块接收低秩适配器。Projector（\texttt{mlp\_AR}）是唯一的视觉-语言桥梁——扰动它会导致模态塌缩（E4，第~4.1 节）——因此保持冻结。仅 LLM 自注意力和线性投影矩阵（310 个目标）被适配。}
+\label{fig:architecture}
+\end{figure}
+
 
 \section{V5 Golden 数据集}
 
@@ -188,7 +217,7 @@ V5 冻结 Projector，仅微调 LLM 自注意力（$r=8$, $\alpha=16$, 1.25M 参
 
 \subsection{V10-Fixed：六项技术修复}
 
-V10-Fixed 将 LoRA 扩展至 $r=16$, $\alpha=32$（5.7M 参数，占 908M 的 0.63\%），覆盖 310 个投影矩阵（LLM 自注意力 + 线性层）。修复了六个关键训练 Bug（另有三项 PaddleOCR-VL 特定 Bug 记录于 Dataset README）：
+V10-Fixed 将 LoRA 扩展至 $r=16$, $\alpha=32$（5.7M 参数，占 908M 的 0.63\%），覆盖 310 个投影矩阵（LLM 自注意力 + 线性层）。LoRA~\citep{hu2021lora} 用低秩更新 $\Delta W = BA$ 增广冻结权重 $W_0 \in \mathbb{R}^{d \times k}$，其中 $B \in \mathbb{R}^{d \times r}$，$A \in \mathbb{R}^{r \times k}$，$r \ll \min(d, k)$。前向传播变为 $h = W_0 x + \tfrac{\alpha}{r} BAx$，$W_0$ 冻结，仅训练 $A, B$。修复了六个关键训练 Bug（另有三项 PaddleOCR-VL 特定 Bug 记录于 Dataset README）：
 
 \begin{enumerate}[nosep]
     \item \textbf{因果 token 双重移位}：PaddleOCR-VL 的 \texttt{AutoModelForConditionalGeneration} 内部已执行因果移位。我们的手动移位导致双重移位——用 $t$ 时刻监督 $t+2$ 时刻标签，梯度信号错位。修复方案：移除手动移位。
@@ -202,7 +231,7 @@ V10-Fixed 将 LoRA 扩展至 $r=16$, $\alpha=32$（5.7M 参数，占 908M 的 0.
 
 \subsection{阶段一多指标评估}
 
-阶段一建立了八指标评估协议：ExactMatch、Component F1（CompF1）、Component Precision（CompPrec）、Component Recall（CompRec）、Token Recall（TokenRec）、NED、Repetition Rate（RepRate）、Diversity。我们在 easy50-pure（44 样本）上使用修复版 \texttt{eval\_benchmark\_v3.py} 脚本评估了全部四个检查点（S400、S600、S800、final）——这是所有模型间唯一可直接对比的评估。全部四个评估划分（easy50/100/200/full523，共 523 样本）的完整结果见附录~B。正文以 easy50-pure 子集为重点，因其最干净、最具代表性；各划分间指标稳定（CompF1 差异在 0.005 以内）。
+阶段一建立了八指标评估协议：ExactMatch、Component F1（CompF1）、Component Precision（CompPrec）、Component Recall（CompRec）、Token Recall（TokenRec）、NED、Repetition Rate（RepRate）、Diversity。主指标归一化编辑距离定义为 $\mathrm{NED}(s_1, s_2) = \mathrm{Lev}(s_1, s_2) / \max(|s_1|, |s_2|)$，其中 $\mathrm{Lev}(\cdot)$ 为 Levenshtein 距离；我们使用 \texttt{--unordered} 模式以消除行序偏差。我们在 easy50-pure（44 样本）上使用修复版 \texttt{eval\_benchmark\_v3.py} 脚本评估了全部四个检查点（S400、S600、S800、final）——这是所有模型间唯一可直接对比的评估。全部四个评估划分（easy50/100/200/full523，共 523 样本）的完整结果见附录~B。正文以 easy50-pure 子集为重点，因其最干净、最具代表性；各划分间指标稳定（CompF1 差异在 0.005 以内）。
 
 \begin{table}[h]
 \centering
@@ -276,6 +305,13 @@ comp\_f1（0.206）与 joint\_f1（0.019）之间的差距是阶段二的核心�
 
 \section{讨论}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/model_metrics_bar.png}
+\caption{所有模型变体在三个关键指标上的对比。左：CompF1——S600 取得最优值（0.2061），而 V11 和 V12 塌缩至基线附近或以下。中：Token Recall——Base 到 S600 的 96$\times$ 增益在 V11/V12 中完全丧失。右：Repetition Rate——V11/V12 塌缩表现为近乎 100\% 的重复输出，远超 S800 的 40.9\%。}
+\label{fig:model_metrics_bar}
+\end{figure}
+
 \subsection{模态塌缩机制与解决}
 
 Projector（\texttt{mlp\_AR}，25.9M 参数）是视觉到语言的唯一映射桥。即使极小比例的 LoRA 扰动（$\sim$0.3\% 参数）也会将其输出扭曲为 LLM 无法解释的向量，导致自回归退化为高频 token 重复。LLM-Only LoRA 通过冻结 Projector 彻底规避了这一问题。该发现适用于任何小数据集 VLM 微调场景。
@@ -292,6 +328,13 @@ V4 的 5,686 个噪声样本（格式失配 62.1\% vs.\ 98.6\%，22,340 个重�
 
 S600$\to$S800 的退化（RepRate 15.9\% $\to$ 40.9\%，TokenRec 0.1540 $\to$ 0.1191）表明更长训练需要正则化。然而，CompF1 也从 0.2061 微升至 0.2080，同时 CompPrec 从 0.2024 升至 0.2862 而 CompRec 从 0.3114 降至 0.1996——这是精确率--召回率权衡，而非纯粹退化：S800 变得更保守（更高精确率、更少误报），但遗漏更多元件（更低召回率），同时重复 token 急剧增加。SFT 训练 loss 从 S600 到 S800 持续下降（0.30 $\to$ 0.18），确认了对训练分布的过拟合。S600 处早停至关重要；后续 V11 实验证实，在此模型规模下标准正则化（dropout=0.1, label\_smoothing=0.05）会导致塌缩而非缓解过拟合（见第~\ref{sec:v11v12}~节）。
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/training_curves.png}
+\caption{(a) V10-Fixed（1,165 步）与 V11（800 步）的训练 loss 曲线。V10 SFT loss 从 2.71 平滑收敛至 0.30；标注了检查点 S400、S600、S800。V11 尽管训练集更大（3,054 vs.\ 1,554），loss 更高且更不稳定，反映了正则化在此模型规模下的失稳效应。(b) 两者的余弦退火学习率调度。}
+\label{fig:training_curves}
+\end{figure}
+
 \subsection{参数值瓶颈与后续实验}
 
 comp\_f1$\to$joint\_f1 的差距（0.206 $\to$ 0.019）揭示了\textbf{读取元件参数值是核心瓶颈}。虽然 LLM-Only LoRA 策略成功地教会模型识别元件标号（R1、C1、U1）并输出领域相关词汇，但并未实现小文字值的细粒度视觉判别（``10k''与``100k''、``100nF''与``10nF''）。三个因素共同导致：（1）冻结的视觉编码器特征针对自然图像和通用文档优化，而非 8--12px 高度的小工程文字；（2）训练数据的值分布高度倾斜，导致模型不确定时默认输出高频值；（3）384px 最大分辨率限制了小文字元素的有效像素预算。
@@ -302,6 +345,13 @@ comp\_f1$\to$joint\_f1 的差距（0.206 $\to$ 0.019）揭示了\textbf{读取�
 为解决参数值瓶颈，我们进行了两项追加实验。两项均失败，作为负结果记录于此以供未来工作参考。
 
 \textbf{V11 —— 扩展数据上的正则化训练。} 将训练集扩展至 3,054 样本，施加标准正则化：LoRA dropout（$p=0.1$）和标签平滑（$\alpha=0.05$）。在相同 RTX 4060 硬件上训练 3 epoch。easy50-pure（44 样本）结果：CompF1 \textbf{塌缩至 0.0604}（仅比基座 0.0455 高 33\%，比 V10-Fixed 的 0.2061 低 71\%），NED 升至 0.9171，RepRate 飙升至 84.1\%。模型几乎完全塌缩为重复输出。\textbf{教训：} 在 0.9B 参数规模、仅 5.7M 可训练参数（0.63\%）的条件下，模型几乎没有容量余量。为标准大模型设计的正则化技术在此规模下会摧毁微调学到的脆弱信号。简单地增加数据和正则化在此规模下无效。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{../circuit-ocr-dataset/figures/v11_collapse_detail.png}
+\caption{V11 检查点扫描：RepRate（右轴，紫色）随训练步数单调递增，从 S200 的 43.2\% 升至 S800 的 93.2\%，而 CompF1（左轴，红色）从未超过 0.069，最终跌至基线以下。在正则化下延长训练会加剧而非缓解塌缩。}
+\label{fig:v11_collapse}
+\end{figure}
 
 \textbf{V12 —— 两阶段 Vision LoRA。} 基于冻结视觉编码器限制值判别的直觉，尝试两阶段课程训练：Stage 1（LLM-Only LoRA，同 V10-Fixed），Stage 2（解冻视觉编码器顶层，施加 LoRA $r=8$）。结果：\textbf{完全塌缩}。easy50-pure 上全部 50 个预测均为垃圾输出——字符串如 ``100000000...''、``+333...''、``Test\textbackslash nTest...'' 及空预测。模型表现\emph{差于} Base 模型（CompF1=0.0455），后者至少能产生可读（尽管幻觉）的文本。\textbf{教训：} 在此规模下解冻视觉编码器会引入对 LLM 头的破坏性梯度干扰。视觉特征空间的扰动摧毁了 Stage 1 学到的跨模态对齐。视觉编码器适配可能需要 (a) 更大的基座模型使 LLM 能吸收视觉特征偏移，或 (b) 真实域（非合成）数据来锚定视觉特征。
 

@@ -29,6 +29,9 @@
 \usepackage{doi}
 \usepackage{float}
 
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, calc}
+
 \usepackage{caption}
 \usepackage{cleveref}
 
@@ -103,6 +106,32 @@ Circuit schematic understanding involves two heterogeneous sub-tasks: (1) visual
 \section{System Setup}
 
 We adopt PaddleOCR-VL-0.9B~\citep{cui2025paddleocrvl} (908M params), which integrates a NaViT-style dynamic vision encoder with the ERNIE-4.5-0.3B language model, supporting 109 languages. The unfine-tuned base model fails systematically on circuit schematics: it outputs generic document text (e.g., parameter tables), memorized hallucinations, or repetitive token sequences. These failures stem from pre-training data dominated by general documents with negligible exposure to engineering drawings.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    node distance=0.55cm,
+    frozen/.style={rectangle, draw=blue!55!black, fill=blue!8, very thick, minimum width=4.4cm, minimum height=0.8cm, rounded corners=3pt, align=center, font=\small},
+    train/.style={rectangle, draw=orange!80!black, fill=orange!12, very thick, minimum width=4.4cm, minimum height=0.8cm, rounded corners=3pt, align=center, font=\small},
+    io/.style={rectangle, draw=gray!55!black, fill=gray!8, thick, minimum width=3.6cm, minimum height=0.65cm, rounded corners=3pt, align=center, font=\small},
+    arr/.style={-Stealth, thick, gray!60!black},
+    eblab/.style={font=\scriptsize, text=gray!50!black}
+]
+\node[io] (img) {Input Schematic (384\,px)};
+\node[frozen, below=of img] (ve) {NaViT Vision Encoder \scriptsize(frozen)};
+\node[frozen, below=of ve] (proj) {Projector \texttt{mlp\_AR} (25.9M) \scriptsize(frozen)};
+\node[train, below=of proj] (llm) {ERNIE-4.5-0.3B LLM \scriptsize(LoRA $r{=}16$, 5.7M, 0.63\%)};
+\node[io, below=of llm] (out) {Netlist Text Output};
+\node[io, left=1.4cm of llm] (prompt) {Text Prompt};
+\draw[arr] (img) -- (ve);
+\draw[arr] (ve) -- node[eblab, right] {visual tokens} (proj);
+\draw[arr] (proj) -- node[eblab, right] {lang.\ embed.} (llm);
+\draw[arr] (llm) -- (out);
+\draw[arr] (prompt) -- (llm);
+\end{tikzpicture}
+\caption{LLM-Only LoRA architecture. Blue modules are frozen; the orange LLM module receives low-rank adapters. The Projector (\texttt{mlp\_AR}) is the sole visual-to-language bridge---perturbing it causes modality collapse (E4, Section~4.1)---so it is kept frozen. Only LLM self-attention and linear projection matrices (310 targets) are adapted.}
+\label{fig:architecture}
+\end{figure}
 
 
 \section{V5 Golden Dataset}
@@ -183,7 +212,7 @@ V5 freezes the Projector and fine-tunes only LLM self-attention ($r=8$, $\alpha=
 
 \subsection{V10-Fixed: Six Technical Fixes}
 
-V10-Fixed scales LoRA to $r=16$, $\alpha=32$ (5.7M params, 0.63\% of 908M), targeting 310 projection matrices across LLM self-attention and linear layers. Six critical training bugs were fixed (three additional PaddleOCR-VL-specific infrastructure bugs are documented in the dataset README):
+V10-Fixed scales LoRA to $r=16$, $\alpha=32$ (5.7M params, 0.63\% of 908M), targeting 310 projection matrices across LLM self-attention and linear layers. LoRA~\citep{hu2021lora} augments a frozen weight $W_0 \in \mathbb{R}^{d \times k}$ with a low-rank update $\Delta W = BA$, where $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$, and $r \ll \min(d, k)$. The forward pass becomes $h = W_0 x + \tfrac{\alpha}{r} BAx$, with $W_0$ frozen and only $A, B$ trained. Six critical training bugs were fixed (three additional PaddleOCR-VL-specific infrastructure bugs are documented in the dataset README):
 
 \begin{enumerate}[nosep]
     \item \textbf{Causal token double-shift}: PaddleOCR-VL's \texttt{AutoModelForConditionalGeneration} internally applies causal shift. Our manual shift caused double-shifting---supervising step $t$ with label $t+2$, corrupting gradients. Fixed by removing the manual shift.
@@ -197,7 +226,7 @@ Training for 3 epochs (1,165 steps, 43 min) on V5 Golden (1,554 training samples
 
 \subsection{Phase 1 Multi-Metric Evaluation}
 
-Phase 1 establishes an 8-metric evaluation protocol: ExactMatch, Component F1 (CompF1), Component Precision (CompPrec), Component Recall (CompRec), Token Recall (TokenRec), NED, Repetition Rate (RepRate), and Diversity. We evaluated all four checkpoints (S400, S600, S800, final) on easy50-pure (44 samples) using the fixed \texttt{eval\_benchmark\_v3.py} script---the only directly comparable evaluation across all models.
+Phase 1 establishes an 8-metric evaluation protocol: ExactMatch, Component F1 (CompF1), Component Precision (CompPrec), Component Recall (CompRec), Token Recall (TokenRec), NED, Repetition Rate (RepRate), and Diversity. The primary metric, Normalized Edit Distance, is defined as $\mathrm{NED}(s_1, s_2) = \mathrm{Lev}(s_1, s_2) / \max(|s_1|, |s_2|)$, where $\mathrm{Lev}(\cdot)$ is the Levenshtein distance; we use \texttt{--unordered} mode to normalize across line permutations. We evaluated all four checkpoints (S400, S600, S800, final) on easy50-pure (44 samples) using the fixed \texttt{eval\_benchmark\_v3.py} script---the only directly comparable evaluation across all models.
 
 Full results across all four evaluation splits (easy50/100/200/full523, 523 samples total) are provided in Appendix~B. The easy50-pure subset is highlighted in the main text as the cleanest, most representative split; metrics are stable across splits (CompF1 within 0.005).
 
@@ -273,6 +302,13 @@ Full training hyperparameters and evaluation metric definitions are provided in 
 
 \section{Discussion}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/model_metrics_bar.png}
+\caption{Comparison of all model variants across three key metrics. Left: CompF1 --- S600 achieves the best value (0.2061), while V11 and V12 collapse below or near the Base model. Center: Token Recall --- the 96$\times$ gain from Base to S600 is lost in V11/V12. Right: Repetition Rate --- V11/V12 collapse manifests as near-100\% repetition, far exceeding even S800's 40.9\%.}
+\label{fig:model_metrics_bar}
+\end{figure}
+
 \subsection{Modality Collapse Mechanism and Resolution}
 
 The Projector (\texttt{mlp\_AR}, 25.9M params) is the sole visual-to-language bridge. Even small LoRA perturbations ($\sim$0.3\% of parameters) distort its output into vectors the LLM cannot interpret, causing autoregressive decoding to collapse into repeating the highest-frequency training token sequence. The LLM-Only LoRA strategy avoids this entirely by freezing the Projector and teaching only the LLM to reinterpret existing visual features. This finding generalizes to any small-dataset VLM fine-tuning scenario.
@@ -289,6 +325,13 @@ Synthetic V3 samples constitute only 29\% of the training set (450/1,554), yet t
 
 The S600$\to$S800 degradation (RepRate 15.9\% $\to$ 40.9\%, TokenRec 0.1540 $\to$ 0.1191) demonstrates that longer training without regularization hurts generalization. However, CompF1 also increases slightly (0.2061 $\to$ 0.2080) while CompPrec rises from 0.2024 to 0.2862 and CompRec drops from 0.3114 to 0.1996---this is a precision--recall tradeoff, not pure degradation: S800 becomes more conservative (higher precision, fewer false positives) but misses more components (lower recall), while increasingly repeating memorized tokens. The SFT training loss continued to decrease from S600 to S800 (0.30 $\to$ 0.18), confirming overfitting to the training distribution. Early stopping at S600 is critical; our subsequent V11 experiment confirmed that standard regularization alone (dropout=0.1, label\_smoothing=0.05) at this model scale causes collapse rather than mitigating overfitting (see Section~\ref{sec:v11v12}).
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{../circuit-ocr-dataset/figures/training_curves.png}
+\caption{(a) Training loss curves for V10-Fixed (1,165 steps) and V11 (800 steps). V10 SFT loss converges smoothly from 2.71 to 0.30; checkpoints S400, S600, and S800 are marked. V11 loss is higher and more volatile despite a larger training set (3,054 vs.\ 1,554 samples), reflecting the destabilizing effect of regularization at this model scale. (b) Cosine annealing learning rate schedule for both runs.}
+\label{fig:training_curves}
+\end{figure}
+
 \subsection{The Value Bottleneck and Subsequent Experiments}
 
 The comp\_f1$\to$joint\_f1 gap (0.206 $\to$ 0.019) reveals that \textbf{reading component values is the core bottleneck}. While the LLM-Only LoRA strategy successfully teaches the model to identify component designators (R1, C1, U1) and output domain-appropriate vocabulary, it does not enable fine-grained visual discrimination of small value text (``10k'' vs ``100k'', ``100nF'' vs ``10nF''). Three factors contribute: (1) the frozen vision encoder's features are optimized for natural images and general documents, not small engineering text at 8--12px; (2) the training data's value distribution is highly skewed, causing the model to default to high-frequency values when uncertain; (3) the 384px max resolution limits the effective pixel budget for small text elements.
@@ -299,6 +342,13 @@ The comp\_f1$\to$joint\_f1 gap (0.206 $\to$ 0.019) reveals that \textbf{reading 
 To address the value bottleneck, we conducted two follow-up experiments. Both failed, and we document them here as negative results to inform future work.
 
 \textbf{V11 --- Regularized Training on Expanded Data.} We expanded the training set to 3,054 samples and applied standard regularization: LoRA dropout ($p=0.1$) and label smoothing ($\alpha=0.05$). Training for 3 epochs on the same RTX 4060 hardware. Results on easy50-pure (44 samples): CompF1 \textbf{collapsed to 0.0604} (below the 0.0455 baseline by only 33\%, and 71\% worse than V10-Fixed's 0.2061), NED rose to 0.9171, and RepRate surged to 84.1\%. The model almost entirely collapsed to repetitive output. \textbf{Lesson:} At the 0.9B parameter scale with only 5.7M trainable (0.63\%), the model has minimal capacity headroom. Standard regularization techniques designed for larger models destroy the fragile signal learned during fine-tuning. Simply adding more data and regularization does not help at this scale.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{../circuit-ocr-dataset/figures/v11_collapse_detail.png}
+\caption{V11 checkpoint sweep: RepRate (right axis, purple) rises monotonically with training steps from 43.2\% (S200) to 93.2\% (S800), while CompF1 (left axis, red) never exceeds 0.069 and ultimately falls below the baseline. More training under regularization exacerbates rather than mitigates collapse.}
+\label{fig:v11_collapse}
+\end{figure}
 
 \textbf{V12 --- Two-Stage Vision LoRA.} Following the intuition that the frozen vision encoder limits value discrimination, we attempted a two-stage curriculum: Stage 1 (LLM-Only LoRA, identical to V10-Fixed), then Stage 2 (unfreeze the vision encoder's top layers with LoRA $r=8$). Result: \textbf{complete collapse}. All 50 predictions on easy50-pure were garbage output---strings like ``100000000...'', ``+333...'', ``Test\textbackslash nTest...'', and empty predictions. The model performed \emph{worse} than the Base model (CompF1=0.0455), which at least produces legible (if hallucinated) text. \textbf{Lesson:} Unfreezing the vision encoder at this scale introduces destructive gradient interference with the LLM head. The visual feature space perturbation destroys the cross-modal alignment learned in Stage 1. Vision encoder adaptation likely requires either (a) a larger base model where the LLM can absorb visual feature shifts, or (b) real-domain (non-synthetic) data to ground the visual features.
 
