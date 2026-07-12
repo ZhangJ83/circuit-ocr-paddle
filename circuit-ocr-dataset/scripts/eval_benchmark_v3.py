@@ -21,13 +21,15 @@ import os, sys, json, time, re, argparse
 from pathlib import Path
 from collections import Counter
 
-# ── Early patch: flex_checkpoint for Paddle 3.1.0 compatibility ──
+# ── Early patch: flex_checkpoint for Paddle 3.0/3.1 compatibility ──
 from types import ModuleType
 _dummy_fc = ModuleType('dummy_flex_checkpoint')
 _dummy_fc.build_sharded_state_dict = lambda *a, **kw: None
-sys.modules.setdefault('paddle.distributed.flex_checkpoint', _dummy_fc)
-sys.modules.setdefault('paddle.distributed.flex_checkpoint.dcp', _dummy_fc)
-sys.modules.setdefault('paddle.distributed.flex_checkpoint.dcp.sharded_weight', _dummy_fc)
+_dummy_fc.shard_weight = lambda *a, **kw: None
+_dummy_fc.make_replicated_sharded_weight = lambda *a, **kw: None
+sys.modules['paddle.distributed.flex_checkpoint'] = _dummy_fc
+sys.modules['paddle.distributed.flex_checkpoint.dcp'] = _dummy_fc
+sys.modules['paddle.distributed.flex_checkpoint.dcp.sharded_weight'] = _dummy_fc
 
 # Prepend matching CUDA/cuDNN DLL paths
 dll_paths = [
@@ -184,7 +186,9 @@ def evaluate(args):
 
     # ── Load model with LoRA wrapper (if checkpoint provided) ──
     TARGETS = [".*q_proj", ".*k_proj", ".*v_proj", ".*o_proj", ".*linear_1", ".*linear_2"]
-    LORA_SCALE = 2.0  # alpha/r = 32/16
+    # Auto-detect LoRA rank: V10=r16, V13=r32 (checkpoint path contains "v13")
+    _LORA_R = 32 if args.lora_checkpoint and "v13" in str(args.lora_checkpoint).lower() else 16
+    _LORA_ALPHA = _LORA_R * 2  # scale = 2.0
     REPETITION_PENALTY = 1.1
 
     print(f"Loading model from: {MODEL_PATH}")
@@ -205,7 +209,7 @@ def evaluate(args):
             raise FileNotFoundError(f"LoRA checkpoint not found: {lora_file}")
 
         # Apply LoRA wrapper
-        lc = LoRAConfig(r=16, lora_alpha=32, target_modules=TARGETS)
+        lc = LoRAConfig(r=_LORA_R, lora_alpha=_LORA_ALPHA, target_modules=TARGETS)
         model = LoRAModel(model, lc)
 
         # Load LoRA weights

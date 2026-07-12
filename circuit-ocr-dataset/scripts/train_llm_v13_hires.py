@@ -33,13 +33,17 @@ Expected outcome:
 """
 import os, sys, json, time, random
 
-# ── Early patch: flex_checkpoint for Paddle 3.1.0 compatibility ──
+# ── Early patch: flex_checkpoint for Paddle 3.0/3.1 compatibility ──
+# MUST run before ANY paddleformers import. Use sys.modules[key]=value
+# (not setdefault) to ensure the dummy takes effect.
 from types import ModuleType
 _dummy_fc = ModuleType('dummy_flex_checkpoint')
 _dummy_fc.build_sharded_state_dict = lambda *a, **kw: None
-sys.modules.setdefault('paddle.distributed.flex_checkpoint', _dummy_fc)
-sys.modules.setdefault('paddle.distributed.flex_checkpoint.dcp', _dummy_fc)
-sys.modules.setdefault('paddle.distributed.flex_checkpoint.dcp.sharded_weight', _dummy_fc)
+_dummy_fc.shard_weight = lambda *a, **kw: None
+_dummy_fc.make_replicated_sharded_weight = lambda *a, **kw: None
+sys.modules['paddle.distributed.flex_checkpoint'] = _dummy_fc
+sys.modules['paddle.distributed.flex_checkpoint.dcp'] = _dummy_fc
+sys.modules['paddle.distributed.flex_checkpoint.dcp.sharded_weight'] = _dummy_fc
 
 # ── Environment setup ──
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
@@ -92,7 +96,7 @@ def log(msg):
 # ═══════════════════════════════════════════════════════════════
 # V13 CONFIG — Only 2 changes from V10-Fixed
 # ═══════════════════════════════════════════════════════════════
-MAX_DIM = 768          # V10: 384 → V13: 768 (2×, circuit text is small)
+MAX_DIM = 512          # V10: 384 → V13: 512 (33% more resolution; 768 needs >8GB)
 EPOCHS = 3             # Same as V10
 GRAD_ACCUM = 4          # Same as V10
 GRAD_CLIP = 1.0         # Same as V10
@@ -109,7 +113,7 @@ REPETITION_PENALTY = 1.1
 # LoRA: r=16→32, alpha=32→64 (scale=2.0 maintained)
 LORA_R = 32            # V10: 16 → V13: 32
 LORA_ALPHA = 64        # V10: 32 → V13: 64
-LORA_DROPOUT = 0.0     # V10: 0.05 → V13: 0 (V11 proved dropout hurts at this scale)
+LORA_DROPOUT = 0.05    # V13: 0 → V13b: 0.05 (V10 proved this is critical; 0 causes collapse)
 
 # LLM-Only targets: Same as V10
 TARGETS = [
@@ -124,8 +128,8 @@ WEIGHT_DECAY = 0.1
 DATA_FILE = "ocr_vl_sft-train-v9-pure.jsonl"
 
 log("=" * 60)
-log("TRAINING V13-HiRes (V100 16GB Optimized)")
-log(f"  Changes from V10: MAX_DIM 384→{MAX_DIM}, LoRA r=16→{LORA_R}, alpha=32→{LORA_ALPHA}")
+log("TRAINING V13b-HiRes (dropout=0.05 restored, V13 collapsed without it)")
+log(f"  Changes from V10: MAX_DIM 384→{MAX_DIM}, LoRA r=16→{LORA_R}, alpha=32→{LORA_ALPHA}, dropout SAME=0.05")
 log(f"  Targets: {TARGETS}")
 log(f"  Config: max_dim={MAX_DIM}, epochs={EPOCHS}, batch_size=1, grad_accum={GRAD_ACCUM}")
 log(f"  LR: {BASE_LR:.0e}→{ETA_MIN:.0e}, warmup={WARMUP_STEPS} steps")
@@ -354,7 +358,8 @@ for epoch in range(EPOCHS):
                 lora_dict = {k: paddle.cast(p.detach(), "float16") for k, p in model.named_parameters() if 'lora_' in k}
                 ckpt_path = f"{CKPT_DIR}/lora_s{global_step}.pdparams"
                 paddle.save(lora_dict, ckpt_path)
-                log(f"  Saved: {ckpt_path} ({len(lora_dict)} matrices, {sum(v.nbytes for v in lora_dict.values())/1024**2:.1f} MB)")
+                total_bytes = sum(v.numel() * v.element_size() for v in lora_dict.values())
+                log(f"  Saved: {ckpt_path} ({len(lora_dict)} matrices, {total_bytes/1024**2:.1f} MB)")
 
                 # Monitor inference quality
                 log("  Running quick validation inference...")
