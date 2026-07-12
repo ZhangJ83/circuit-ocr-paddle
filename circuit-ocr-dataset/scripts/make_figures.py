@@ -1,4 +1,3 @@
-
 import json, os, sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -21,7 +20,7 @@ def draw_text_box(draw, text, x, y, max_w, font, color):
         cpl = max(1, int(max_w / (font.size * 0.55)))
         for k in range(0, len(line), cpl):
             lines.append(line[k:k+cpl])
-    for j, line in enumerate(lines[:12]):
+    for j, line in enumerate(lines[:28]):
         draw.text((x, y + j * (font.size + 2)), line, fill=color, font=font)
 
 def make_dataset_figure():
@@ -67,23 +66,29 @@ def make_dataset_figure():
 
 def make_model_comparison():
     print('Generating model comparison...')
-    base_file = f'{DATASET_DIR}/results_base_easy50_final.jsonl'
-    r16_file = f'{DATASET_DIR}/results_r16_easy50_final.jsonl'
+    base_file = f'{DATASET_DIR}/results_base_easy100.jsonl'
+    r16_file = f'{DATASET_DIR}/results_v8_best_easy100.jsonl'
     for fp in [base_file, r16_file]:
         if not os.path.exists(fp): print(f'  MISSING: {fp}'); return
     with open(base_file, encoding='utf-8') as f:
         base = {json.loads(l)['images'][0]:json.loads(l) for l in f if l.strip()}
     with open(r16_file, encoding='utf-8') as f:
         r16 = {json.loads(l)['images'][0]:json.loads(l) for l in f if l.strip()}
-    common = sorted(set(base.keys()) & set(r16.keys()))[:6]
+    
+    # Showcase 3 typical qualitative prediction samples from easy100 test set
+    common = [
+        './data/test/benjiaomodular_sot2dip.png',
+        './data/test/Pari55051_cat-pcb.png',
+        './data/test/rh1tech_echo.png'
+    ]
     print(f'  Common samples: {len(common)}')
     rows, cols = len(common), 4
-    cell_w, cell_h = 240, 280
+    cell_w, cell_h = 240, 350
     canvas = Image.new('RGB', (cols*cell_w, rows*cell_h+30), (255,255,255))
     font = load_font(12)
-    font_s = load_font(10)
+    font_s = load_font(8.5)
     draw = ImageDraw.Draw(canvas)
-    for j, h in enumerate(['Original Image','Ground Truth','Base Model','r16 LoRA']):
+    for j, h in enumerate(['Original Image','Ground Truth','Base Model','V8-Fixed LoRA']):
         draw.text((j*cell_w+10,5), h, fill=(0,0,0), font=font)
     for i, img_key in enumerate(common):
         y_base = 30 + i*cell_h
@@ -98,11 +103,17 @@ def make_model_comparison():
             canvas.paste(img, (10, y_base+10))
         except Exception as e:
             draw.text((10,y_base+20), f'ERR:{e}', fill=(255,0,0), font=font_s)
-        draw_text_box(draw, base[img_key].get('label','')[:80], cell_w+10, y_base+10, cell_w-20, font_s, (0,100,0))
-        draw_text_box(draw, base[img_key].get('prediction','')[:80], 2*cell_w+10, y_base+10, cell_w-20, font_s, (180,0,0))
-        draw_text_box(draw, r16[img_key].get('prediction','')[:80], 3*cell_w+10, y_base+10, cell_w-20, font_s, (0,0,180))
+        
+        # Get label, base prediction and r16 prediction
+        lbl = base[img_key].get('label', base[img_key].get('messages', [{},{}])[1].get('content', ''))
+        base_pred = base[img_key].get('prediction', '')
+        r16_pred = r16[img_key].get('prediction', '')
+        
+        draw_text_box(draw, lbl[:150], cell_w+10, y_base+10, cell_w-20, font_s, (0,100,0))
+        draw_text_box(draw, base_pred[:150], 2*cell_w+10, y_base+10, cell_w-20, font_s, (180,0,0))
+        draw_text_box(draw, r16_pred[:150], 3*cell_w+10, y_base+10, cell_w-20, font_s, (0,0,180))
         draw.line([(0,y_base+cell_h-1),(cols*cell_w,y_base+cell_h-1)], fill=(200,200,200))
-    out = f'{OUT_DIR}/model_comparison.png'
+    out = f'{OUT_DIR}/model_comparison_v5.png'
     canvas.save(out, quality=95)
     print(f'  Saved: {out}')
 

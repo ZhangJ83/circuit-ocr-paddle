@@ -1,2 +1,4 @@
+gradio==4.44.0
 pillow
 numpy
+huggingface_hub

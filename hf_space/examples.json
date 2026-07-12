@@ -1,8 +1,5 @@
 [
   {
-    "_context": "All 8 examples are from the easy50-pure test set (44 samples). S600 is the optimal Phase 1 checkpoint (CompF1 0.206, 4.5× over baseline). Full benchmark results across all 4 splits (easy50/100/200/full523, 523 samples total) are in the technical report Appendix B. Phase 2 topology evaluation reveals joint_f1=0.019 — only ~2% of (refdes, value) pairs are fully correct. These examples honestly show both the model's real capabilities (refdes identification, domain vocabulary) and its core limitation (value hallucination)."
-  },
-  {
     "image": "./data/test/benjiaomodular_sot2dip.png",
     "gt": "J2\nConn_01x06_Male\nJ3\nConn_01x03_Male\nJ1\nConn_01x03_Male",
     "base_pred": "Parameter | Value\nParameter_a | 1.0\nParameter_b | 1.0\nParameter_c | 1.0",

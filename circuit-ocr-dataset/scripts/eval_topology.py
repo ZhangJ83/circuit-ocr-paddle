@@ -43,7 +43,7 @@ def evaluate_file(jsonl_path, limit=None):
     valid = 0
     for s in samples:
         pred = s.get('prediction','')
-        ref = s.get('label','')
+        ref = s.get('label', s.get('reference', ''))
         if not pred:
             total['ref_count'] += len(set(c[2] for c in extract_components(ref)))
             continue
@@ -74,7 +74,7 @@ if __name__ == '__main__':
             samples = [json.loads(l) for l in f if l.strip()]
         if args.limit: samples = samples[:args.limit]
         for i,s in enumerate(samples):
-            m = topology_metrics(s.get('prediction',''), s.get('label',''))
+            m = topology_metrics(s.get('prediction',''), s.get('label', s.get('reference', '')))
             print(f"[{i+1}/{len(samples)}] F1={m['comp_f1']:.3f} P={m['comp_precision']:.3f} R={m['comp_recall']:.3f} type_acc={m['type_accuracy']:.3f} pred={m['pred_count']} ref={m['ref_count']} matched={m['matched']}")
     r = evaluate_file(args.results, args.limit)
     print(f"\n===== Topology: {Path(args.results).name} =====")

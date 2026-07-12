@@ -13,6 +13,15 @@
 
 ---
 
+## ⚠️ 可用性说明 (Availability Notice)
+
+- **Demo**：HuggingFace Space 运行在 **CPU-only 免费层**，不支持实时模型推理。点击 "Extract Netlist" 不会执行 OCR。请查看 **Examples Tab** 了解预计算结果，或下载模型在本地 GPU 环境运行。本地运行指引见下方 [Quick Start](#quick-start)。
+- **正式测试集**：仅 `*pure*.jsonl` 和 `ocr_vl_sft-test.jsonl`（full523）可用于正式评估。`test-v4.jsonl` 已废弃（含合成数据，违反比赛规定）。`test-easy50-degraded.jsonl` 为退化增强测试集。
+- **模型性能**：V10-Fixed S600 为当前最优 checkpoint，CompF1=0.2061（4.5×基线），但 ExactMatch=0%（无完整网表重建），joint_f1=0.019（仅2%的元件值对正确）。**本模型为研究原型，不可用于生产环境。**
+- **本地运行**：需要 NVIDIA GPU（≥8GB VRAM）+ PaddlePaddle 3.1.0 + PaddleFormers。详细环境配置见下文。
+
+---
+
 ## English
 
 **PaddleOCR-VL-0.9B + LoRA for Circuit Schematic OCR and Netlist Extraction**
@@ -124,6 +133,8 @@ python demo.py
 ---
 
 ## 中文
+
+> ⚠️ **可用性说明**：Demo 运行在 CPU-only 免费层，不支持实时推理。正式测试集仅限 `*pure*.jsonl` 和 `ocr_vl_sft-test.jsonl`。模型为研究原型，ExactMatch=0%，不可用于生产。详见上方英文版可用性说明。
 
 **基于 PaddleOCR-VL-0.9B + LoRA 的电路原理图 OCR 与网表提取系统**
 

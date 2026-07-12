@@ -11,38 +11,33 @@ import os
 import sys
 
 # Prepend matching CUDA/cuDNN DLL paths to system PATH for PaddlePaddle compatibility
-# cuDNN 8.9.2.26 installed via conda (Paddle 2.6.2 needs cuDNN >= 8.6, system had 8.2)
+# Only do this if the folders actually exist on the system (for specific local environment setup)
 dll_paths = [
     r"E:\080000software\080900_Miniconda\miniconda3\Library\bin",  # cuDNN 8.9.2.26 DLLs
     r"E:\080000software\080900_Miniconda\miniconda3\Library\envs\gpu-pytorch\lib\site-packages\torch\lib",  # zlibwapi.dll
     r"E:\080000software\080900_Miniconda\miniconda3\pkgs\cudatoolkit-11.3.1-h59b6b97_2\Library\bin"
 ]
-os.environ["PATH"] = ";".join(dll_paths) + ";" + os.environ.get("PATH", "")
+existing_dll_paths = [p for p in dll_paths if os.path.exists(p)]
+if existing_dll_paths:
+    os.environ["PATH"] = ";".join(existing_dll_paths) + ";" + os.environ.get("PATH", "")
 
-# Configure system proxy to access Hugging Face (disabled - proxy not available)
-# os.environ["HTTP_PROXY"] = "http://127.0.0.1:7897"
-# os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7897"
-# os.environ["http_proxy"] = "http://127.0.0.1:7897"
-# os.environ["https_proxy"] = "http://127.0.0.1:7897"
-# os.environ["HF_HUB_DISABLE_SSL_VERIFY"] = "1"
-
-# Set environment variables first to avoid J drive missing error
+# Set environment variables first, falling back to system defaults if local cache drives do not exist
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-os.environ["HF_HOME"] = "F:/hf_cache/hub"
-os.environ["PADDLE_HOME"] = "F:/paddle_cache"
-os.environ["HF_HUB_CACHE"] = "F:/hf_cache/hub"
-# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"  # Leave default for 4-bit loading
-# os.environ["HF_HUB_OFFLINE"] = "1"
-# os.environ["TRANSFORMERS_OFFLINE"] = "1"
-# Use default HF endpoint to avoid FileMetadataError
-# os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-# os.environ["DOWNLOAD_SOURCE"] = "modelscope"
+local_hf_cache = "F:/hf_cache/hub"
+local_paddle_cache = "F:/paddle_cache"
+
+if os.path.exists(local_hf_cache):
+    os.environ["HF_HOME"] = local_hf_cache
+    os.environ["HF_HUB_CACHE"] = local_hf_cache
+if os.path.exists(local_paddle_cache):
+    os.environ["PADDLE_HOME"] = local_paddle_cache
 
 # Force huggingface_hub constants override if already imported
 try:
     import huggingface_hub.constants
-    huggingface_hub.constants.HF_HOME = "F:/hf_cache"
-    huggingface_hub.constants.HF_HUB_CACHE = "F:/hf_cache/hub"
+    if os.path.exists(local_hf_cache):
+        huggingface_hub.constants.HF_HOME = "F:/hf_cache"
+        huggingface_hub.constants.HF_HUB_CACHE = "F:/hf_cache/hub"
 except Exception:
     pass
 
@@ -723,7 +718,15 @@ def evaluate_paddleocr_vl(args):
         # Resolve path
         img_resolved_path = Path(image_path)
         if not img_resolved_path.exists():
-            img_resolved_path = Path(args.data_path).parent / img_resolved_path.name
+            alt_path = Path(args.data_path).parent / image_path
+            if alt_path.exists():
+                img_resolved_path = alt_path
+            else:
+                alt_path2 = Path(args.data_path).parent / image_path.lstrip("./")
+                if alt_path2.exists():
+                    img_resolved_path = alt_path2
+                else:
+                    img_resolved_path = Path(args.data_path).parent / img_resolved_path.name
 
         image = None
         try:
@@ -882,7 +885,15 @@ def evaluate_qwen3_vl(args):
         # Resolve path
         img_resolved_path = Path(image_path)
         if not img_resolved_path.exists():
-            img_resolved_path = Path(args.data_path).parent / img_resolved_path.name
+            alt_path = Path(args.data_path).parent / image_path
+            if alt_path.exists():
+                img_resolved_path = alt_path
+            else:
+                alt_path2 = Path(args.data_path).parent / image_path.lstrip("./")
+                if alt_path2.exists():
+                    img_resolved_path = alt_path2
+                else:
+                    img_resolved_path = Path(args.data_path).parent / img_resolved_path.name
 
         try:
             # Resize large images to avoid CUDA OOM (max 1024x1024)
