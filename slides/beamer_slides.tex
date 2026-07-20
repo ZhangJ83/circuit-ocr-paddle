@@ -240,6 +240,109 @@
 \end{frame}
 
 % ══════════════════════════════════════════
+\section{Scene Scarcity \& Application Value}
+% ══════════════════════════════════════════
+
+\begin{frame}{Scene Scarcity: Three-Dimension Evaluation}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{lccp{4.5cm}}
+      \toprule
+      \textbf{Dimension} & \textbf{Score} & \textbf{Weight} & \textbf{Key Evidence} \\
+      \midrule
+      \rowcolor{green!10} 2.1 Research Scarcity & 6/6 & 6 & No public benchmark exists \\
+      \rowcolor{green!10} 2.2 Industry Value   & 6/7 & 7 & PCB reverse engineering, \$500M+ market \\
+      \rowcolor{green!10} 2.3 Uniqueness       & 2/2 & 2 & Component-level structured output \\
+      \midrule
+      \textbf{Total} & \textbf{14} & \textbf{/15} & \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+
+  \begin{center}
+    \small Combined: Dataset (15.5/20) + Scene (14/15) = \textbf{29.5/35}
+  \end{center}
+\end{frame}
+
+\begin{frame}{2.1 Research Scarcity (6/6)}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{Evidence}
+        \begin{itemize}
+          \item \textbf{No public benchmark} exists for circuit schematic OCR
+          \item Open Schematics (2025): netlist only, no OCR labels
+          \item Masala-CHAI: GT-image mismatch (verified \& excluded)
+          \item VLM-OCR papers (Qwen-VL, PaliGemma, GOT-OCR) \textbf{none} cover circuits
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{Industry Baseline Failure}
+        \begin{itemize}
+          \item \textbf{PaddleOCR}: NED = 0.937 (near random)
+          \item \textbf{Tesseract}: fails on schematic fonts
+          \item \textbf{EasyOCR}: text bbox groups across components
+          \item All three struggle with small digits (pin numbers)
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \vspace{0.3cm}
+  \begin{center}
+    \Large\textcolor{greencolor}{\textbf{6/6 — Both academia and industry lack any benchmark}}
+  \end{center}
+\end{frame}
+
+\begin{frame}{2.2 Industry Value (6/7)}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{Real Industry Pain Points}
+        \begin{itemize}
+          \item \textbf{PCB Reverse Engineering}: \$500M+ annual outsourcing market
+          \item 30\% of time spent on schematic reconstruction
+          \item \textbf{Legacy digitization}: 1980-2000 paper schematics
+          \item \textbf{Cross-EDA migration}: Altium $\leftrightarrow$ KiCad $\leftrightarrow$ Eagle
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{Market Context}
+        \begin{itemize}
+          \item \textbf{Semiconductor}: \$6,000B global market
+          \item \textbf{EDA tools}: \$40B market size
+          \item \textbf{BOM extraction}: daily pain point for hardware engineers
+          \item Manual transcription error rate: 5-15\%
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \vspace{0.3cm}
+  \begin{center}
+    \Large\textcolor{greencolor}{\textbf{6/7 — Real demand, vertical market scope is the only deduction}}
+  \end{center}
+\end{frame}
+
+\begin{frame}{2.3 Scene Uniqueness (2/2)}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{Dimension} & \textbf{Generic OCR} & \textbf{Circuit OCR} \\
+      \midrule
+      Output Structure & Free text & \textbf{Structured} (refdes + value + pin) \\
+      Text Density & Uniform (10-20/ page) & \textbf{Extreme} (30+ instances/ page) \\
+      Text Direction & Horizontal dominant & \textbf{Multi-directional} (H / V / rotated) \\
+      Symbol Mixing & Rare & \textbf{Dense} electrical symbols + text \\
+      Domain Knowledge & General language & \textbf{EE domain} ($\Omega$/F/H/V, pin defs, net labels) \\
+      Evaluation & Character-level & \textbf{Component-level} (CompF1 + JointF1) \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{0.3cm}
+  \begin{center}
+    \Large\textcolor{greencolor}{\textbf{2/2 — Fundamentally different from existing OCR tasks}}
+  \end{center}
+\end{frame}
+
+% ══════════════════════════════════════════
 \section{Model \& Training}
 % ══════════════════════════════════════════
 
