@@ -27,7 +27,7 @@ def log(msg):
 
 # ── Config ──
 MAX_DIM = 168
-EPOCHS = 1
+EPOCHS = 3
 NUM_SAMPLES = None  # None = all 2433
 
 # KEY: add Projector to targets
@@ -67,12 +67,11 @@ total_steps = EPOCHS * len(data)
 log(f"Training: {len(data)} samples x {EPOCHS} epochs = {total_steps} steps")
 
 # ── Optimizer ──
-opt = paddle.optimizer.AdamW(
-    learning_rate=5e-4, parameters=[p for p in model.parameters() if not p.stop_gradient],
-    weight_decay=0.1)
 lr_scheduler = paddle.optimizer.lr.CosineAnnealingDecay(
     learning_rate=5e-4, T_max=total_steps, eta_min=5e-5)
-opt._learning_rate = lr_scheduler
+opt = paddle.optimizer.AdamW(
+    learning_rate=lr_scheduler, parameters=[p for p in model.parameters() if not p.stop_gradient],
+    weight_decay=0.1)
 
 # ── Train ──
 from PIL import Image; from io import BytesIO
@@ -120,7 +119,7 @@ for epoch in range(EPOCHS):
             shift_labels_clamped.reshape([-1]), reduction="none").reshape(shift_labels.shape)
         loss = (ce * mask).sum() / mask.sum().clip(min=1)
 
-        loss.backward(); opt.step(); lr_scheduler.step(); opt.clear_grad()
+        loss.backward(); opt.step(); opt.clear_grad()
         global_step += 1
         image.close()
 
