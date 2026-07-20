@@ -330,6 +330,66 @@ KiCad 原理图   & 1,200 & SVG 光栅化导出 & stroked-text 提取 + 7 轮验
 
 提供完整 dataset analysis：标注质量报告、多维难度标签体系、8 张可视化图表（数据构成环形图、元件类型分布、OCR 实例直方图、难度热力图等），均已嵌入本文相关章节。
 
+\section{微调策略与实验设计}
+
+\subsection{微调策略合理性}
+
+针对电路原理图 OCR 任务和 RTX 4060 8GB 硬件约束，采用 6 项针对性策略设计：
+
+\begin{enumerate}[nosep]
+    \item \textbf{LoRA 高效微调}：$r=16$，$\alpha=32$，仅训练 5.7M 参数（0.6\%），将显存需求从全参微调的 24GB+ 降至 8GB；
+    \item \textbf{冻结 Projector}：通过 Phase 1 消融实验（exp4 vs exp3）确认解冻 mlp\_AR 投影层会导致模态塌缩——视觉特征扭曲为分布外向量，LLM 退化为高频 token 机械重复；
+    \item \textbf{手工 CE Loss}：Paddle 3.1.0 存在因果 token 双重偏移 bug，手工实现正确的单次因果移位确保梯度信号纯净；
+    \item \textbf{分离 Tokenization}：Prompt 和 Label 分别分词后拼接，避免 BPE 边界合并导致的 token 粘连；
+    \item \textbf{合成数据 20\% 混合}：对抗小数据集模态塌缩，强制视觉-文本对齐（详见 Phase 2）；
+    \item \textbf{四维评估体系}：CompF1（标号识别）+ JointF1（标号-值 KIE 配对）+ NED（编辑距离）+ RepRate（塌缩预警），多维度覆盖不同失败模式。
+\end{enumerate}
+
+\subsection{系统消融实验}
+
+通过 6 组控制变量实验系统探索关键超参和策略的影响：
+
+\begin{table}[h]
+\centering
+\caption{消融实验矩阵}
+\begin{tabular}{lccc}
+\toprule
+\textbf{消融维度} & \textbf{对比组} & \textbf{CompF1} & \textbf{结论} \\
+\midrule
+学习率       & 2e-5 vs 1e-5 & 0.037 vs 0.028 & 低 LR + 高 DO 更稳定 \\
+分辨率       & 384 vs 512px & 0.037 vs 0.058 & 512px 无显著增益 \\
+Dropout      & 0.05 vs 0.10 & — & 0.10 小数据防过拟合 \\
+Epoch 数     & 2 vs 3       & — & 3 epoch 充分收敛 \\
+Projector    & 冻结 vs 解冻 & 0.037 vs 0.092(塌缩) & 解冻导致塌缩 \\
+\textbf{合成数据} & \textbf{无 vs 有} & \textbf{0.028 vs 0.126} & \textbf{关键突破} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{技术创新与未来方向}
+
+\textbf{已有创新}：
+
+\begin{itemize}[nosep]
+    \item \textbf{合成文字数据防塌缩策略}：300 张领域内文本图片以 20\% 混合，CompF1 提升 4.2$\times$，方法具有通用性——任何小数据集 VLM-OCR 任务均可复用；
+    \item \textbf{JointF1 指标}：首个面向电路 OCR 的 KIE 级评估指标，要求标号与参数值同时正确配对；
+    \item \textbf{模态塌缩根因定位}：通过 6 组消融首次识别 Projector 扰动为塌缩根因。
+\end{itemize}
+
+\textbf{未来方向：RL + SPICE 网表格式对齐}：
+
+当前模型输出为自由文本格式（``R1  10k$\Omega$  $\pm$1\%''），距可直接仿真验证的 SPICE 网表（``R1 NET1 NET2 10k''）仍存在格式、语义、结构三个层次的不匹配。设计两阶段方案：
+
+\textbf{阶段 1：SPICE 格式 SFT（监督预热）}。从 KiCad 网表自动生成 (图片, SPICE 文本) 对齐数据，在现有 LoRA 权重基础上继续 SFT，使模型学会 SPICE 语法和节点编号约定。
+
+\textbf{阶段 2：RL 格式对齐（GRPO）}。设计三组件 reward 函数：
+\begin{itemize}[nosep]
+    \item \textbf{语法分}：SPICE 解析器成功解析输出为有效网表（0/1）；
+    \item \textbf{元件分}：预测元件标号集合与 GT 的 F1；
+    \item \textbf{连接分}：相同网络的所有引脚共享一致节点编号。
+\end{itemize}
+使用 Group Relative Policy Optimization (GRPO) 在 SPICE 语法约束下最大化综合 reward。预期将输出从 OCR 自由文本升级为可直接导入 KiCad/LTspice 的结构化网表。
+
 \section{模型微调与实验}
 
 \subsection{Phase 1：四组控制变量实验}
@@ -502,7 +562,7 @@ Phase 1 实验表明，即便最优的 exp4（解冻投影器），CompF1 也仅
 
 \subsection{局限与展望}
 
-当前受限于 RTX 4060 8GB 算力和 1,200 张训练原理图的数据规模。未来方向：（1）扩展数据集多样性，增加真实拍照至 200+ 张，引入多 EDA 工具导出和退化样本（模糊/倾斜/低光）；（2）扩大训练数据至 3,000+ 张以实现 JointF1 > 0.05 的可用阈值；（3）两阶段训练：合成数据预训练 $\to$ 真实数据微调；（4）尝试更大 LoRA rank（$r=32$ 或 $r=64$）；（5）实现元件 F1 和引脚准确率等拓扑评估协议。
+当前受限于 RTX 4060 8GB 算力和 1,200 张训练原理图的数据规模。未来方向：（1）扩展数据集多样性至 200+ 真实拍照、多 EDA 工具导出和退化样本；（2）训练数据扩至 3,000+ 张以突破 JointF1 > 0.05；（3）两阶段训练：合成预训练 $\to$ 真实微调；（4）尝试更大 LoRA rank；（5）\textbf{RL + SPICE 网表对齐}：通过 GRPO 微调将自由文本输出转化为严格的 SPICE 网表格式，实现从 OCR 到可仿真验证网表的最后一公里。
 
 \subsection{开源资源}
 

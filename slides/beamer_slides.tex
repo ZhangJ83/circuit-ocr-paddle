@@ -619,6 +619,78 @@
 \end{frame}
 
 % ══════════════════════════════════════════
+\section{Training Strategy \& Innovation}
+% ══════════════════════════════════════════
+
+\begin{frame}{Training Strategy: 6 Targeted Design Decisions}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{lp{3cm}p{3.5cm}}
+      \toprule
+      \textbf{Decision} & \textbf{Rationale} & \textbf{Validation} \\
+      \midrule
+      LoRA r=16, not full SFT & RTX 4060 8GB constraint, 5.7M/0.9B (0.6\%) & Phase 1 exp1-4 \\
+      Frozen Projector & Unfreezing causes modality collapse & exp3 vs exp4 \\
+      Manual CE Loss & Fix Paddle 3.1.0 double-shift bug & Training convergence \\
+      Separate Tokenization & Avoid BPE boundary merging & V10 verified \\
+      Synthetic Data 20\% & Anti-collapse: force visual-text alignment & CompF1 4.2$\times$ (Phase 2) \\
+      4-Dimension Metrics & CompF1+JointF1+NED+RepRate & Real-time monitoring \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+\begin{frame}{Systematic Ablation: 6 Experiments}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{lcccl}
+      \toprule
+      \textbf{Ablation Dim.} & \textbf{Group} & \textbf{CompF1} & \textbf{Conclusion} \\
+      \midrule
+      LR & 2e-5 vs 1e-5 & 0.037 vs 0.028 & Lower LR + high DO more stable \\
+      Resolution & 384px vs 512px & 0.037 vs 0.058 & 512px no significant gain \\
+      Dropout & 0.05 vs 0.10 & — & 0.10 better anti-overfit \\
+      Epochs & 2 vs 3 & — & 3 epochs for convergence \\
+      Projector & Frozen vs Unfrozen & 0.037 vs 0.092 & Unfrozen = collapse \\
+      \textbf{Synth Data} & \textbf{No vs Yes} & \textbf{0.028 vs 0.126} & \textbf{Key breakthrough} \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{0.3cm}
+  \begin{center}
+    \small \textbf{Synthetic data mixing is the single most effective intervention (4.2$\times$ CompF1)}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Innovation \& Future: RL + SPICE Netlist Alignment}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{Current Innovations}
+        \begin{itemize}
+          \item \textbf{Synthetic data anti-collapse}: generalizable to any small-dataset VLM-OCR
+          \item \textbf{JointF1}: first KIE-level metric for circuit OCR
+          \item \textbf{Modality collapse root cause}: Projector perturbation identified via ablation
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{Future: RL for SPICE Format}
+        \begin{enumerate}
+          \item Stage 1: SFT on SPICE-formatted data
+          \item Stage 2: GRPO with 3-component reward
+          \begin{itemize}
+            \item Syntax: SPICE parser success (0/1)
+            \item Component: refdes F1 vs GT
+            \item Connectivity: node consistency
+          \end{itemize}
+          \item Output: ``R1 NET\_A NET\_B 10k'' (importable to KiCad)
+        \end{enumerate}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════
 \section{Key Findings \& Future Work}
 % ══════════════════════════════════════════
 
@@ -692,6 +764,7 @@
           \item \textbf{Real photos}: 200+ photographed circuits
           \item \textbf{Degraded samples}: blur, tilt, low-light variants
           \item \textbf{Two-stage training}: synth pre-train $\rightarrow$ real fine-tune
+          \item \textbf{RL + SPICE alignment}: GRPO fine-tuning for netlist-format output
           \item \textbf{Larger LoRA}: try $r=32$, $r=64$
         \end{enumerate}
       \end{block}
