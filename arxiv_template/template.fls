@@ -357,9 +357,6 @@ INPUT ../slides_figures/visual_complexity_real.pdf
 INPUT ../slides_figures/multitask_complexity.pdf
 INPUT ../slides_figures/multitask_complexity.pdf
 INPUT ../slides_figures/multitask_complexity.pdf
-INPUT ../slides_figures/task_complexity_summary.pdf
-INPUT ../slides_figures/task_complexity_summary.pdf
-INPUT ../slides_figures/task_complexity_summary.pdf
 INPUT ./template.bbl
 INPUT ./template.bbl
 INPUT template.bbl

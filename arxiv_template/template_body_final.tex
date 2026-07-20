@@ -134,23 +134,7 @@ KiCad 原理图   & 1,200 & SVG 光栅化导出 & stroked-text 提取 + 7 轮验
 
 按照数据集质量标准，从四个维度对 Dataset A 进行系统评估：
 
-\begin{table}[h]
-\centering
-\caption{四维度评估结果}
-\label{tab:eval}
-\begin{tabular}{lp{6cm}}
-\toprule
-\textbf{维度} & \textbf{关键证据} \\
-\midrule
-1.1 数据规模   & 1520 训练 + 150 测试，4,810 OCR 实例 \\
-1.2 标注准确性 & 7 轮验证管线，质量报告 + 12 组可视化对比 \\
-1.3 数据多样性 & 3 种来源（KiCad/合成文字/真实拍照），单 CAD 来源为短板 \\
-1.4 难度合理性 & OCR 实例 + 文字密度 + 结构 + 参数值丰富度四维标签 \\
-\midrule
-\textbf{质量报告} & \texttt{quality\_report/} 目录 \\
-\bottomrule
-\end{tabular}
-\end{table}
+在数据规模方面，Dataset A 提供 1,520 个训练样本和 150 个测试样本，测试集包含 4,810 个 OCR 实例，覆盖 10 种元件类型。在标注准确性方面，经过 7 轮递进式验证管线（从 JSON Schema 自动校验到人工抽检），标注质量报告含 12 组 GT-vs-Image 可视化对比。在数据多样性方面，数据集包含三种来源：KiCad 原理图 SVG 导出、合成文字图片（PIL 生成）和真实手机拍照，当前主要短板是真实拍照数量偏少（20 张）且原理图均来自单一 CAD 工具。在难度合理性方面，测试集按 OCR 实例数分为 Easy/Medium/Hard 三档（2:4:4 比例），并额外提供文字密度、结构复杂度和参数值丰富度三个维度的视觉标签。完整质量报告和标签体系见数据集仓库 \texttt{quality\_report/} 目录。
 
 
 \section{场景稀缺性与应用价值}
@@ -202,21 +186,7 @@ KiCad 原理图   & 1,200 & SVG 光栅化导出 & stroked-text 提取 + 7 轮验
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
-\centering
-\caption{场景稀缺性评估汇总}
-\begin{tabular}{lp{7cm}}
-\toprule
-\textbf{子项} & \textbf{说明} \\
-\midrule
-2.1 研究稀缺性 & 学术界/工业界均无公开基准数据集 \\
-2.2 工业需求价值 & PCB 逆向工程/BOM 自动提取为真实行业刚需 \\
-2.3 场景独特性 & 元件级结构化输出，与通用 OCR 存在本质差异 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-以上为数据集质量与场景稀缺性的客观论证，供组委会评估参考。
+综上，电路原理图 OCR 在学术界和工业界均不存在公开基准数据集，属于高度稀缺的研究方向。同时，PCB 逆向工程（年外包市场超 5 亿美元）、遗留文档数字化和 BOM 自动提取构成了真实的行业刚需。电路 OCR 的元件级结构化输出（标号 + 参数值 + 引脚号）与通用 OCR 的自由文本输出存在本质差异，6 个核心维度均显著不同。
 
 \section{任务复杂度分析}
 
@@ -239,7 +209,7 @@ KiCad 原理图   & 1,200 & SVG 光栅化导出 & stroked-text 提取 + 7 轮验
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.9\textwidth]{../slides_figures/visual_complexity_real.pdf}
-\caption{电路 OCR 与通用文档 OCR 的视觉复杂度对比：7 个维度中电路 OCR 评分 4--5/5，通用 OCR 仅 1--2/5。}
+\caption{电路 OCR 与通用文档 OCR 的视觉复杂度对比（7 个维度）。}
 \label{fig:vis_complexity}
 \end{figure}
 
@@ -278,26 +248,7 @@ KiCad 原理图   & 1,200 & SVG 光栅化导出 & stroked-text 提取 + 7 轮验
 
 项目核心在感知层和结构理解层。虽未达到语义推理层（如电路功能分析、增益计算），但作为 OCR 任务，实体关联和结构解析本身已经是较高的理解要求。
 
-\begin{table}[h]
-\centering
-\caption{任务复杂度评估汇总}
-\begin{tabular}{lp{7cm}}
-\toprule
-\textbf{子项} & \textbf{核心论证} \\
-\midrule
-3.1 视觉复杂度   & 7 项固有挑战（微字/多方向/符号混排/线条穿越等），每项远超通用 OCR \\
-3.2 结构复杂度   & 5 个隐式子任务构成多任务联合优化，JointF1 $\equiv$ KIE \\
-3.3 理解复杂度   & 实体关联 + 文档结构理解，超出纯字符识别范畴 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.8\textwidth]{../slides_figures/task_complexity_summary.pdf}
-\caption{任务复杂度得分与累计评估汇总（39.5/50）。}
-\label{fig:score_summary}
-\end{figure}
+综上所述，电路原理图 OCR 在视觉、结构和理解三个层面均远超通用 OCR 任务：视觉层面存在 7 项固有挑战（微字体、多方向、符号混排、线条穿越、超高密度、工程字体和基座模型全面失效），结构层面包含 5 个隐式子任务（元件检测、参数读取、标号-值配对即 KIE、引脚解析、网络标号识别）构成多任务联合优化问题，理解层面涉及实体关联和文档结构解析，超出纯字符识别范畴。
 
 \section{训练数据集构建科学性}
 
