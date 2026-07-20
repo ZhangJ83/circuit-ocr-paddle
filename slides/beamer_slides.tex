@@ -383,6 +383,69 @@
 \end{frame}
 
 % ══════════════════════════════════════════
+\section{Training Dataset Construction}
+% ══════════════════════════════════════════
+
+\begin{frame}{Training Dataset: Construction Pipeline}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{lclc}
+      \toprule
+      \textbf{Data Type} & \textbf{Count} & \textbf{Method} & \textbf{License} \\
+      \midrule
+      KiCad Schematics & 1,200 & SVG rasterization export & MIT (self-drawn) \\
+      Synthetic Text & 300 & PIL rendering, 6 templates & MIT (generated) \\
+      Real-Camera Photos & 20 & Phone camera, printed A4 & MIT (author-shot) \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+
+  \begin{block}{Key Facts}
+    \begin{itemize}
+      \item \textbf{All data self-owned}: self-drawn KiCad designs + program-generated + author-shot photos
+      \item \textbf{No copyright issues}: 100\% MIT license
+      \item \textbf{Fully reproducible}: all generation/cleaning/mixing scripts in repo
+      \item \textbf{Test set isolated}: 150 real circuit images only — zero synthetic, zero photos
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Quality Control: 7-Round Verification + Analysis}
+  \begin{columns}[T]
+    \column{0.45\textwidth}
+      \begin{block}{7-Round QC Pipeline}
+        \begin{enumerate}
+          \item JSON Schema validation (auto, 100\%)
+          \item Image path verification (auto, 100\%)
+          \item Control character scan (auto, 100\%)
+          \item Label regex matching (auto, 100\%)
+          \item Unit normalization (auto, 100\%)
+          \item KiCad netlist cross-check (auto, 100\%)
+          \item Manual spot-check (human, 10\%)
+        \end{enumerate}
+      \end{block}
+    \column{0.55\textwidth}
+      \begin{block}{Deliverables}
+        \begin{itemize}
+          \item \textbf{Quality Report}: \texttt{quality\_report/README.md}
+          \begin{itemize}
+            \item Labels >99\%, Values >97\%, Pins >98\%
+          \end{itemize}
+          \item \textbf{Visual Spot-Check}: 12 GT-vs-Image pairs
+          \item \textbf{Difficulty Labels}: OCR + 3 visual dims
+          \item \textbf{8 Dataset Charts}: composition, distribution, heatmaps
+          \item \textbf{Annotation Guideline}: documented in dataset README
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \vspace{0.3cm}
+  \begin{center}
+    \small All QC data, reports, and visualizations publicly available
+  \end{center}
+\end{frame}
+
+% ══════════════════════════════════════════
 \section{Model \& Training}
 % ══════════════════════════════════════════
 

@@ -306,6 +306,30 @@ KiCad 原理图   & 1,200 & SVG 光栅化导出 & stroked-text 提取 + 7 轮验
 \label{fig:score_summary}
 \end{figure}
 
+\section{训练数据集构建科学性}
+
+\subsection{采集流程规范性}
+
+所有训练数据来源清晰、版权明确、可复现：
+
+\begin{itemize}[nosep]
+    \item \textbf{KiCad 原理图（1,200 张）}：作者自绘 KiCad 设计，SVG 光栅化导出为 PNG，MIT 协议；
+    \item \textbf{合成文字图片（300 张）}：PIL 程序生成，6 种模板，MIT 协议。生成脚本可复现；
+    \item \textbf{真实拍照（20 张）}：打印 A4 后手机拍摄，作者自拍，MIT 协议。
+\end{itemize}
+
+\textbf{测试集确认}：150 个测试样本全部为真实 KiCad 电路图，不含任何合成文字或拍照数据，训练/测试严格隔离。
+
+\subsection{标注规范与质量控制}
+
+标注遵循统一的 annotation guideline：只标注可见文字、保留原始换行结构、一词一行格式、单位标准化。不可靠数据（如 Masala-CHAI）直接剔除。
+
+7 轮递进式质量控制管线：JSON Schema 校验 $\to$ 路径验证 $\to$ 控制字符扫描 $\to$ 标号正则匹配 $\to$ 单位归一化 $\to$ KiCad 网表交叉验证 $\to$ 人工抽检（10\%）。质检结果公开在 \texttt{quality\_report/} 目录：标注准确率 $>$99\%、12 组可视化对比、量化指标完整。
+
+\subsection{数据统计分析}
+
+提供完整 dataset analysis：标注质量报告、多维难度标签体系、8 张可视化图表（数据构成环形图、元件类型分布、OCR 实例直方图、难度热力图等），均已嵌入本文相关章节。
+
 \section{模型微调与实验}
 
 \subsection{Phase 1：四组控制变量实验}
