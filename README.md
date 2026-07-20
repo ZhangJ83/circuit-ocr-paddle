@@ -6,7 +6,7 @@
 [![HuggingFace Space](https://img.shields.io/badge/Demo-HuggingFace-orange)](https://huggingface.co/spaces/yingchu83/CircuitOCR)
 
 > 📄 **Technical Report:** [中文版 (PDF)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf) | [English (PDF)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf) | [LaTeX Source](https://github.com/ZhangJ83/circuit-ocr-paddle/tree/master/arxiv_template)
-> 🎞️ **Beamer Slides:** [16-slide PDF](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf) — Phase 2 results with charts
+> 🎞️ **Beamer Slides:** [35-slide PDF](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf) — Full 5-dimension evaluation with 15+ charts
 
 > 🎮 **Live Demo:** [HuggingFace Space](https://huggingface.co/spaces/yingchu83/CircuitOCR)
 
@@ -482,7 +482,82 @@ python demo.py
 
 ---
 
+### 六、技术文档与开源贡献
+
+#### 6.1 文档质量 — 完整的多层次文档体系
+
+| 文档 | 位置 | 内容 |
+|------|------|------|
+| **项目 README** | 本文件 | 任务背景、安装、训练、评估、Demo 使用、全部链接 |
+| **技术报告（中文）** | `arxiv_template/template.pdf` (24 页) | 完整技术报告：数据集、实验、分析、未来工作 |
+| **技术报告（英文）** | `arxiv_template/english.pdf` | English technical report |
+| **Beamer 展示** | `slides/beamer_slides.pdf` (35 页) | 五维度评估 + 15+ 数据图表 |
+| **数据集 README** | [circuit_ocr_dataset_final](https://github.com/ZhangJ83/circuit_ocr_dataset_final) | 数据收集流程、标注规范、四维评估 |
+| **标注质量报告** | `quality_report/README.md` | 标注统计、准确率、12 组可视化对比 |
+| **多维难度标签** | `quality_report/difficulty_labels.md` | OCR + 3 维视觉标签体系 |
+| **代码文档** | 各脚本内注释 + argparse --help | 训练/评估/数据生成脚本均有完整参数说明 |
+
+#### 6.2 代码可复现性 — 完整训练+评估管线
+
+| 组件 | 文件 | 说明 |
+|------|------|------|
+| **数据生成** | `gen_synth_data.py`, `integrate_real_photos.py`, `generate_photo_templates.py` | 合成文字/拍照/PDF模板生成 |
+| **质量报告** | `gen_quality_report.py` | 标注质量统计 + 可视化对比 + 多维标签 |
+| **图表生成** | `gen_dataset_charts.py`, `gen_slides_charts.py` | 15+ 张数据集和实验图表 |
+| **Phase 1 训练** | `circuit-ocr-dataset/scripts/exp{1,2,3,4}.py` | 四组实验脚本，V10-Fixed 克隆 |
+| **Phase 2 训练** | `circuit-ocr-dataset/scripts/exp{5,6}.py` | 两组合成数据实验 |
+| **批量评估** | `batch_eval.py`, `fast_eval.py` | 多 checkpoint × 多指标对比 |
+| **环境配置** | `pyqpanda-quantum` conda env | Paddle 3.1.0 + PaddleFormers 1.1.1 |
+
+> 所有代码在 RTX 4060 8GB + Windows 11 上可稳定复现。训练/评估命令见 [Quick Start](#quick-start)。
+
+#### 6.3 Demo 完整性 — HuggingFace Space 在线体验
+
+| 平台 | 链接 | 说明 |
+|------|------|------|
+| **HuggingFace Space** | [yingchu83/CircuitOCR](https://huggingface.co/spaces/yingchu83/CircuitOCR) | 在线 Demo，含预计算示例和交互式推理 |
+| **HuggingFace Models** | [yingchu83/CircuitOCR-lora](https://huggingface.co/yingchu83/CircuitOCR-lora) | LoRA 权重下载（.pdparams 格式） |
+
+> ⚠️ HF Space 运行在 CPU-only 免费层。完整推理需本地 GPU 环境，见下方 Quick Start。
+
+#### 6.4 社区贡献价值 — 解决通用问题
+
+| 贡献 | 复用性 |
+|------|------|
+| **合成数据防塌缩策略** | 通用方法：任何小数据集 VLM-OCR 任务均可使用 20% 领域文本图片混合 |
+| **JointF1 指标** | 通用 KIE 指标：适用于所有"实体+属性"配对的 OCR 场景 |
+| **四维度评估框架** | 可迁移：数据集质量评估方法论可应用于其他垂域 OCR 任务 |
+| **Paddle 3.1.0 兼容性补丁** | 社区价值：flex\_checkpoint 假模块、safe\_open 懒加载等补丁可复用 |
+| **全开源生态** | MIT 协议：数据集、代码、权重、报告、PPT 全部开源 |
+
+---
+
 ## Links / 链接
+
+### 代码与数据集
+
+| 资源 | 链接 |
+|------|------|
+| 📂 主代码仓库 | [github.com/ZhangJ83/circuit-ocr-paddle](https://github.com/ZhangJ83/circuit-ocr-paddle) |
+| 📦 数据集仓库 | [github.com/ZhangJ83/circuit\_ocr\_dataset\_final](https://github.com/ZhangJ83/circuit_ocr_dataset_final) |
+| 📊 标注质量报告 | [quality\_report/](https://github.com/ZhangJ83/circuit_ocr_dataset_final/tree/master/quality_report) |
+| 📦 旧版数据集 | [github.com/ZhangJ83/circuit-ocr-dataset](https://github.com/ZhangJ83/circuit-ocr-dataset) |
+
+### 文档与展示
+
+| 资源 | 链接 |
+|------|------|
+| 📄 技术报告 (中文) | [template.pdf (24页)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf) |
+| 📄 技术报告 (英文) | [english.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf) |
+| 🎞️ Beamer 展示 | [beamer\_slides.pdf (35页)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf) |
+
+### 模型与 Demo
+
+| 资源 | 链接 |
+|------|------|
+| 🎮 在线 Demo | [huggingface.co/spaces/yingchu83/CircuitOCR](https://huggingface.co/spaces/yingchu83/CircuitOCR) |
+| 🏋️ LoRA 权重 | [huggingface.co/yingchu83/CircuitOCR-lora](https://huggingface.co/yingchu83/CircuitOCR-lora) |
+| 🔗 基座模型 | [PaddleOCR-VL-0.9B](https://github.com/PaddlePaddle/PaddleOCR) |
 
 | Resource | URL |
 |----------|-----|

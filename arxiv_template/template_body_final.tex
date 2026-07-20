@@ -562,6 +562,23 @@ Phase 1 实验表明，即便最优的 exp4（解冻投影器），CompF1 也仅
 
 \subsection{局限与展望}
 
+\section{技术文档与开源贡献}
+
+本项目提供完整的多层次文档体系和全开源生态：
+
+\begin{itemize}[nosep]
+    \item \textbf{技术报告}：24 页中英文技术报告（LaTeX 源码），覆盖数据集、实验、分析全流程；
+    \item \textbf{Beamer 展示}：35 页演示文稿，含 15+ 张数据可视化图表；
+    \item \textbf{数据集文档}：独立数据集仓库，含完整数据收集流程、标注规范、质量报告、可视化对比；
+    \item \textbf{在线 Demo}：HuggingFace Space 交互式体验（含预计算示例和标注说明）；
+    \item \textbf{LoRA 权重}：HuggingFace Models 公开发布（.pdparams 格式）；
+    \item \textbf{代码可复现}：6 组实验脚本、数据生成/清洗/评估全管线，单卡 RTX 4060 8GB 可运行。
+\end{itemize}
+
+所有资源均采用 MIT 协议开源，链接汇总于项目 README：\url{https://github.com/ZhangJ83/circuit-ocr-paddle}。
+
+\section{总结与未来工作}
+
 当前受限于 RTX 4060 8GB 算力和 1,200 张训练原理图的数据规模。未来方向：（1）扩展数据集多样性至 200+ 真实拍照、多 EDA 工具导出和退化样本；（2）训练数据扩至 3,000+ 张以突破 JointF1 > 0.05；（3）两阶段训练：合成预训练 $\to$ 真实微调；（4）尝试更大 LoRA rank；（5）\textbf{RL + SPICE 网表对齐}：通过 GRPO 微调将自由文本输出转化为严格的 SPICE 网表格式，实现从 OCR 到可仿真验证网表的最后一公里。
 
 \subsection{开源资源}

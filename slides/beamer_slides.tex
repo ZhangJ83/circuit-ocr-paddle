@@ -772,6 +772,58 @@
 \end{frame}
 
 % ══════════════════════════════════════════
+\section{Open-Source \& Documentation}
+% ══════════════════════════════════════════
+
+\begin{frame}{Open-Source Ecosystem: Complete Deliverables}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{ll}
+      \toprule
+      \textbf{Resource} & \textbf{URL} \\
+      \midrule
+      \rowcolor{blue!5} Code Repository & \href{https://github.com/ZhangJ83/circuit-ocr-paddle}{github.com/ZhangJ83/circuit-ocr-paddle} \\
+      \rowcolor{blue!5} Dataset Repository & \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{github.com/ZhangJ83/circuit\_ocr\_dataset\_final} \\
+      \rowcolor{blue!5} Quality Report & \texttt{quality\_report/} (stats + 12 visual checks) \\
+      \rowcolor{blue!5} Live Demo & \href{https://huggingface.co/spaces/yingchu83/CircuitOCR}{huggingface.co/spaces/yingchu83/CircuitOCR} \\
+      \rowcolor{blue!5} LoRA Weights & \href{https://huggingface.co/yingchu83/CircuitOCR-lora}{huggingface.co/yingchu83/CircuitOCR-lora} \\
+      \rowcolor{blue!5} Tech Report (CN/EN) & 24-page PDF (LaTeX source) \\
+      \rowcolor{blue!5} Beamer Slides & 35-page PDF (15+ charts) \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{0.3cm}
+  \begin{center}
+    \Large\textcolor{greencolor}{\textbf{Code + Data + Model + Report + Demo + Slides — All MIT}}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Community Value: Beyond This Project}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{Reusable Methods}
+        \begin{itemize}
+          \item \textbf{Synthetic data anti-collapse}: any small-dataset VLM-OCR can adopt 20\% text-image mixing
+          \item \textbf{JointF1 metric}: reusable KIE evaluation for any ``entity+attribute'' OCR task
+          \item \textbf{4-dimension eval framework}: transferable to other vertical OCR domains
+          \item \textbf{Paddle 3.1.0 patches}: flex\_checkpoint, safe\_open, token shift fix
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{Reproducibility}
+        \begin{itemize}
+          \item All 6 experiment scripts available
+          \item Full training pipeline: data gen $\to$ train $\to$ eval
+          \item conda environment documented
+          \item Single RTX 4060 8GB — consumer hardware
+          \item Every figure and chart has generation script
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% ══════════════════════════════════════════
 \section{Summary}
 % ══════════════════════════════════════════
 
