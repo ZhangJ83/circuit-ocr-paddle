@@ -1,16 +1,18 @@
 # Fdb version 4
-["bibtex template"] 1784568744.18568 "template.aux" "template.bbl" "template" 1784568744.52061 2
-  "template.aux" 1784568744 12288 50e2f7aed8ee1fc476a3ec2c0ccf40f0 "xelatex"
+["bibtex template"] 1784569230.74774 "template.aux" "template.bbl" "template" 1784569236.44564 0
+  "./references.bib" 1783280824 6127 2e9b72535616739dcd55ec43081bfa96 ""
+  "e:/080000software/081000_VSCode/texlive/2025/texmf-dist/bibtex/bst/natbib/unsrtnat.bst" 1763047582 24550 a41a6405f4de768c43e871d9fbce2bc8 ""
+  "template.aux" 1784569234 16845 16d47a90ce710fe5e60d278bdce11a5a "xelatex"
   (generated)
   "template.bbl"
   "template.blg"
   (rewritten before read)
-["xdvipdfmx"] 1784555023.31854 "template.xdv" "template.pdf" "template" 1784555026.21121 0
-  "template.xdv" 0 -1 0 "xelatex"
+["xdvipdfmx"] 1784569233.55152 "template.xdv" "template.pdf" "template" 1784569236.45381 0
+  "template.xdv" 1784569234 335516 c42bf8d3ec7df3ac5590a04eec754457 "xelatex"
   (generated)
   "template.pdf"
   (rewritten before read)
-["xelatex"] 1784568737.88069 "g:/mimo_project/circuit_ocr/arxiv_template/template.tex" "template.xdv" "template" 1784568744.52083 0
+["xelatex"] 1784569231.08556 "g:/mimo_project/circuit_ocr/arxiv_template/template.tex" "template.xdv" "template" 1784569236.44585 0
   "../circuit-ocr-dataset/data/synthetic_v3/synth_v3_0257.png" 1782840566 13228 cdc06599ddf6b05bb397a4030e588130 ""
   "../circuit-ocr-dataset/data/synthetic_v3/synth_v3_0262.png" 1782840566 15710 19633876b56aef0dfeb8dc69cdc1617a ""
   "../circuit-ocr-dataset/data/synthetic_v3/synth_v3_0442.png" 1782840576 37047 7f0dce6c9de5ea0ab447cdf409a74853 ""
@@ -216,9 +218,9 @@
   "e:/080000software/081000_VSCode/texlive/2025/texmf-var/web2c/xetex/xelatex.fmt" 1763048693 4589367 08228fe2573cda42bbb8f997b27c364a ""
   "e:/080000software/081000_VSCode/texlive/2025/texmf.cnf" 1763048501 713 614551405fc44b98efbf516466e3c909 ""
   "g:/mimo_project/circuit_ocr/arxiv_template/template.tex" 1784568738 52764 d505756f0b5d1ee55beaab51597d3d4b ""
-  "template.aux" 1784568744 12288 50e2f7aed8ee1fc476a3ec2c0ccf40f0 "xelatex"
-  "template.bbl" 1784568746 0 d41d8cd98f00b204e9800998ecf8427e "bibtex template"
-  "template.out" 1784568744 0 d41d8cd98f00b204e9800998ecf8427e "xelatex"
+  "template.aux" 1784569234 16845 16d47a90ce710fe5e60d278bdce11a5a "xelatex"
+  "template.bbl" 1784569232 1932 9f46cb1bc1f09cc36fc5d31ca9b9358d "bibtex template"
+  "template.out" 1784569234 2482 f4b6e179acdf043f7b807933c87cd552 "xelatex"
   "template.tex" 1784568738 52764 d505756f0b5d1ee55beaab51597d3d4b ""
   (generated)
   "template.aux"
