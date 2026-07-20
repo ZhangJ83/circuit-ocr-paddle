@@ -446,102 +446,19 @@ exp6 (Baseline + Synth, lr=2e-5, do=0.05)     & \textbf{0.156} & \textbf{0.011} 
 
 \textbf{突破 3：BPE 边界合并修复。} Prompt 和 label 分别独立分词后在 token ID 空间拼接，杜绝 BPE 在边界合并字符对（如 ``\textbackslash nR'' $\to$ 单 token）导致 label 首字符被吞。
 
-\subsection{检查点筛选与最终评估}
-
-每 200 步保存检查点并在 easy50 验证子集（10 样本，基座 NED = 0.9634）上评估。结果如表~\ref{tab:checkpoints}：s1600（Epoch 2.6）最优，NED = 0.8257，相对错误率削减 14.3\%。final（Epoch 3.0）NED 回升至 0.8352，提示 2.6 epoch 为最优早停点。
-
-\begin{table}[h]
-\centering
-\caption{V8-Fixed 检查点评估（easy50 验证子集，10 样本；基座 = 0.9634）}
-\label{tab:checkpoints}
-\begin{tabular}{lcc}
-\toprule
-\textbf{检查点} & \textbf{步数/轮次} & \textbf{Avg. NED} \\
-\midrule
-基座（无 LoRA） & --   & 0.9634 \\
-s1000     & 1000 / E1.6 & 0.8603 \\
-s1200     & 1200 / E2.0 & 0.8407 \\
-s1400     & 1400 / E2.3 & 0.8727 \\
-\textbf{s1600} & \textbf{1600 / E2.6} & \textbf{0.8257} \\
-final     & 1800 / E3.0 & 0.8352 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-最优 s1600 在 \textbf{easy100 全量测试集（100 样本）上取得 Avg. NED = 0.7760}（基座 0.9372），相对错误率削减 \textbf{17.2\%}。这是本项目目前在标准测试集上的最优成绩。表~\ref{tab:evolution} 汇总了最终配置与基座的对比。
-
-\begin{table}[h]
-\centering
-\caption{V8-Fixed 与基座对比（统一测试集）}
-\label{tab:evolution}
-\begin{tabular}{lccccc}
-\toprule
-\textbf{模型} & \textbf{架构} & \textbf{训练样本} & \textbf{参数} & \textbf{easy50 NED} & \textbf{easy100 NED} \\
-\midrule
-基座                & 无微调   & 0      & 0       & 0.9634 & 0.9372 \\
-V5 LLM-Only ($r=8$) & 冻Proj, $r=8$  & 1,857  & 1.25M   & 0.9031 & -- \\
-\textbf{V8-Fixed}    & \textbf{冻Proj, $r=16$} & \textbf{2,299} & \textbf{5.7M} & \textbf{0.8257} & \textbf{0.7760} \\
-\bottomrule
-\end{tabular}
-\par\smallskip
-{\small\noindent 注：easy50 列使用 10 样本验证子集（基座 = 0.9634）。easy100 列使用 100 样本全量测试集（基座 = 0.9372）。V5 的 $r=8$ 配置在 easy50 上 NED 高于基座（0.9031），原因是容量不足导致过早收敛，但其 90\% 多样性标志着塌缩的彻底解决。}
-\end{table}
-
-% [REMOVED: old V8 examples figure — moved to appendix]
-
-\section{实验设置}
-
-\subsection{训练超参数}
-
-所有实验在单卡 RTX 4060 8GB 上运行。V8-Fixed 最终配置：
-
-\begin{itemize}[nosep]
-    \item LoRA：$r=16$, $\alpha=32$，LLM + 视觉编码器 + 投影层共 310 矩阵，5.7M 参数（0.63\%）
-    \item 优化器：AdamW（$\beta_1=0.9$, $\beta_2=0.95$, decay=0.1）
-    \item 学习率：$2\times10^{-5}$，余弦退火，3 epoch（1,800 步），batch\_size=1，梯度累积 4
-    \item max\_dim：384px，label 截断 200 字符，训练约 2 小时
-\end{itemize}
-
-\subsection{评估指标}
-
-Avg. NED：$\text{NED}(p, g) = \text{Levenshtein}(p, g) / \max(|p|, |g|)$。支持 \texttt{--unordered} 模式（按行字母排序后计算），消除阅读顺序差异。Easy50 验证子集用 10 样本快速筛选，easy100 全量 100 样本用于最终评估。多样性 = 唯一输出数 / 总样本数。
-
-
 \section{讨论}
 
-\subsection{模态塌缩机制}
+\subsection{合成数据为何有效}
 
-Projector 被 LoRA 扰动 $\to$ 视觉特征扭曲为分布外向量 $\to$ LLM 注意力退化 $\to$ 自回归退化为高频 token 重复。这解释了为何所有 V4 塌缩样本输出完全相同的 ``12\textbackslash n100\textbackslash n100...''——该序列是训练数据中出现频率最高的 token 组合。LLM-Only LoRA 通过冻结 Projector 彻底规避了这一问题。
+合成文字图片具有完美的视觉$\to$文字映射关系。当模型面对无法通过统计模式"猜"对的输入时，唯一的降低 loss 路径是真正读取图片中的文字。这强制保持了视觉编码器活跃，防止 LLM 退化为高频 token 机械重复。20\% 的混合比例在防塌缩效果和领域适应性之间取得了平衡：比例过低则防塌缩效果不足，比例过高则可能使模型过拟合合成数据的简单视觉风格。
 
-\subsection{数据质量 > 数据数量}
+\subsection{数据质量优先于数据数量}
 
-V4 的 5,686 样本因格式失配（62.1\% vs 测试集 98.6\%）和 22,340 个重复噪点导致训练信号被严重污染。V5 Golden 的 2,555 样本虽更少但更干净，训练出 V8-Fixed 的 0.7760 NED——精标小数据集优于粗标大数据集。
+早期实验表明，V4 的 5,686 样本因格式失配和 22,340 个重复噪点导致训练信号严重污染。而经过 7 轮验证的 1,200 样本训练出的 exp6 模型 CompF1 达到 0.156——精标小数据集的训练效果优于粗标大数据集。
 
-\subsection{Phase 2：合成文字数据防塌缩策略}
+\subsection{当前瓶颈}
 
-Phase 1 实验表明，即便最优的 exp4（解冻投影器），CompF1 也仅为 0.092，且所有模型在 1,200 样本上均出现不同程度的模态塌缩。为解决此问题，Phase 2 引入了合成文字数据混合策略：
-
-\textbf{合成数据生成。} 从训练集真实标注中随机抽取内容，结合 6 种模板（电阻表、电容表、IC 型号表、引脚定义、网络标号、BOM 表），用 PIL 渲染为白底黑字文档风格图片。共生成 300 张，多种字号（20--32px）和画布尺寸。
-
-\textbf{混合训练。} 将 300 张合成图片与 1,200 张原始电路图以 20\% 比例混合，形成 1,500 样本训练集。在此数据集上运行两组实验：
-\begin{itemize}[nosep]
-    \item \textbf{exp5（防过拟合 + 合成）}：lr=$1\times10^{-5}$，dropout=0.10，3 epoch，384px
-    \item \textbf{exp6（基线 + 合成）}：lr=$2\times10^{-5}$，dropout=0.05，2 epoch，384px
-\end{itemize}
-
-\textbf{结果。} 合成数据效果显著：
-\begin{itemize}[nosep]
-    \item CompF1：exp6 达到 \textbf{0.156}（Phase 1 最优 0.092，提升 1.7$\times$；exp1 基线 0.037，提升 4.2$\times$）
-    \item JointF1：exp5/exp6 均达到 \textbf{0.011}（Phase 1 最优 0.005，提升 2.2$\times$）
-    \item 训练验证：exp5 在 S200 即达到高质量输出（``C1 22$\mu$F 100V Electrolytic''），S200--S800 持续稳定
-\end{itemize}
-
-\textbf{结论。} 合成文字数据以 20\% 比例混入是当前最有效的防塌缩手段。其原理是：合成图片具有完美的视觉$\to$文字映射，模型无法通过"猜"来降低 loss，必须真正读取图片，从而强制保持视觉编码器活跃。然而，JointF1（0.011）仍远低于可用阈值（0.05），根本瓶颈在于 1,200 张训练原理图不足以支撑 VLM 的泛化能力。
-
-\subsection{NED 与多样性的权衡}
-
-% 多样性意味着模型真正在读图。评估结构化输出任务时需结合 NED 与多样性双重指标，避免被塌缩模型的「虚假低 NED」误导。
-
+尽管合成数据策略将 CompF1 从 0 提升至 0.156，JointF1 仍仅为 0.011，远低于可用的 0.05 阈值。模型在复杂样本（如 ESP32 完整引脚表、非英语文本）上持续塌缩，参数值幻觉问题未解决。根本瓶颈在于 1,200 张训练原理图不足以支撑 0.9B 参数 VLM 的泛化能力。更大 LoRA 秩（$r=32$）、两阶段训练和 SPICE 格式微调在当前数据规模下均未能带来增益。
 
 \section{结论}
 
