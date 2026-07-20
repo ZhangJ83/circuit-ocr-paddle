@@ -472,8 +472,6 @@ exp6 (Baseline + Synth, lr=2e-5, do=0.05)     & \textbf{0.156} & \textbf{0.011} 
     \item \textbf{完整开源}：数据集、代码、LoRA 权重、技术报告、Beamer 演示、在线 Demo 均已发布。
 \end{enumerate}
 
-\subsection{局限与展望}
-
 \section{技术文档与开源贡献}
 
 本项目提供完整的多层次文档体系和全开源生态：
@@ -489,17 +487,7 @@ exp6 (Baseline + Synth, lr=2e-5, do=0.05)     & \textbf{0.156} & \textbf{0.011} 
 
 所有资源均采用 MIT 协议开源，链接汇总于项目 README：\url{https://github.com/ZhangJ83/circuit-ocr-paddle}。
 
-\section{总结与未来工作}
-
-当前受限于 RTX 4060 8GB 算力和 1,200 张训练原理图的数据规模。未来工作可沿两条主线推进：
-
-\textbf{主线一：扩大规模 + 两阶段训练 + 更大 LoRA。} 将训练数据从 1,200 张扩展至 3,000+ 张，采用两阶段策略：先在合成数据上预训练学习视觉-文字对齐，再在真实电路图上微调学习领域特征。同时将 LoRA rank 从 $r=16$ 提升至 $r=32$ 或 $r=64$，增加模型容量。目标是将 JointF1 从 0.011 推至 0.05 以上。
-
-\textbf{主线二：RL + SPICE 网表格式对齐。} 当 JointF1 达到可用阈值后，通过两阶段方案将自由文本输出转化为严格的 SPICE 网表：（1）从 KiCad 网表自动生成 (图片, SPICE) 对齐数据，在现有 LoRA 权重上继续 SFT；（2）使用 GRPO 强化学习，设计三组件 reward（SPICE 语法有效性 + 元件标号 F1 + 节点编号一致性），将输出从 ``R1 10k$\Omega$'' 升级为 ``R1 NET\_A NET\_B 10k''，可直接导入 KiCad/LTspice 进行仿真验证。
-
-以上两条主线可串行推进：先通过扩大数据和模型容量达到可用精度，再通过 RL 实现格式对齐，形成从 OCR 到可仿真网表的完整链路。
-
-\subsection{开源资源}
+\section{开源资源}
 
 \begin{enumerate}[nosep]
     \item 项目仓库：\url{https://github.com/ZhangJ83/circuit-ocr-paddle}
