@@ -23,7 +23,7 @@
 \subsection{核心贡献}
 
 \begin{enumerate}[nosep]
-    \item \textbf{高质量数据集}：经 7 轮验证的 Dataset A（1,820 样本），四维度评估得分 15.5/20，含标注质量报告与多维难度标签；
+    \item \textbf{标注数据集}：经 7 轮验证的 Dataset A（1,820 样本），含标注质量报告与多维难度标签；
     \item \textbf{模态塌缩对抗策略}：发现合成文字数据以 20\% 比例混入训练可有效防止塌缩，CompF1 提升 4.2$\times$；
     \item \textbf{Phase 1/2 系统实验}：6 组实验对比基线/高分辨率/防过拟合/解冻投影器/合成数据等配置；
     \item \textbf{完整开源生态}：数据集、权重、标注质量报告、Beamer 展示、Demo 均已发布。
@@ -355,7 +355,7 @@ KiCad 原理图   & 1,200 & SVG 光栅化导出 & stroked-text 提取 + 7 轮验
 Dropout      & 0.05 vs 0.10 & — & 0.10 小数据防过拟合 \\
 Epoch 数     & 2 vs 3       & — & 3 epoch 充分收敛 \\
 Projector    & 冻结 vs 解冻 & 0.037 vs 0.092(塌缩) & 解冻导致塌缩 \\
-\textbf{合成数据} & \textbf{无 vs 有} & \textbf{0.028 vs 0.126} & \textbf{关键突破} \\
+\textbf{合成数据} & \textbf{无 vs 有} & \textbf{0.028 vs 0.126} & \textbf{有效手段} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -366,8 +366,8 @@ Projector    & 冻结 vs 解冻 & 0.037 vs 0.092(塌缩) & 解冻导致塌缩 \\
 
 \begin{itemize}[nosep]
     \item \textbf{合成文字数据防塌缩策略}：300 张领域内文本图片以 20\% 混合，CompF1 提升 4.2$\times$，方法具有通用性——任何小数据集 VLM-OCR 任务均可复用；
-    \item \textbf{JointF1 指标}：首个面向电路 OCR 的 KIE 级评估指标，要求标号与参数值同时正确配对；
-    \item \textbf{模态塌缩根因定位}：通过 6 组消融首次识别 Projector 扰动为塌缩根因。
+    \item \textbf{JointF1 指标}：面向电路 OCR 的 KIE 级评估指标，要求标号与参数值同时正确配对；
+    \item \textbf{模态塌缩根因定位}：通过 6 组消融识别 Projector 扰动为塌缩根因。
 \end{itemize}
 
 \textbf{未来方向：RL + SPICE 网表格式对齐}：
@@ -430,7 +430,7 @@ exp6 (Baseline + Synth, lr=2e-5, do=0.05)     & \textbf{0.156} & \textbf{0.011} 
 \end{tabular}
 \end{table}
 
-\textbf{核心发现}：合成数据是当前最有效的防塌缩手段。CompF1 相比 Phase 1 基线提升 4.2$\times$（0.037 $\to$ 0.156），JointF1 提升 2.2$\times$（0.005 $\to$ 0.011）。训练验证显示 exp5 在 S200 即达到高质量输出，S200-S800 持续稳定。
+\textbf{核心发现}：合成数据混合可有效缓解模态塌缩。CompF1 相比 Phase 1 基线提升 4.2$\times$（0.037 $\to$ 0.156），JointF1 提升 2.2$\times$（0.005 $\to$ 0.011）。训练验证显示 exp5 在 S200 即产生合理的电路元件输出，S200-S800 持续稳定。
 
 \subsection{Phase 3：更大 LoRA 与格式微调（exp7/exp8）}
 
@@ -444,13 +444,13 @@ exp6 (Baseline + Synth, lr=2e-5, do=0.05)     & \textbf{0.156} & \textbf{0.011} 
 
 为直接优化元件级精度，在 exp6 权重上采用奖励引导微调：对每个训练样本生成预测 $\to$ 计算 CompF1+JointF1 奖励 $\to$ 用奖励加权 SFT loss 。奖励函数同时惩罚模态塌缩（数字序列）并奖励输出多样性。训练进行中，200 样本 $\times$ 2 epoch，初始平均奖励约 0.12。
 
-\textbf{突破 3：BPE 边界合并修复。} Prompt 和 label 分别独立分词后在 token ID 空间拼接，杜绝 BPE 在边界合并字符对（如 ``\textbackslash nR'' $\to$ 单 token）导致 label 首字符被吞。
+\textbf{BPE 边界合并修复。} Prompt 和 label 分别独立分词后在 token ID 空间拼接，避免 BPE 在边界合并字符对（如 ``\textbackslash nR'' $\to$ 单 token）导致 label 首字符被吞。
 
 \section{讨论}
 
 \subsection{合成数据为何有效}
 
-合成文字图片具有完美的视觉$\to$文字映射关系。当模型面对无法通过统计模式"猜"对的输入时，唯一的降低 loss 路径是真正读取图片中的文字。这强制保持了视觉编码器活跃，防止 LLM 退化为高频 token 机械重复。20\% 的混合比例在防塌缩效果和领域适应性之间取得了平衡：比例过低则防塌缩效果不足，比例过高则可能使模型过拟合合成数据的简单视觉风格。
+合成文字图片具有确定的视觉$\to$文字映射关系。当模型面对无法通过统计模式匹配的输入时，降低 loss 的唯一路径是读取图片中的文字。这迫使视觉编码器保持活跃，防止 LLM 退化为高频 token 重复。20\% 的混合比例在缓解塌缩和保持领域适应性之间取得了平衡。
 
 \subsection{数据质量优先于数据数量}
 
@@ -465,7 +465,7 @@ exp6 (Baseline + Synth, lr=2e-5, do=0.05)     & \textbf{0.156} & \textbf{0.011} 
 \subsection{主要贡献}
 
 \begin{enumerate}
-    \item \textbf{首个电路原理图 OCR 数据集}：Dataset A 含 1,820 个经 7 轮验证的高质量标注样本，覆盖 10 种元件类型，提供标注质量报告和多维难度标签体系；
+    \item \textbf{电路原理图 OCR 数据集}：Dataset A 含 1,820 个经 7 轮验证的标注样本，覆盖 10 种元件类型，提供标注质量报告和多维难度标签；
     \item \textbf{合成数据防塌缩策略}：300 张合成文字图片以 20\% 比例混入训练集，CompF1 从基座的 0 提升至 0.156，JointF1 从 0 提升至 0.011；
     \item \textbf{系统消融实验}：通过 Phase 1-4 共 9 组实验（exp1-exp9）系统对比了分辨率、学习率、dropout、投影器状态、合成数据、LoRA 秩、两阶段训练、SPICE 格式微调和 RL 奖励引导微调的影响；
     \item \textbf{RRL 奖励引导微调}：设计并实现了基于 CompF1+JointF1 奖励信号的强化学习微调方案（exp9），直接优化元件级识别精度；

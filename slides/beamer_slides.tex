@@ -60,7 +60,7 @@
       \begin{block}{本项目工作}
         \footnotesize
         \begin{enumerate}
-          \item 构建首个电路 OCR 高质量标注数据集（7 轮验证）
+          \item 构建电路原理图 OCR 标注数据集（7 轮验证）
           \item 提出合成文字数据防塌缩策略
           \item Phase 1-4 共 9 组系统消融实验
           \item 全开源：代码、数据、权重、报告、Demo
@@ -406,7 +406,7 @@
   \end{columns}
   \vspace{0.3cm}
   \begin{center}
-    \footnotesize \textbf{合成数据是当前最有效的防塌缩手段：CompF1 提升 4.2 倍}
+    \footnotesize \textbf{合成数据混合可有效缓解模态塌缩，CompF1 提升 4.2 倍}
   \end{center}
 \end{frame}
 
@@ -443,7 +443,7 @@
       分辨率 & 384 vs 512px & 0.037 vs 0.058 & 512px 无显著增益 \\
       Dropout & 0.05 vs 0.10 & — & 0.10 防过拟合更好 \\
       Projector & 冻结 vs 解冻 & 0.037 vs 0.092 & 解冻导致塌缩 \\
-      合成数据 & 无 vs 有 & 0.028 vs 0.126 & \textbf{关键突破} \\
+      合成数据 & 无 vs 有 & 0.028 vs 0.126 & \textbf{有效手段} \\
       LoRA 秩 & 16 vs 32 & 0.156 vs 0.084 & r=32 无效 \\
       \bottomrule
     \end{tabular}
@@ -459,7 +459,7 @@
       \begin{block}{机制分析}
         \footnotesize
         \begin{itemize}
-          \item 合成图片具有完美的视觉→文字映射
+          \item 合成图片具有确定的视觉→文字映射
           \item 模型无法通过统计模式"猜"对
           \item 唯一的降低 loss 路径：真正读取图片
           \item 强制保持视觉编码器活跃
