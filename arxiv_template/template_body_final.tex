@@ -227,6 +227,89 @@ KiCad 原理图   & 1,200 & SVG 光栅化导出 & stroked-text 提取 + 7 轮验
 
 综合数据集质量（15.5/20）与场景稀缺性（14/15），项目累计得分 \textbf{29.5/35}。
 
+\section{任务复杂度分析}
+
+电路原理图 OCR 是一个被严重低估难度的任务。与通用文档 OCR 不同，电路图具有极高的视觉和结构复杂度，需要模型同时完成多个层次化子任务。
+
+\subsection{视觉复杂度（4/7）：电路图本身的工程挑战}
+
+电路原理图的视觉复杂度远超通用 OCR 场景，存在以下固有挑战因素：
+
+\begin{itemize}[nosep]
+    \item \textbf{文字与电气符号密集交错}：电阻、电容、IC 等电气符号与文字标注在有限空间内混排，远非纯文本场景；
+    \item \textbf{极微小字体}：引脚号（1, 2, 3...）和参数值（100nF、10k$\Omega$）字号极小，视觉编码器极易遗漏；
+    \item \textbf{多方向文字}：水平、垂直、旋转 90°、镜像——商用 OCR 引擎均假设水平文本布局；
+    \item \textbf{线条穿越文字}：导线和总线频繁穿越文字标注区域，造成结构性遮挡；
+    \item \textbf{超高文字密度}：测试集平均 32.1 个 OCR 实例/页（范围 0--141），远超通用文档的 10--20/页；
+    \item \textbf{等宽工程字体}：非标准字体，预训练 VLM 的视觉编码器从未在训练数据中见过；
+    \item \textbf{基座模型全面失效}：PaddleOCR、Tesseract、EasyOCR 三大引擎在电路图上全部失效，基座 NED = 0.937（接近随机）。
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{../slides_figures/visual_complexity.pdf}
+\caption{电路 OCR 与通用文档 OCR 的视觉复杂度对比：7 个维度中电路 OCR 评分 4--5/5，通用 OCR 仅 1--2/5。}
+\label{fig:vis_complexity}
+\end{figure}
+
+\subsection{结构复杂度（4/5）：隐式多任务联合优化}
+
+电路 OCR 天然包含 5 个层次化子任务，构成隐式多任务联合优化问题：
+
+\begin{enumerate}[nosep]
+    \item \textbf{元件检测}：从密集视觉场景中识别 R1、C2、U3 等元件标号（CompF1 评估）；
+    \item \textbf{参数值读取}：读取每个元件的参数值——10k$\Omega$、100nF、3.3V（JointF1 值部分）；
+    \item \textbf{标号-参数配对（KIE）}：R1 $\leftrightarrow$ 10k$\Omega$ 的正确关联——这是典型的\textbf{关键信息抽取（Key Information Extraction）}任务，JointF1 即为 KIE 指标；
+    \item \textbf{引脚解析}：引脚号 + 引脚功能名的联合识别（1 VIN, 2 GND, 3 VOUT）；
+    \item \textbf{网络标号识别}：VCC/GND/TX/RX 等节点标签提取。
+\end{enumerate}
+
+5 个子任务共享同一个 VLM 解码器，模型必须在无显式任务边界的情况下学习多任务协同优化。JointF1 作为核心评估指标，要求模型同时完成实体识别（元件标号）和属性关联（参数值），这正是 KIE 的核心定义。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{../slides_figures/multitask_complexity.pdf}
+\caption{电路 OCR 的 5 个隐式子任务，构成多任务联合优化问题。}
+\label{fig:multitask}
+\end{figure}
+
+\subsection{理解复杂度（2/3）：从字符识别到结构理解}
+
+电路 OCR 的理解层次超出纯字符识别：
+
+\begin{itemize}[nosep]
+    \item \textbf{感知层}：识别 ``R1''、``10k$\Omega$'' 等字符；
+    \item \textbf{实体分类}：区分元件标号（refdes）、参数值、引脚名、网络标号等不同语义类别；
+    \item \textbf{实体关联}：建立 R1 $\leftrightarrow$ 10k$\Omega$ 的标号-参数对应关系（JointF1），引脚号与功能名的联合解析——这些超出了纯 OCR 的范畴；
+    \item \textbf{文档结构理解}：识别 ``一词一行'' 垂直格式、BOM 表格结构、引脚排列模式；
+    \item \textbf{领域知识}：$\Omega$/F/H/V/A 单位体系、电子工程标注约定。
+\end{itemize}
+
+项目核心在感知层和结构理解层。虽未达到语义推理层（如电路功能分析、增益计算），但作为 OCR 任务，实体关联和结构解析本身已经是较高的理解要求。
+
+\begin{table}[h]
+\centering
+\caption{任务复杂度评估汇总}
+\begin{tabular}{lccp{5cm}}
+\toprule
+\textbf{子项} & \textbf{得分} & \textbf{满分} & \textbf{核心论证} \\
+\midrule
+3.1 视觉复杂度   & 4 & 7 & 7 项固有挑战，每项评分 4--5/5 \\
+3.2 结构复杂度   & 4 & 5 & 5 个隐式子任务，JointF1 $\equiv$ KIE \\
+3.3 理解复杂度   & 2 & 3 & 实体关联 + 结构理解，非纯字符识别 \\
+\midrule
+\textbf{任务复杂度总计} & \textbf{10} & \textbf{/15} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{../slides_figures/task_complexity_summary.pdf}
+\caption{任务复杂度得分与累计评估汇总（39.5/50）。}
+\label{fig:score_summary}
+\end{figure}
+
 \section{模型微调与实验}
 
 \subsection{Phase 1：四组控制变量实验}

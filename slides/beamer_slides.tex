@@ -343,6 +343,58 @@
 \end{frame}
 
 % ══════════════════════════════════════════
+\section{Task Complexity}
+% ══════════════════════════════════════════
+
+\begin{frame}{Task Complexity: Severely Underestimated Difficulty}
+  \begin{center}
+    \includegraphics[width=0.78\textwidth]{../slides_figures/visual_complexity.pdf}
+  \end{center}
+  \begin{block}{Circuit OCR is NOT just ``text recognition''}
+    \begin{itemize}
+      \item 7 visual dimensions scored 4-5/5 vs generic OCR at 1-2/5
+      \item Ultra-dense text (32.1 OCR instances/page vs 10-20 for documents)
+      \item Multi-directional, micro-font, symbol-mixed, wire-crossing
+      \item Base model failure: PaddleOCR/Tesseract/EasyOCR all NED $\approx$ 0.94
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Five Implicit Sub-tasks = Multi-task Joint Problem}
+  \begin{center}
+    \includegraphics[width=0.85\textwidth]{../slides_figures/multitask_complexity.pdf}
+  \end{center}
+  \begin{block}{JointF1 = Key Information Extraction (KIE)}
+    \begin{itemize}
+      \item \textbf{Component Detection} + \textbf{Value Reading} + \textbf{Refdes-Value Pairing} = KIE
+      \item Pin Parsing: joint recognition of pin number + function name
+      \item All 5 sub-tasks share \textbf{single VLM decoder} — implicit multi-task optimization
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Task Complexity: Score Summary (10/15)}
+  \begin{center}
+    \includegraphics[width=0.75\textwidth]{../slides_figures/task_complexity_summary.pdf}
+  \end{center}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{lccp{3.5cm}}
+      \toprule
+      \textbf{Dimension} & \textbf{Score} & \textbf{Weight} & \textbf{Key Argument} \\
+      \midrule
+      3.1 Visual Complexity   & 4/7 & 7 & Inherent circuit complexity, not ``clean PDF'' \\
+      3.2 Structural Complexity & 4/5 & 5 & 5 implicit sub-tasks, JointF1 = KIE \\
+      3.3 Understanding        & 2/3 & 3 & Entity association + structure, beyond char recog. \\
+      \midrule
+      \textbf{Total} & \textbf{10} & \textbf{/15} & \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+% ══════════════════════════════════════════
 \section{Model \& Training}
 % ══════════════════════════════════════════
 
