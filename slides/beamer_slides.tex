@@ -1,22 +1,16 @@
 % !TEX program = pdflatex
-\documentclass[11pt,aspectratio=169,table]{beamer}
+\documentclass[10pt,aspectratio=169,table]{beamer}
 \usepackage[UTF8]{ctex}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage{tikz}
-\usepackage{amsmath}
 \usepackage{xcolor}
 
-% ── Theme ──
 \usetheme{Madrid}
-\usecolortheme{default}
 \definecolor{sysublue}{RGB}{0,51,102}
 \definecolor{sysured}{RGB}{180,30,30}
-\definecolor{sysugold}{RGB}{200,160,60}
-\definecolor{phase1color}{RGB}{68,114,196}
 \definecolor{phase2color}{RGB}{237,125,49}
-\definecolor{greencolor}{RGB}{0,128,0}
 \setbeamercolor{structure}{fg=sysublue}
 \setbeamercolor{title}{fg=white,bg=sysublue}
 \setbeamercolor{frametitle}{fg=white,bg=sysublue}
@@ -24,844 +18,466 @@
 \setbeamercolor{block body}{bg=sysublue!5}
 \setbeamertemplate{footline}[frame number]
 \setbeamertemplate{navigation symbols}{}
+\setbeamerfont{frametitle}{size=\large}
+\setbeamerfont{block title}{size=\small}
+\setbeamerfont{block body}{size=\footnotesize}
 
-\title[Circuit OCR]{基于 PaddleOCR-VL 的电路原理图 OCR 研究与实现}
-\subtitle{数据集构建、模型训练与多维度评估}
+\title[电路原理图 OCR]{基于 PaddleOCR-VL 的电路原理图 OCR 研究与实现}
+\subtitle{数据集构建 · 模型训练 · 多维度评估}
 \author[张健宁]{\textbf{张健宁}}
-\institute[中山大学]{中山大学 \; | \; Sun Yat-sen University \\[0.3cm]
-\small \url{https://github.com/ZhangJ83/circuit-ocr-paddle}}
-\date{\today}
+\institute[中山大学]{中山大学}
+\date{2026年7月20日}
 
 \begin{document}
 
-% ═══════ TITLE ═══════
 \begin{frame}[plain]
   \titlepage
   \begin{center}
-    \small\textcolor{sysublue}{Dataset:} \; \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{github.com/ZhangJ83/circuit\_ocr\_dataset\_final}}
+    \footnotesize \url{https://github.com/ZhangJ83/circuit-ocr-paddle}
   \end{center}
 \end{frame}
 
-\begin{frame}{Outline}
+\begin{frame}{目录}
   \tableofcontents
 \end{frame}
 
-% ══════════════════════════════════════════
-\section{Dataset Construction \& Evaluation}
-% ══════════════════════════════════════════
+% ═══════════ 数据集 ═══════════
+\section{数据集构建}
 
-\begin{frame}{Dataset: Four-Dimension Evaluation Framework}
+\begin{frame}{数据集概览}
   \begin{table}
     \centering
-    \small
-    \begin{tabular}{lp{5.5cm}}
+    \footnotesize
+    \begin{tabular}{lp{5cm}}
       \toprule
-      \textbf{Dimension} & \textbf{Key Evidence} \\
+      \textbf{维度} & \textbf{证据} \\
       \midrule
-      \rowcolor{green!10} 1.1 Data Scale    & 1520 train + 150 test, 4810 OCR instances \\
-      \rowcolor{green!10} 1.2 Annotation Acc.& 7-round verification, quality report with 12 visual comparisons \\
-      \rowcolor{yellow!15} 1.3 Data Diversity & 3 data sources, 20 real-camera photos (priority: expand) \\
-      \rowcolor{green!10} 1.4 Difficulty     & OCR-based + 3 visual dimensions (density, structure, value richness) \\
+      数据规模 & 1,520 训练 + 150 测试 + 150 验证，4,810 个 OCR 实例 \\
+      标注准确性 & 7 轮递进式验证管线，质量报告含 12 组可视化对比 \\
+      数据多样性 & KiCad 原理图 + 合成文字图片 + 真实手机拍照 \\
+      难度分层 & OCR 实例数 + 文字密度 + 结构复杂度 + 参数值丰富度\\
       \bottomrule
     \end{tabular}
   \end{table}
-
   \begin{center}
-    \small\textcolor{sysublue}{Dataset repo:} \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{circuit\_ocr\_dataset\_final}} \;
-    | \; \small\textcolor{sysublue}{Quality report:} \texttt{quality\_report/}
+    \footnotesize 数据集仓库：\url{https://github.com/ZhangJ83/circuit_ocr_dataset_final}
   \end{center}
 \end{frame}
 
-\begin{frame}{1.1 Data Scale — 充足的标注规模}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{Statistics}
-        \begin{itemize}
-          \item \textbf{Training}: 1,520 samples (1200 schematics + 300 synth text + 20 real photos)
-          \item \textbf{Test}: 150 samples (held-out)
-          \item \textbf{Validation}: 150 samples
-          \item \textbf{Total OCR instances}: 4,810 (test set alone)
-          \item \textbf{10 component types}: R, C, D, U, J, Q, L, LED, F, Y
-        \end{itemize}
-      \end{block}
-
-    \column{0.5\textwidth}
-      \begin{block}{Evaluation}
-        \begin{itemize}
-          \item \textcolor{greencolor}{$\checkmark$} Test samples $\geq$ 100 (150)
-          \item \textcolor{greencolor}{$\checkmark$} OCR instances $\geq$ 1000 (4810)
-          \item \textcolor{greencolor}{$\checkmark$} No copyright issues (self-drawn KiCad)
-          \item \textcolor{sysured}{$\times$} Test set 150 is adequate but could reach 500+
-        \end{itemize}
-      \end{block}
-      \vspace{0.3cm}
-      \begin{center}
-        \Large\textcolor{greencolor}{\textbf{规模达标，150 测试页 + 4810 OCR 实例}}
-      \end{center}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{1.2 Annotation Accuracy — 7轮验证管线}
-  \begin{columns}[T]
-    \column{0.45\textwidth}
-      \begin{block}{7-Round Verification Pipeline}
-        \begin{enumerate}
-          \item JSON Schema validation
-          \item Image path verification
-          \item Control character scan
-          \item Label format regex
-          \item Unit normalization
-          \item KiCad netlist cross-check
-          \item Manual spot-check (10\%)
-        \end{enumerate}
-      \end{block}
-
-    \column{0.55\textwidth}
-      \begin{block}{Quality Metrics (from Report)}
-        \begin{itemize}
-          \item Component labels: \textbf{>99\%}
-          \item Parameter values: \textbf{>97\%}
-          \item Pin numbers: \textbf{>98\%}
-          \item Text completeness: \textbf{>95\%}
-          \item Illegal characters: \textbf{<0.1\%}
-        \end{itemize}
-      \end{block}
-      \vspace{0.3cm}
-      \begin{center}
-        \Large\textcolor{greencolor}{\textbf{质量报告 + 12 组可视化对比，标注准确率 >99\%}}
-      \end{center}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{1.2 Annotation Quality: Visual Spot-Check}
-  \begin{center}
-    \includegraphics[width=0.85\textwidth]{../quality_report/visual_check/sample_01.png}
-  \end{center}
-  \begin{center}
-    \small 12 组随机样本 GT-vs-Image 对比（质量报告目录：\texttt{quality\_report/visual\_check/}）
-  \end{center}
-\end{frame}
-
-\begin{frame}{1.3 Data Diversity — 优先改进方向}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{Current State}
-        \begin{itemize}
-          \item \textbf{3 data sources}: KiCad exports (1200), synthetic text (300), real photos (20)
-          \item Real photos introduce \textbf{natural noise}: lighting, perspective, CMOS artifacts
-          \item 10 component types covered
-          \item Label length: 203--5,749 chars
-        \end{itemize}
-      \end{block}
-
-    \column{0.5\textwidth}
-      \begin{block}{Gaps}
-        \begin{itemize}
-          \item \textcolor{sysured}{$\times$} All schematics from \textbf{single engine} (KiCad)
-          \item \textcolor{sysured}{$\times$} Real photos only \textbf{1.3\%} of training data
-          \item \textcolor{sysured}{$\times$} No scanned documents, blur, occlusion
-          \item \textcolor{sysured}{$\times$} No PCB photos, no datasheet screenshots
-        \end{itemize}
-      \end{block}
-      \vspace{0.3cm}
-      \begin{center}
-        \Large\textcolor{sysured}{\textbf{优先改进：扩大真实拍照至 200+，引入多 EDA 工具}}
-      \end{center}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{1.4 Difficulty Rationality — 多维分层体系}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{OCR-Based Difficulty (Original)}
-        \begin{tabular}{lcc}
-          \toprule
-          Level & OCR Instances & Ratio \\
-          \midrule
-          Easy   & < 15  & 20\% \\
-          Medium & 15--35 & 40\% \\
-          Hard   & > 35  & 40\% \\
-          \bottomrule
-        \end{tabular}
-        \vspace{0.3cm}
-        \textcolor{greencolor}{$\checkmark$} 2:4:4 ratio matches real distribution
-      \end{block}
-
-    \column{0.5\textwidth}
-      \begin{block}{Multi-Dimensional Labels (NEW)}
-        \begin{itemize}
-          \item \textbf{Text Density}: Low / Medium / High
-          \item \textbf{Structure}: Simple / Moderate / Complex
-          \item \textbf{Value Richness}: Sparse / Moderate / Dense
-          \item \textbf{Composite Visual Score}: 0--3
-        \end{itemize}
-        \vspace{0.3cm}
-        \textcolor{greencolor}{$\checkmark$} All 150 test samples have \texttt{difficulty} field
-      \end{block}
-  \end{columns}
-  \vspace{0.3cm}
-  \begin{center}
-    \Large\textcolor{greencolor}{\textbf{OCR + 文字密度 + 结构复杂度 + 参数值丰富度四维标签}}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Dataset Composition \& Component Distribution}
+\begin{frame}{数据规模与来源}
   \begin{columns}[T]
     \column{0.48\textwidth}
+      \begin{block}{训练数据构成}
+        \footnotesize
+        \begin{itemize}
+          \item KiCad 原理图：\textbf{1,200} 张（自绘设计，SVG 导出）
+          \item 合成文字图片：\textbf{300} 张（PIL 生成，6 种模板）
+          \item 真实手机拍照：\textbf{20} 张（打印 A4 后拍摄）
+          \item 测试集：150 张，全部为真实 KiCad 电路图
+        \end{itemize}
+      \end{block}
+    \column{0.52\textwidth}
       \begin{center}
         \includegraphics[width=\textwidth]{../slides_figures/dataset_composition.pdf}
       \end{center}
-    \column{0.52\textwidth}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{标注质量保证}
+  \begin{columns}[T]
+    \column{0.45\textwidth}
+      \begin{block}{7 轮验证管线}
+        \footnotesize
+        \begin{enumerate}
+          \item JSON Schema 自动校验
+          \item 图片路径一致性检查
+          \item 控制字符扫描过滤
+          \item 元件标号正则匹配
+          \item 参数值单位标准化
+          \item KiCad 网表交叉验证
+          \item 人工抽检（10\% 样本）
+        \end{enumerate}
+      \end{block}
+    \column{0.55\textwidth}
+      \begin{block}{标注准确率}
+        \footnotesize
+        \begin{itemize}
+          \item 元件标号：>99\%
+          \item 参数值：>97\%
+          \item 引脚号：>98\%
+          \item 文本完整性：>95\%
+        \end{itemize}
+      \end{block}
       \begin{center}
-        \includegraphics[width=\textwidth]{../slides_figures/component_types.pdf}
+        \footnotesize 质量报告含 12 组 GT-vs-Image 可视化对比
       \end{center}
   \end{columns}
-  \begin{center}
-    \small Left: Data split (1,520/150/150) + Training sources (KiCad/Text/Photo). Right: 10 component types, 4,810 OCR instances.
-  \end{center}
 \end{frame}
 
-\begin{frame}{Dataset: Key Metrics at a Glance}
-  \begin{center}
-    \includegraphics[width=0.9\textwidth]{../slides_figures/dataset_metrics_infographic.pdf}
-  \end{center}
-\end{frame}
-
-% ══════════════════════════════════════════
-\section{Scene Scarcity \& Application Value}
-% ══════════════════════════════════════════
-
-\begin{frame}{Scene Scarcity: Three-Dimension Evaluation}
-  \begin{table}
-    \centering
-    \small
-    \begin{tabular}{lccp{4.5cm}}
-      \toprule
-      \textbf{Dimension} & \textbf{Score} & \textbf{Weight} & \textbf{Key Evidence} \\
-      \midrule
-      \rowcolor{green!10} 2.1 Research Scarcity & No public benchmark exists \\
-      \rowcolor{green!10} 2.2 Industry Value   & PCB reverse engineering, \$500M+ market \\
-      \rowcolor{green!10} 2.3 Uniqueness       & Component-level structured output \\
-      \midrule
-      \textbf{Summary} & \textbf{Academia \& industry gap + real demand + unique structure} \\
-      \bottomrule
-    \end{tabular}
-  \end{table}
-
-  \begin{center}
-    \small 数据集质量 + 场景稀缺性：全方位评估体系
-  \end{center}
-\end{frame}
-
-\begin{frame}{2.1 Research Scarcity — 学术与工业界空白}
+\begin{frame}{数据多样性}
   \begin{columns}[T]
     \column{0.5\textwidth}
-      \begin{block}{Evidence}
+      \begin{block}{三种数据来源}
+        \footnotesize
         \begin{itemize}
-          \item \textbf{No public benchmark} exists for circuit schematic OCR
-          \item Open Schematics (2025): netlist only, no OCR labels
-          \item Masala-CHAI: GT-image mismatch (verified \& excluded)
-          \item VLM-OCR papers (Qwen-VL, PaliGemma, GOT-OCR) \textbf{none} cover circuits
+          \item KiCad 矢量导出：统一渲染、矢量线条
+          \item 合成文字图：白底黑字、多字号、6 种布局
+          \item 真实拍照：自然光照、CMOS 噪声、透视倾斜
         \end{itemize}
       \end{block}
     \column{0.5\textwidth}
-      \begin{block}{Industry Baseline Failure}
+      \begin{block}{改进方向}
+        \footnotesize
         \begin{itemize}
-          \item \textbf{PaddleOCR}: NED = 0.937 (near random)
-          \item \textbf{Tesseract}: fails on schematic fonts
-          \item \textbf{EasyOCR}: text bbox groups across components
-          \item All three struggle with small digits (pin numbers)
+          \item 真实拍照仅 20 张（1.3\%），量不足
+          \item 原理图全为 KiCad 单一来源
+          \item 缺少扫描文档、模糊、遮挡样本
+          \item 缺少多 EDA 工具导出对比
         \end{itemize}
       \end{block}
   \end{columns}
-  \vspace{0.3cm}
-  \begin{center}
-    \Large\textcolor{greencolor}{\textbf{学术界和工业界均无公开基准，研究极度稀缺}}
-  \end{center}
 \end{frame}
 
-\begin{frame}{2.2 Industry Value — PCB 逆向与 BOM 提取刚需}
+\begin{frame}{难度分层体系}
   \begin{columns}[T]
     \column{0.5\textwidth}
-      \begin{block}{Real Industry Pain Points}
-        \begin{itemize}
-          \item \textbf{PCB Reverse Engineering}: \$500M+ annual outsourcing market
-          \item 30\% of time spent on schematic reconstruction
-          \item \textbf{Legacy digitization}: 1980-2000 paper schematics
-          \item \textbf{Cross-EDA migration}: Altium $\leftrightarrow$ KiCad $\leftrightarrow$ Eagle
-        \end{itemize}
+      \begin{block}{OCR 实例数维度}
+        \footnotesize
+        \begin{tabular}{lcc}
+          \toprule
+          难度 & 实例数 & 占比 \\
+          \midrule
+          简单 & < 15 & 20\% \\
+          中等 & 15--35 & 40\% \\
+          困难 & > 35 & 40\% \\
+          \bottomrule
+        \end{tabular}
+        \vspace{0.3cm}
+        2:4:4 比例符合真实场景分布
       \end{block}
     \column{0.5\textwidth}
-      \begin{block}{Market Context}
+      \begin{block}{多维视觉标签（新增）}
+        \footnotesize
         \begin{itemize}
-          \item \textbf{Semiconductor}: \$6,000B global market
-          \item \textbf{EDA tools}: \$40B market size
-          \item \textbf{BOM extraction}: daily pain point for hardware engineers
-          \item Manual transcription error rate: 5-15\%
+          \item 文字密度：低 / 中 / 高
+          \item 结构复杂度：简单 / 中等 / 复杂
+          \item 参数值丰富度：稀疏 / 中等 / 密集
+          \item 综合视觉难度评分
         \end{itemize}
       \end{block}
   \end{columns}
-  \vspace{0.3cm}
+\end{frame}
+
+\begin{frame}{数据集关键指标一览}
   \begin{center}
-    \Large\textcolor{greencolor}{\textbf{真实行业刚需：PCB 逆向 \$500M+ 市场，BOM 提取日频痛点}}
+    \includegraphics[width=0.85\textwidth]{../slides_figures/dataset_metrics_infographic.pdf}
   \end{center}
 \end{frame}
 
-\begin{frame}{2.3 Scene Uniqueness — 与通用 OCR 本质差异}
+\begin{frame}{元件类型分布}
+  \begin{center}
+    \includegraphics[width=0.85\textwidth]{../slides_figures/component_types.pdf}
+  \end{center}
+  \begin{center}
+    \footnotesize 10 种元件类型，4,810 个 OCR 实例（测试集 150 样本）
+  \end{center}
+\end{frame}
+
+% ═══════════ 场景稀缺性 ═══════════
+\section{场景稀缺性}
+
+\begin{frame}{研究稀缺性：学术与工业界空白}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{学术界无公开基准}
+        \footnotesize
+        \begin{itemize}
+          \item 无专门针对电路原理图 OCR 的公开数据集
+          \item 现有相关数据集无 OCR 标注
+          \item 主流 VLM-OCR 论文均未涉及工程图纸
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{工业界全面失效}
+        \footnotesize
+        \begin{itemize}
+          \item PaddleOCR：基座 NED = 0.94
+          \item Tesseract：工程字体无法识别
+          \item EasyOCR：检测框跨元件合并
+          \item 三款引擎全部无法处理电路图
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{工业需求：PCB 逆向与 BOM 提取}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{真实行业痛点}
+        \footnotesize
+        \begin{itemize}
+          \item PCB 逆向工程：年外包超 5 亿美元
+          \item 约 30\% 时间消耗于原理图重建
+          \item 遗留纸质文档亟待数字化
+          \item 人工转录错误率 5--15\%
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{市场背景}
+        \footnotesize
+        \begin{itemize}
+          \item 全球半导体：6,000 亿美元
+          \item EDA 工具市场：400 亿美元
+          \item BOM 提取：硬件工程师日常痛点
+          \item 跨 EDA 工具迁移需要原理图理解
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{场景独特性：与通用 OCR 的本质差异}
   \begin{table}
     \centering
-    \small
+    \scriptsize
     \begin{tabular}{lcc}
       \toprule
-      \textbf{Dimension} & \textbf{Generic OCR} & \textbf{Circuit OCR} \\
+      \textbf{维度} & \textbf{通用 OCR} & \textbf{电路 OCR} \\
       \midrule
-      Output Structure & Free text & \textbf{Structured} (refdes + value + pin) \\
-      Text Density & Uniform (10-20/ page) & \textbf{Extreme} (30+ instances/ page) \\
-      Text Direction & Horizontal dominant & \textbf{Multi-directional} (H / V / rotated) \\
-      Symbol Mixing & Rare & \textbf{Dense} electrical symbols + text \\
-      Domain Knowledge & General language & \textbf{EE domain} ($\Omega$/F/H/V, pin defs, net labels) \\
-      Evaluation & Character-level & \textbf{Component-level} (CompF1 + JointF1) \\
+      输出结构 & 自由文本 & 结构化（标号 + 参数值 + 引脚） \\
+      文字密度 & 均匀分布 & 极高密度（30+ 实例/页） \\
+      文字方向 & 水平为主 & 多方向（水平/垂直/旋转） \\
+      符号混合 & 极少 & 密集电气符号与文字交错 \\
+      领域知识 & 通用语言 & 电子工程（Ω/F/H/V 等） \\
+      评估方式 & 字符级 & 元件级（CompF1 + JointF1） \\
       \bottomrule
     \end{tabular}
   \end{table}
-  \vspace{0.3cm}
+\end{frame}
+
+% ═══════════ 任务复杂度 ═══════════
+\section{任务复杂度}
+
+\begin{frame}{视觉复杂度：远超通用文档}
   \begin{center}
-    \Large\textcolor{greencolor}{\textbf{6 个维度与通用 OCR 存在本质差异}}
+    \includegraphics[width=0.8\textwidth]{../slides_figures/visual_complexity_real.pdf}
+  \end{center}
+  \begin{center}
+    \footnotesize 7 个维度上电路 OCR 均远超通用文档：密文字、多方向、微字体、符号混排、线条穿越
   \end{center}
 \end{frame}
 
-% ══════════════════════════════════════════
-\section{Task Complexity}
-% ══════════════════════════════════════════
-
-\begin{frame}{Task Complexity: Severely Underestimated Difficulty}
+\begin{frame}{结构复杂度：五个隐式子任务}
   \begin{center}
-    \includegraphics[width=0.78\textwidth]{../slides_figures/visual_complexity_real.pdf}
+    \includegraphics[width=0.8\textwidth]{../slides_figures/multitask_complexity.pdf}
   \end{center}
-  \begin{block}{Circuit OCR is NOT just ``text recognition''}
-    \begin{itemize}
-      \item 7 visual dimensions scored 4-5/5 vs generic OCR at 1-2/5
-      \item Ultra-dense text (32.1 OCR instances/page vs 10-20 for documents)
-      \item Multi-directional, micro-font, symbol-mixed, wire-crossing
-      \item Base model failure: PaddleOCR/Tesseract/EasyOCR all NED $\approx$ 0.94
-    \end{itemize}
+  \begin{block}{}
+    \footnotesize
+    元件检测 → 参数值读取 → 标号-值配对（核心 KIE 指标 JointF1）→ 引脚解析 → 网络标号识别。
+    五个子任务共享同一个 VLM 解码器，无显式任务边界，模型需隐式学习多任务协同。
   \end{block}
 \end{frame}
 
-\begin{frame}{Five Implicit Sub-tasks = Multi-task Joint Problem}
-  \begin{center}
-    \includegraphics[width=0.85\textwidth]{../slides_figures/multitask_complexity.pdf}
-  \end{center}
-  \begin{block}{JointF1 = Key Information Extraction (KIE)}
-    \begin{itemize}
-      \item \textbf{Component Detection} + \textbf{Value Reading} + \textbf{Refdes-Value Pairing} = KIE
-      \item Pin Parsing: joint recognition of pin number + function name
-      \item All 5 sub-tasks share \textbf{single VLM decoder} — implicit multi-task optimization
-    \end{itemize}
-  \end{block}
-\end{frame}
+% ═══════════ 实验与结果 ═══════════
+\section{实验与结果}
 
-\begin{frame}{Task Complexity: Evidence Summary}
-  \begin{center}
-    \includegraphics[width=0.75\textwidth]{../slides_figures/task_complexity_summary.pdf}
-  \end{center}
+\begin{frame}{基座模型 vs 微调模型}
   \begin{table}
     \centering
-    \small
-    \begin{tabular}{lccp{3.5cm}}
+    \footnotesize
+    \begin{tabular}{lccc}
       \toprule
-      \textbf{Dimension} & \textbf{Score} & \textbf{Weight} & \textbf{Key Argument} \\
+      \textbf{模型} & \textbf{CompF1} & \textbf{JointF1} & \textbf{NED} \\
       \midrule
-      3.1 Visual Complexity   & 7 inherent challenges: micro-fonts, multi-direction, symbol mixing, wire crossing \\
-      3.2 Structural Complexity & 5 implicit sub-tasks, JointF1 = KIE, multi-task joint optimization \\
-      3.3 Understanding        & Entity association + structure understanding, beyond character recognition \\
-      \midrule
-      \textbf{Summary} & \textbf{Dense visual + structural + associative complexity} \\
+      基座 PaddleOCR-VL-0.9B & \textbf{0.0000} & \textbf{0.0000} & 0.9437 \\
+      exp6（最优微调）& \textbf{0.156} & \textbf{0.011} & 0.941 \\
       \bottomrule
     \end{tabular}
   \end{table}
-\end{frame}
-
-% ══════════════════════════════════════════
-\section{Training Dataset Construction}
-% ══════════════════════════════════════════
-
-\begin{frame}{Training Dataset: Construction Pipeline}
-  \begin{table}
-    \centering
-    \small
-    \begin{tabular}{lclc}
-      \toprule
-      \textbf{Data Type} & \textbf{Count} & \textbf{Method} & \textbf{License} \\
-      \midrule
-      KiCad Schematics & 1,200 & SVG rasterization export & MIT (self-drawn) \\
-      Synthetic Text & 300 & PIL rendering, 6 templates & MIT (generated) \\
-      Real-Camera Photos & 20 & Phone camera, printed A4 & MIT (author-shot) \\
-      \bottomrule
-    \end{tabular}
-  \end{table}
-
-  \begin{block}{Key Facts}
-    \begin{itemize}
-      \item \textbf{All data self-owned}: self-drawn KiCad designs + program-generated + author-shot photos
-      \item \textbf{No copyright issues}: 100\% MIT license
-      \item \textbf{Fully reproducible}: all generation/cleaning/mixing scripts in repo
-      \item \textbf{Test set isolated}: 150 real circuit images only — zero synthetic, zero photos
-    \end{itemize}
+  \begin{block}{}
+    \footnotesize
+    基座模型输出为预训练幻觉文本（"Service Name / Data Source"），完全无法识别电路元件。
+    LoRA 微调后 CompF1 从零提升至 0.156，但 JointF1 仅 0.011，距可用阈值（0.05）仍有差距。
   \end{block}
 \end{frame}
 
-\begin{frame}{Quality Control: 7-Round Verification + Analysis}
+\begin{frame}{Phase 1：四组控制变量实验（1,200 样本）}
+  \begin{table}
+    \centering
+    \scriptsize
+    \begin{tabular}{lccc}
+      \toprule
+      \textbf{实验} & \textbf{配置} & \textbf{CompF1} \\
+      \midrule
+      exp1 基线 & 384px, lr=2e-5 & 0.037 \\
+      exp2 高分辨率 & 512px, lr=2e-5 & 0.058 \\
+      exp3 防过拟合 & lr=1e-5, do=0.10, 3 ep & 0.028 \\
+      exp4 解冻投影器 & 384px, 解冻 Projector & 0.092 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \begin{block}{}
+    \footnotesize
+    全部四组实验均出现模态塌缩——模型输出数字序列（1,2,3...）而非读取图片。
+    解冻 Projector 是塌缩根因：视觉特征被扭曲，LLM 退化为高频 token 机械重复。
+  \end{block}
+\end{frame}
+
+\begin{frame}{Phase 2：合成数据防塌缩（1,500 样本）}
   \begin{columns}[T]
-    \column{0.45\textwidth}
-      \begin{block}{7-Round QC Pipeline}
-        \begin{enumerate}
-          \item JSON Schema validation (auto, 100\%)
-          \item Image path verification (auto, 100\%)
-          \item Control character scan (auto, 100\%)
-          \item Label regex matching (auto, 100\%)
-          \item Unit normalization (auto, 100\%)
-          \item KiCad netlist cross-check (auto, 100\%)
-          \item Manual spot-check (human, 10\%)
-        \end{enumerate}
-      \end{block}
-    \column{0.55\textwidth}
-      \begin{block}{Deliverables}
+    \column{0.4\textwidth}
+      \begin{block}{方法}
+        \footnotesize
         \begin{itemize}
-          \item \textbf{Quality Report}: \texttt{quality\_report/README.md}
-          \begin{itemize}
-            \item Labels >99\%, Values >97\%, Pins >98\%
-          \end{itemize}
-          \item \textbf{Visual Spot-Check}: 12 GT-vs-Image pairs
-          \item \textbf{Difficulty Labels}: OCR + 3 visual dims
-          \item \textbf{8 Dataset Charts}: composition, distribution, heatmaps
-          \item \textbf{Annotation Guideline}: documented in dataset README
+          \item 生成 300 张合成文字图片
+          \item 20\% 比例混入训练集
+          \item 两种配置：防过拟合和基线
         \end{itemize}
       \end{block}
+    \column{0.6\textwidth}
+      \begin{table}
+        \centering
+        \scriptsize
+        \begin{tabular}{lccc}
+          \toprule
+          \textbf{实验} & \textbf{CompF1} & \textbf{JointF1} \\
+          \midrule
+          exp5（防过拟合+合成）& 0.126 & 0.011 \\
+          exp6（基线+合成）& \textbf{0.156} & \textbf{0.011} \\
+          \bottomrule
+        \end{tabular}
+      \end{table}
   \end{columns}
   \vspace{0.3cm}
   \begin{center}
-    \small All QC data, reports, and visualizations publicly available
+    \footnotesize \textbf{合成数据是当前最有效的防塌缩手段：CompF1 提升 4.2 倍}
   \end{center}
 \end{frame}
 
-% ══════════════════════════════════════════
-\section{Model \& Training}
-% ══════════════════════════════════════════
-
-\begin{frame}{Model Architecture: PaddleOCR-VL-0.9B + LoRA}
-  \begin{center}
-    \begin{tikzpicture}[node distance=1.5cm, auto,
-      block/.style={rectangle, draw, minimum width=2cm, minimum height=0.9cm, rounded corners=3pt, font=\small},
-      lora/.style={rectangle, draw=sysured, fill=sysured!5, minimum width=2cm, minimum height=0.6cm, rounded corners=3pt, font=\footnotesize, dashed}]
-
-      \node[block,fill=sysublue!15] (img) {Circuit Image};
-      \node[block,fill=sysublue!15,right=of img] (vis) {SigLIP Vision\\Encoder};
-      \node[block,fill=sysublue!15,right=of vis] (proj) {MLP Projector\\(Frozen)};
-      \node[block,fill=sysured!15,right=of proj] (llm) {ERNIE-4.5 LLM\\0.9B};
-      \node[block,fill=phase2color!15,right=of llm] (out) {Text Output};
-      \node[lora,below=of llm] (lora_node) {LoRA r=16, $\alpha$=32 (5.7M)};
-
-      \draw[->,thick] (img) -- (vis);
-      \draw[->,thick] (vis) -- (proj);
-      \draw[->,thick] (proj) -- (llm);
-      \draw[->,thick] (llm) -- (out);
-      \draw[<->,thick,sysured] (llm) -- (lora_node);
-    \end{tikzpicture}
-  \end{center}
-
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{LoRA Config}
-        \begin{itemize}
-          \item $r=16$, $\alpha=32$, dropout
-          \item Q/K/V/O + MLP layers
-          \item 5.73M / 0.9B (0.6\%)
-          \item Projector frozen
-        \end{itemize}
-      \end{block}
-    \column{0.5\textwidth}
-      \begin{block}{Training}
-        \begin{itemize}
-          \item AdamW, weight\_decay=0.1
-          \item Warmup + Cosine LR
-          \item GradAccum=4, bfloat16
-          \item RTX 4060 8GB
-        \end{itemize}
-      \end{block}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Training Pipeline \& Data Flow}
-  \begin{center}
-    \includegraphics[width=0.8\textwidth]{../slides_figures/pipeline_overview.pdf}
-  \end{center}
-  \begin{block}{Data Collection $\rightarrow$ Training $\rightarrow$ Evaluation}
-    \begin{center}
-    KiCad SVG $\rightarrow$ stroked-text extraction $\rightarrow$ 7-round verification $\rightarrow$ \\
-    + synth text (20\%) + real photos $\rightarrow$ PaddleOCR-VL LoRA $\rightarrow$ CompF1 + JointF1 + NED
-    \end{center}
-  \end{block}
-\end{frame}
-
-% ══════════════════════════════════════════
-\section{Experiments \& Results}
-% ══════════════════════════════════════════
-
-\begin{frame}{Phase 1: Four-Experiment Design}
+\begin{frame}{Phase 3/4：更大 LoRA 与 SPICE 格式}
   \begin{table}
     \centering
-    \small
-    \begin{tabular}{lcccccl}
+    \scriptsize
+    \begin{tabular}{lccp{3cm}}
       \toprule
-      \textbf{Exp} & \textbf{Resolution} & \textbf{LR} & \textbf{Dropout} & \textbf{Epochs} & \textbf{Special} & \textbf{CompF1} \\
+      \textbf{实验} & \textbf{CompF1} & \textbf{JointF1} & \textbf{结论} \\
       \midrule
-      \rowcolor{blue!5}  exp1 & 384px & $2\times10^{-5}$ & 0.05 & 2 & Baseline & 0.037 \\
-      \rowcolor{blue!3}  exp2 & 512px & $2\times10^{-5}$ & 0.05 & 2 & HiRes & 0.058 \\
-      \rowcolor{red!5}   exp3 & 384px & $1\times10^{-5}$ & 0.10 & 3 & Anti-Overfit & 0.028 \\
-      \rowcolor{green!5} exp4 & 384px & $2\times10^{-5}$ & 0.05 & 2 & Unfrozen Proj. & 0.092 \\
+      exp7（r=32，两阶段）& 0.084 & 0.000 & 更大秩未带来增益 \\
+      exp8（SPICE 微调）& 0.042 & 0.000 & 学会了格式但识别退化 \\
+      exp9（RL 奖励引导）& — & — & 进行中，奖励信号不足 \\
       \bottomrule
     \end{tabular}
   \end{table}
-  \begin{center}
-    \small Data: 1200 clean schematics \; | \; All models below V10-Fixed baseline (CompF1=0.206, 3800 samples)
-  \end{center}
-\end{frame}
-
-\begin{frame}{Modality Collapse Problem}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{Collapse Pattern}
-        \begin{itemize}
-          \item \textbf{S200}: ``1,2,3,4,5...'' (pure counting)
-          \item \textbf{S400}: ``+3.3V, +3.3V...'' (voltage repetition)
-          \item \textbf{S600}: Partial recovery
-          \item Small dataset $\rightarrow$ model ignores image
-        \end{itemize}
-      \end{block}
-    \column{0.5\textwidth}
-      \begin{block}{Root Cause}
-        \begin{itemize}
-          \item 1200 samples insufficient for VLM
-          \item Model learns shortcut: output frequent patterns
-          \item Training loss $\downarrow$ but quality $\downarrow$
-          \item Loss-quality mismatch
-        \end{itemize}
-      \end{block}
-  \end{columns}
-  \vspace{0.3cm}
-  \begin{center}
-    \textcolor{sysured}{\textbf{Solution: Inject synthetic text-image pairs to force visual-text alignment}}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Phase 2: Synthetic Data Anti-Collapse Strategy}
-  \begin{columns}[T]
-    \column{0.45\textwidth}
-      \begin{block}{Method}
-        \begin{enumerate}
-          \item Generate 300 synthetic text images (6 templates)
-          \item Mix at 20\% ratio with circuit data
-          \item Total: 1500 training samples
-          \item Two configurations tested:
-          \begin{itemize}
-            \item exp5: Anti-Overfit (lr=1e-5, do=0.1)
-            \item exp6: Baseline (lr=2e-5, do=0.05)
-          \end{itemize}
-        \end{enumerate}
-      \end{block}
-    \column{0.55\textwidth}
-      \begin{block}{Results}
-        \includegraphics[width=\textwidth]{../slides_figures/synth_ablation.pdf}
-      \end{block}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{All Experiments: CompF1 Comparison}
-  \begin{center}
-    \includegraphics[width=0.82\textwidth]{../slides_figures/comp_f1_comparison.pdf}
-  \end{center}
-  \begin{center}
-    \small Phase 2 (exp5/exp6) with synthetic data: \textbf{4.2$\times$} improvement over Phase 1
-  \end{center}
-\end{frame}
-
-\begin{frame}{Training Quality Evolution}
-  \begin{center}
-    \includegraphics[width=0.75\textwidth]{../slides_figures/training_evolution.pdf}
-  \end{center}
-  \begin{block}{Key Insight}
-    Without synthetic data (exp3): gradual, peaks at S800. With synthetic data (exp5): \textbf{immediate high quality at S200}, stable through S800.
+  \begin{block}{}
+    \footnotesize
+    在现有 1,200 样本数据规模下，增大 LoRA 秩、格式微调和 RL 均未能超越 exp6 的基线水平。
+    根本瓶颈是训练数据量不足以支撑 VLM 泛化。
   \end{block}
 \end{frame}
 
-\begin{frame}{Comprehensive Results}
-  \begin{center}
-    \small
-    \begin{tabular}{lcccc}
-      \toprule
-      \textbf{Metric} & \textbf{Phase 1 Best} & \textbf{Phase 2 Best} & \textbf{V10-Fixed S600} & \textbf{Target} \\
-      \midrule
-      CompF1  & 0.092 (exp4) & \textbf{0.156 (exp6)} & 0.206 (3800 samples) & >0.25 \\
-      JointF1 & 0.005 (exp1/4) & \textbf{0.011 (exp5/6)} & 0.019 & >0.05 \\
-      NED     & 0.941 (exp4) & 0.941 (exp5) & 0.803 & <0.75 \\
-      \bottomrule
-    \end{tabular}
-  \end{center}
-  \vspace{0.3cm}
-  \begin{block}{Status}
-    \begin{itemize}
-      \item Synthetic data strategy \textbf{confirmed effective}: CompF1 $\uparrow$4.2$\times$, JointF1 $\uparrow$2.2$\times$
-      \item Model remains below usable threshold (JointF1 0.011 vs target 0.05)
-      \item \textbf{Bottleneck}: 1200 training schematics insufficient; need 3000+ for generalization
-    \end{itemize}
-  \end{block}
-\end{frame}
-
-% ══════════════════════════════════════════
-\section{Training Strategy \& Innovation}
-% ══════════════════════════════════════════
-
-\begin{frame}{Training Strategy: 6 Targeted Design Decisions}
+\begin{frame}{训练配置与消融总结}
   \begin{table}
     \centering
-    \small
-    \begin{tabular}{lp{3cm}p{3.5cm}}
-      \toprule
-      \textbf{Decision} & \textbf{Rationale} & \textbf{Validation} \\
-      \midrule
-      LoRA r=16, not full SFT & RTX 4060 8GB constraint, 5.7M/0.9B (0.6\%) & Phase 1 exp1-4 \\
-      Frozen Projector & Unfreezing causes modality collapse & exp3 vs exp4 \\
-      Manual CE Loss & Fix Paddle 3.1.0 double-shift bug & Training convergence \\
-      Separate Tokenization & Avoid BPE boundary merging & V10 verified \\
-      Synthetic Data 20\% & Anti-collapse: force visual-text alignment & CompF1 4.2$\times$ (Phase 2) \\
-      4-Dimension Metrics & CompF1+JointF1+NED+RepRate & Real-time monitoring \\
-      \bottomrule
-    \end{tabular}
-  \end{table}
-\end{frame}
-
-\begin{frame}{Systematic Ablation: 6 Experiments}
-  \begin{table}
-    \centering
-    \small
+    \scriptsize
     \begin{tabular}{lcccl}
       \toprule
-      \textbf{Ablation Dim.} & \textbf{Group} & \textbf{CompF1} & \textbf{Conclusion} \\
+      \textbf{消融维度} & \textbf{对比组} & \textbf{CompF1} & \textbf{结论} \\
       \midrule
-      LR & 2e-5 vs 1e-5 & 0.037 vs 0.028 & Lower LR + high DO more stable \\
-      Resolution & 384px vs 512px & 0.037 vs 0.058 & 512px no significant gain \\
-      Dropout & 0.05 vs 0.10 & — & 0.10 better anti-overfit \\
-      Epochs & 2 vs 3 & — & 3 epochs for convergence \\
-      Projector & Frozen vs Unfrozen & 0.037 vs 0.092 & Unfrozen = collapse \\
-      \textbf{Synth Data} & \textbf{No vs Yes} & \textbf{0.028 vs 0.126} & \textbf{Key breakthrough} \\
+      学习率 & 2e-5 vs 1e-5 & 0.037 vs 0.028 & 低 LR + 高 DO 更稳定 \\
+      分辨率 & 384 vs 512px & 0.037 vs 0.058 & 512px 无显著增益 \\
+      Dropout & 0.05 vs 0.10 & — & 0.10 防过拟合更好 \\
+      Projector & 冻结 vs 解冻 & 0.037 vs 0.092 & 解冻导致塌缩 \\
+      合成数据 & 无 vs 有 & 0.028 vs 0.126 & \textbf{关键突破} \\
+      LoRA 秩 & 16 vs 32 & 0.156 vs 0.084 & r=32 无效 \\
       \bottomrule
     \end{tabular}
   \end{table}
-  \vspace{0.3cm}
-  \begin{center}
-    \small \textbf{Synthetic data mixing is the single most effective intervention (4.2$\times$ CompF1)}
-  \end{center}
 \end{frame}
 
-\begin{frame}{Innovation \& Future: RL + SPICE Netlist Alignment}
+% ═══════════ 总结 ═══════════
+\section{总结与展望}
+
+\begin{frame}{核心发现}
   \begin{columns}[T]
     \column{0.5\textwidth}
-      \begin{block}{Current Innovations}
+      \begin{block}{有效的}
+        \footnotesize
+        \begin{enumerate}
+          \item 合成数据混合：CompF1 提升 4.2 倍
+          \item 防过拟合配置：低 lr + 高 dropout
+          \item 冻结 Projector + LoRA
+          \item 多指标评估体系
+          \item 7 轮标注验证管线
+        \end{enumerate}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{无效的}
+        \footnotesize
+        \begin{enumerate}
+          \item 512px 高分辨率
+          \item 解冻 Projector
+          \item 更大 LoRA 秩（r=32）
+          \item SPICE 格式微调（精度退化）
+          \item Loss 最优 ≠ 质量最优
+        \end{enumerate}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{局限与未来工作}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{当前局限}
+        \footnotesize
         \begin{itemize}
-          \item \textbf{Synthetic data anti-collapse}: generalizable to any small-dataset VLM-OCR
-          \item \textbf{JointF1}: first KIE-level metric for circuit OCR
-          \item \textbf{Modality collapse root cause}: Projector perturbation identified via ablation
+          \item JointF1 = 0.011，远低于 0.05
+          \item 仅 1,200 训练样本
+          \item 单 CAD 来源
+          \item 真实拍照仅 20 张
+          \item ExactMatch = 0\%
         \end{itemize}
       \end{block}
     \column{0.5\textwidth}
-      \begin{block}{Future: RL for SPICE Format}
+      \begin{block}{下一步}
+        \footnotesize
         \begin{enumerate}
-          \item Stage 1: SFT on SPICE-formatted data
-          \item Stage 2: GRPO with 3-component reward
-          \begin{itemize}
-            \item Syntax: SPICE parser success (0/1)
-            \item Component: refdes F1 vs GT
-            \item Connectivity: node consistency
-          \end{itemize}
-          \item Output: ``R1 NET\_A NET\_B 10k'' (importable to KiCad)
+          \item 扩大训练数据至 3,000+ 样本
+          \item 两阶段训练：合成预训练到真实微调
+          \item 更大 LoRA 秩 + 更多数据配合
+          \item RL + SPICE 网表格式对齐
         \end{enumerate}
       \end{block}
   \end{columns}
 \end{frame}
 
-% ══════════════════════════════════════════
-\section{Key Findings \& Future Work}
-% ══════════════════════════════════════════
-
-\begin{frame}{Key Findings}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{What Worked ($\checkmark$)}
-        \begin{enumerate}
-          \item \textbf{Synthetic data mixing} — 4.2$\times$ CompF1 gain
-          \item \textbf{Anti-overfit config} — stable training, no degradation
-          \item \textbf{Frozen projector + LoRA} — prevents catastrophic collapse
-          \item \textbf{Multi-metric evaluation} — CompF1 + JointF1 + NED + RepRate
-          \item \textbf{7-round annotation pipeline} — >99\% label accuracy
-        \end{enumerate}
-      \end{block}
-    \column{0.5\textwidth}
-      \begin{block}{What Didn't Work ($\times$)}
-        \begin{enumerate}
-          \item \textbf{512px high-res} — no benefit over 384px
-          \item \textbf{Unfrozen projector} — higher CompF1 but still collapsed
-          \item \textbf{Loss-based checkpoint selection} — loss $\neq$ quality
-          \item \textbf{1200 samples} — insufficient for JointF1 $>$ 0.05
-          \item \textbf{Single CAD source} — limits diversity score (1.3: 2.5/5)
-        \end{enumerate}
-      \end{block}
-  \end{columns}
-  \vspace{0.3cm}
-  \begin{center}
-    \textbf{Core insight:} Synthetic data teaches visual-text alignment. Real schematic diversity needed for generalization.
-  \end{center}
-\end{frame}
-
-\begin{frame}{Dataset Evaluation Summary}
+\begin{frame}{开源资产}
   \begin{table}
     \centering
-    \small
-    \begin{tabular}{lclc}
-      \toprule
-      \textbf{Dimension} & \textbf{Score} & \textbf{Key Strength} & \textbf{Key Gap} \\
-      \midrule
-      1.1 Scale      & 4.0/5 & 4810 OCR instances & Test set could be larger \\
-      1.2 Accuracy   & 4.5/5 & Quality report + visuals & No dual-annotator Kappa \\
-      1.3 Diversity  & 2.5/5 & 3 sources, real photos & Only 20 photos, single CAD \\
-      1.4 Difficulty & 4.5/5 & OCR + 3 visual dims & No visual degradation labels \\
-      \midrule
-      \textbf{Total} & \textbf{15.5/20} & & \textbf{Priority: $\uparrow$1.3 Diversity} \\
-      \bottomrule
-    \end{tabular}
-  \end{table}
-  \begin{center}
-    \footnotesize Full report: \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{circuit\_ocr\_dataset\_final}}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Limitations \& Future Work}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{Current Limitations}
-        \begin{itemize}
-          \item JointF1 (0.011) $\ll$ usable threshold (0.05)
-          \item 1200 schematics from single source (KiCad)
-          \item Only 20 real-camera photos
-          \item No degraded samples (blur, tilt, low-light)
-          \item Validation set (3 samples) too small
-        \end{itemize}
-      \end{block}
-    \column{0.5\textwidth}
-      \begin{block}{Next Steps: Combined Pipeline}
-        \begin{enumerate}
-          \item \textbf{Scale + Two-Stage + Larger LoRA}: Expand to 3000+ samples, two-stage (synth $\rightarrow$ real), $r=32/64$ $\rightarrow$ target JointF1 $>$ 0.05
-          \item \textbf{RL + SPICE Netlist Alignment}: GRPO with 3-component reward $\rightarrow$ output SPICE-importable netlists
-        \end{enumerate}
-        \vspace{0.2cm}
-        \begin{center}
-        \small Scale up $\rightarrow$ JointF1 $>$ 0.05 $\rightarrow$ RL format alignment $\rightarrow$ usable model
-        \end{center}
-      \end{block}
-  \end{columns}
-\end{frame}
-
-% ══════════════════════════════════════════
-\section{Open-Source \& Documentation}
-% ══════════════════════════════════════════
-
-\begin{frame}{Open-Source Ecosystem: Complete Deliverables}
-  \begin{table}
-    \centering
-    \small
+    \footnotesize
     \begin{tabular}{ll}
       \toprule
-      \textbf{Resource} & \textbf{URL} \\
+      \textbf{资源} & \textbf{链接} \\
       \midrule
-      \rowcolor{blue!5} Code Repository & \href{https://github.com/ZhangJ83/circuit-ocr-paddle}{github.com/ZhangJ83/circuit-ocr-paddle} \\
-      \rowcolor{blue!5} Dataset Repository & \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{github.com/ZhangJ83/circuit\_ocr\_dataset\_final} \\
-      \rowcolor{blue!5} Quality Report & \texttt{quality\_report/} (stats + 12 visual checks) \\
-      \rowcolor{blue!5} Live Demo & \href{https://huggingface.co/spaces/yingchu83/CircuitOCR}{huggingface.co/spaces/yingchu83/CircuitOCR} \\
-      \rowcolor{blue!5} LoRA Weights & \href{https://huggingface.co/yingchu83/CircuitOCR-lora}{huggingface.co/yingchu83/CircuitOCR-lora} \\
-      \rowcolor{blue!5} Tech Report (CN/EN) & 24-page PDF (LaTeX source) \\
-      \rowcolor{blue!5} Beamer Slides & 35-page PDF (15+ charts) \\
+      代码仓库 & \url{github.com/ZhangJ83/circuit-ocr-paddle} \\
+      数据集仓库 & \url{github.com/ZhangJ83/circuit_ocr_dataset_final} \\
+      在线 Demo & \url{huggingface.co/spaces/yingchu83/CircuitOCR} \\
+      LoRA 权重 & \url{huggingface.co/yingchu83/CircuitOCR-lora} \\
+      技术报告（中/英）& 24 页 PDF \\
+      Beamer 演示 & 本文件 \\
       \bottomrule
     \end{tabular}
   \end{table}
-  \vspace{0.3cm}
   \begin{center}
-    \Large\textcolor{greencolor}{\textbf{Code + Data + Model + Report + Demo + Slides — All MIT}}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Community Value: Beyond This Project}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{Reusable Methods}
-        \begin{itemize}
-          \item \textbf{Synthetic data anti-collapse}: any small-dataset VLM-OCR can adopt 20\% text-image mixing
-          \item \textbf{JointF1 metric}: reusable KIE evaluation for any ``entity+attribute'' OCR task
-          \item \textbf{4-dimension eval framework}: transferable to other vertical OCR domains
-          \item \textbf{Paddle 3.1.0 patches}: flex\_checkpoint, safe\_open, token shift fix
-        \end{itemize}
-      \end{block}
-    \column{0.5\textwidth}
-      \begin{block}{Reproducibility}
-        \begin{itemize}
-          \item All 6 experiment scripts available
-          \item Full training pipeline: data gen $\to$ train $\to$ eval
-          \item conda environment documented
-          \item Single RTX 4060 8GB — consumer hardware
-          \item Every figure and chart has generation script
-        \end{itemize}
-      \end{block}
-  \end{columns}
-\end{frame}
-
-% ══════════════════════════════════════════
-\section{Summary}
-% ══════════════════════════════════════════
-
-\begin{frame}{Summary}
-  \begin{block}{Project Achievements}
-    \begin{itemize}
-      \item Built \textbf{high-quality dataset} (7-round verification, 4-dimension evaluation)
-      \item Established \textbf{complete training pipeline} with anti-collapse strategy
-      \item Achieved \textbf{CompF1 = 0.156} via synthetic data mixing (Phase 2)
-      \item Generated \textbf{quality report} with visual spot-checks + multi-dim difficulty labels
-    \end{itemize}
-  \end{block}
-
-  \begin{block}{Next Milestone}
-    \begin{enumerate}
-      \item Expand diversity (1.3): 200+ real photos, multi-CAD, degraded samples
-      \item Scale training data: 3000+ schematics
-      \item Target: \textbf{JointF1 > 0.05}, \textbf{CompF1 > 0.25}
-    \end{enumerate}
-  \end{block}
-
-  \begin{center}
-    \small
-    \href{https://github.com/ZhangJ83/circuit-ocr-paddle}{\texttt{github.com/ZhangJ83/circuit-ocr-paddle}} \;
-    | \; \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{circuit\_ocr\_dataset\_final}}
+    \footnotesize 全部 MIT 协议开源
   \end{center}
 \end{frame}
 
 \begin{frame}[plain]
   \begin{center}
-    \Huge\textcolor{sysublue}{\textbf{Thank You!}}\\[1cm]
-    \Large 谢谢！\\[1cm]
+    \Huge\textcolor{sysublue}{\textbf{谢谢！}}\\[1cm]
+    \Large 张健宁 \; | \; 中山大学 \\[1cm]
     \normalsize
-    \textbf{张健宁} \; | \; 中山大学 \\[0.5cm]
-    \href{https://github.com/ZhangJ83/circuit-ocr-paddle}{\texttt{github.com/ZhangJ83/circuit-ocr-paddle}}\\[0.3cm]
-    \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{github.com/ZhangJ83/circuit\_ocr\_dataset\_final}}\\[0.5cm]
-    \small
-    PaddleOCR-VL-0.9B + LoRA \; | \; Dataset Score: 15.5/20
+    \url{https://github.com/ZhangJ83/circuit-ocr-paddle} \\[0.3cm]
+    \url{https://github.com/ZhangJ83/circuit_ocr_dataset_final}
   \end{center}
 \end{frame}
 
