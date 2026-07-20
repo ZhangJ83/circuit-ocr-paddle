@@ -758,15 +758,15 @@
         \end{itemize}
       \end{block}
     \column{0.5\textwidth}
-      \begin{block}{Next Steps}
+      \begin{block}{Next Steps: Combined Pipeline}
         \begin{enumerate}
-          \item \textbf{Scale data}: 3000+ schematics from multiple EDA tools
-          \item \textbf{Real photos}: 200+ photographed circuits
-          \item \textbf{Degraded samples}: blur, tilt, low-light variants
-          \item \textbf{Two-stage training}: synth pre-train $\rightarrow$ real fine-tune
-          \item \textbf{RL + SPICE alignment}: GRPO fine-tuning for netlist-format output
-          \item \textbf{Larger LoRA}: try $r=32$, $r=64$
+          \item \textbf{Scale + Two-Stage + Larger LoRA}: Expand to 3000+ samples, two-stage (synth $\rightarrow$ real), $r=32/64$ $\rightarrow$ target JointF1 $>$ 0.05
+          \item \textbf{RL + SPICE Netlist Alignment}: GRPO with 3-component reward $\rightarrow$ output SPICE-importable netlists
         \end{enumerate}
+        \vspace{0.2cm}
+        \begin{center}
+        \small Scale up $\rightarrow$ JointF1 $>$ 0.05 $\rightarrow$ RL format alignment $\rightarrow$ usable model
+        \end{center}
       \end{block}
   \end{columns}
 \end{frame}
