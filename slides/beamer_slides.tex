@@ -11,27 +11,22 @@
 % ── Theme ──
 \usetheme{Madrid}
 \usecolortheme{default}
-
-% SYSU colors
 \definecolor{sysublue}{RGB}{0,51,102}
 \definecolor{sysured}{RGB}{180,30,30}
 \definecolor{sysugold}{RGB}{200,160,60}
 \definecolor{phase1color}{RGB}{68,114,196}
 \definecolor{phase2color}{RGB}{237,125,49}
-
+\definecolor{greencolor}{RGB}{0,128,0}
 \setbeamercolor{structure}{fg=sysublue}
 \setbeamercolor{title}{fg=white,bg=sysublue}
 \setbeamercolor{frametitle}{fg=white,bg=sysublue}
 \setbeamercolor{block title}{fg=white,bg=sysublue}
 \setbeamercolor{block body}{bg=sysublue!5}
-\setbeamercolor{item}{fg=sysublue}
-\setbeamercolor{section in head/foot}{fg=white,bg=sysublue!90}
 \setbeamertemplate{footline}[frame number]
 \setbeamertemplate{navigation symbols}{}
 
-% ── Title info ──
-\title[Circuit OCR with PaddleOCR-VL]{\textbf{基于 PaddleOCR-VL 的电路原理图 OCR 研究与实现}}
-\subtitle{Circuit Schematic OCR via LoRA Fine-tuning of PaddleOCR-VL-0.9B}
+\title[Circuit OCR]{基于 PaddleOCR-VL 的电路原理图 OCR 研究与实现}
+\subtitle{数据集构建、模型训练与多维度评估}
 \author[张健宁]{\textbf{张健宁}}
 \institute[中山大学]{中山大学 \; | \; Sun Yat-sen University \\[0.3cm]
 \small \url{https://github.com/ZhangJ83/circuit-ocr-paddle}}
@@ -39,69 +34,195 @@
 
 \begin{document}
 
-% ═══════════════════════════════════════════════════════════
-% TITLE SLIDE
-% ═══════════════════════════════════════════════════════════
+% ═══════ TITLE ═══════
 \begin{frame}[plain]
   \titlepage
   \begin{center}
-    \small\textcolor{sysublue}{Code \& Dataset:} \; \href{https://github.com/ZhangJ83/circuit-ocr-paddle}{\texttt{github.com/ZhangJ83/circuit-ocr-paddle}}
+    \small\textcolor{sysublue}{Dataset:} \; \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{github.com/ZhangJ83/circuit\_ocr\_dataset\_final}}
   \end{center}
 \end{frame}
 
-% ═══════════════════════════════════════════════════════════
-% OUTLINE
-% ═══════════════════════════════════════════════════════════
 \begin{frame}{Outline}
   \tableofcontents
 \end{frame}
 
-\section{Motivation \& Background}
+% ══════════════════════════════════════════
+\section{Dataset Construction \& Evaluation}
+% ══════════════════════════════════════════
 
-% ═══════════════════════════════════════════════════════════
-\begin{frame}{Motivation: Why Circuit OCR?}
+\begin{frame}{Dataset: Four-Dimension Evaluation Framework}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{lccp{5cm}}
+      \toprule
+      \textbf{Dimension} & \textbf{Score} & \textbf{Weight} & \textbf{Key Evidence} \\
+      \midrule
+      \rowcolor{green!10} 1.1 Data Scale    & 4/5 & 5 & 1520 train + 150 test, 4810 OCR instances \\
+      \rowcolor{green!10} 1.2 Annotation Acc.& 4.5/5 & 5 & 7-round verification, quality report w/ visuals \\
+      \rowcolor{yellow!15} 1.3 Data Diversity & 2.5/5 & 5 & 3 sources, 20 real photos (1.3\%) \\
+      \rowcolor{green!10} 1.4 Difficulty     & 4.5/5 & 5 & OCR-based + 3 visual dimensions \\
+      \midrule
+      \textbf{Total} & \textbf{15.5} & \textbf{/20} & \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+
+  \begin{center}
+    \small\textcolor{sysublue}{Dataset repo:} \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{circuit\_ocr\_dataset\_final}} \;
+    | \; \small\textcolor{sysublue}{Quality report:} \texttt{quality\_report/}
+  \end{center}
+\end{frame}
+
+\begin{frame}{1.1 Data Scale (4/5)}
   \begin{columns}[T]
-    \column{0.55\textwidth}
-      \begin{block}{Problem}
+    \column{0.5\textwidth}
+      \begin{block}{Statistics}
         \begin{itemize}
-          \item Circuit schematics contain dense technical text:
-          \begin{itemize}
-            \item Component labels: \texttt{R1, C2, U3, J4}
-            \item Values: \texttt{10k$\Omega$, 100nF, 3.3V}
-            \item Pin numbers, net names, BOM tables
-          \end{itemize}
-          \item Manual transcription is error-prone and slow
-          \item Existing OCR tools (Tesseract, EasyOCR) fail on schematic fonts
+          \item \textbf{Training}: 1,520 samples (1200 schematics + 300 synth text + 20 real photos)
+          \item \textbf{Test}: 150 samples (held-out)
+          \item \textbf{Validation}: 150 samples
+          \item \textbf{Total OCR instances}: 4,810 (test set alone)
+          \item \textbf{10 component types}: R, C, D, U, J, Q, L, LED, F, Y
         \end{itemize}
       \end{block}
 
-    \column{0.45\textwidth}
-      \begin{block}{Our Approach}
-        \begin{enumerate}
-          \item Fine-tune \textbf{PaddleOCR-VL-0.9B} — a Vision-Language Model
-          \item Use \textbf{LoRA} for parameter-efficient training on consumer GPU (RTX 4060 8GB)
-          \item Design \textbf{anti-collapse training strategy} for small datasets
-          \item Evaluate with \textbf{multi-metric benchmark}
-        \end{enumerate}
+    \column{0.5\textwidth}
+      \begin{block}{Evaluation}
+        \begin{itemize}
+          \item \textcolor{greencolor}{$\checkmark$} Test samples $\geq$ 100 (150)
+          \item \textcolor{greencolor}{$\checkmark$} OCR instances $\geq$ 1000 (4810)
+          \item \textcolor{greencolor}{$\checkmark$} No copyright issues (self-drawn KiCad)
+          \item \textcolor{sysured}{$\times$} Test set 150 is adequate but could reach 500+
+        \end{itemize}
       \end{block}
+      \vspace{0.3cm}
+      \begin{center}
+        \Large\textcolor{greencolor}{\textbf{4/5 — 规模达标}}
+      \end{center}
   \end{columns}
 \end{frame}
 
-\section{Model Architecture}
+\begin{frame}{1.2 Annotation Accuracy (4.5/5)}
+  \begin{columns}[T]
+    \column{0.45\textwidth}
+      \begin{block}{7-Round Verification Pipeline}
+        \begin{enumerate}
+          \item JSON Schema validation
+          \item Image path verification
+          \item Control character scan
+          \item Label format regex
+          \item Unit normalization
+          \item KiCad netlist cross-check
+          \item Manual spot-check (10\%)
+        \end{enumerate}
+      \end{block}
 
-% ═══════════════════════════════════════════════════════════
-\begin{frame}{Model Architecture: PaddleOCR-VL-0.9B}
+    \column{0.55\textwidth}
+      \begin{block}{Quality Metrics (from Report)}
+        \begin{itemize}
+          \item Component labels: \textbf{>99\%}
+          \item Parameter values: \textbf{>97\%}
+          \item Pin numbers: \textbf{>98\%}
+          \item Text completeness: \textbf{>95\%}
+          \item Illegal characters: \textbf{<0.1\%}
+        \end{itemize}
+      \end{block}
+      \vspace{0.3cm}
+      \begin{center}
+        \Large\textcolor{greencolor}{\textbf{4.5/5 — 质量报告 + 12 组可视化对比}}
+      \end{center}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{1.2 Annotation Quality: Visual Spot-Check}
   \begin{center}
-    \begin{tikzpicture}[node distance=1.8cm, auto,
-      block/.style={rectangle, draw, minimum width=2.2cm, minimum height=1cm, rounded corners=3pt, font=\small},
-      lora/.style={rectangle, draw=sysured, fill=sysured!5, minimum width=2.2cm, minimum height=0.7cm, rounded corners=3pt, font=\footnotesize, dashed}]
+    \includegraphics[width=0.85\textwidth]{../quality_report/visual_check/sample_01.png}
+  \end{center}
+  \begin{center}
+    \small 12 组随机样本 GT-vs-Image 对比（质量报告目录：\texttt{quality\_report/visual\_check/}）
+  \end{center}
+\end{frame}
+
+\begin{frame}{1.3 Data Diversity (2.5/5) — Weakest Dimension}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{Current State}
+        \begin{itemize}
+          \item \textbf{3 data sources}: KiCad exports (1200), synthetic text (300), real photos (20)
+          \item Real photos introduce \textbf{natural noise}: lighting, perspective, CMOS artifacts
+          \item 10 component types covered
+          \item Label length: 203--5,749 chars
+        \end{itemize}
+      \end{block}
+
+    \column{0.5\textwidth}
+      \begin{block}{Gaps}
+        \begin{itemize}
+          \item \textcolor{sysured}{$\times$} All schematics from \textbf{single engine} (KiCad)
+          \item \textcolor{sysured}{$\times$} Real photos only \textbf{1.3\%} of training data
+          \item \textcolor{sysured}{$\times$} No scanned documents, blur, occlusion
+          \item \textcolor{sysured}{$\times$} No PCB photos, no datasheet screenshots
+        \end{itemize}
+      \end{block}
+      \vspace{0.3cm}
+      \begin{center}
+        \Large\textcolor{sysured}{\textbf{2.5/5 — 优先改进方向}}
+      \end{center}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{1.4 Difficulty Rationality (4.5/5)}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{OCR-Based Difficulty (Original)}
+        \begin{tabular}{lcc}
+          \toprule
+          Level & OCR Instances & Ratio \\
+          \midrule
+          Easy   & < 15  & 20\% \\
+          Medium & 15--35 & 40\% \\
+          Hard   & > 35  & 40\% \\
+          \bottomrule
+        \end{tabular}
+        \vspace{0.3cm}
+        \textcolor{greencolor}{$\checkmark$} 2:4:4 ratio matches real distribution
+      \end{block}
+
+    \column{0.5\textwidth}
+      \begin{block}{Multi-Dimensional Labels (NEW)}
+        \begin{itemize}
+          \item \textbf{Text Density}: Low / Medium / High
+          \item \textbf{Structure}: Simple / Moderate / Complex
+          \item \textbf{Value Richness}: Sparse / Moderate / Dense
+          \item \textbf{Composite Visual Score}: 0--3
+        \end{itemize}
+        \vspace{0.3cm}
+        \textcolor{greencolor}{$\checkmark$} All 150 test samples have \texttt{difficulty} field
+      \end{block}
+  \end{columns}
+  \vspace{0.3cm}
+  \begin{center}
+    \Large\textcolor{greencolor}{\textbf{4.5/5 — OCR + 3 visual dimensions}}
+  \end{center}
+\end{frame}
+
+% ══════════════════════════════════════════
+\section{Model \& Training}
+% ══════════════════════════════════════════
+
+\begin{frame}{Model Architecture: PaddleOCR-VL-0.9B + LoRA}
+  \begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto,
+      block/.style={rectangle, draw, minimum width=2cm, minimum height=0.9cm, rounded corners=3pt, font=\small},
+      lora/.style={rectangle, draw=sysured, fill=sysured!5, minimum width=2cm, minimum height=0.6cm, rounded corners=3pt, font=\footnotesize, dashed}]
 
       \node[block,fill=sysublue!15] (img) {Circuit Image};
       \node[block,fill=sysublue!15,right=of img] (vis) {SigLIP Vision\\Encoder};
       \node[block,fill=sysublue!15,right=of vis] (proj) {MLP Projector\\(Frozen)};
-      \node[block,fill=sysured!15,right=of proj] (llm) {ERNIE-4.5 LLM\\0.9B Params};
+      \node[block,fill=sysured!15,right=of proj] (llm) {ERNIE-4.5 LLM\\0.9B};
       \node[block,fill=phase2color!15,right=of llm] (out) {Text Output};
-      \node[lora,below=of llm] (lora_node) {LoRA r=16, $\alpha$=32\\(5.7M trainable)};
+      \node[lora,below=of llm] (lora_node) {LoRA r=16, $\alpha$=32 (5.7M)};
 
       \draw[->,thick] (img) -- (vis);
       \draw[->,thick] (vis) -- (proj);
@@ -113,311 +234,271 @@
 
   \begin{columns}[T]
     \column{0.5\textwidth}
-      \begin{block}{LoRA Configuration}
+      \begin{block}{LoRA Config}
         \begin{itemize}
           \item $r=16$, $\alpha=32$, dropout
-          \item Target: Q/K/V/O proj + MLP layers
-          \item \textbf{5.73M} trainable / 0.9B total (0.6\%)
-          \item Projector \textbf{frozen} (prevents modality collapse)
+          \item Q/K/V/O + MLP layers
+          \item 5.73M / 0.9B (0.6\%)
+          \item Projector frozen
         \end{itemize}
       \end{block}
     \column{0.5\textwidth}
-      \begin{block}{Training Details}
+      \begin{block}{Training}
         \begin{itemize}
-          \item Optimizer: AdamW, weight\_decay=0.1
-          \item LR: LinearWarmup + CosineAnnealing
-          \item Grad Accum = 4, Batch Size = 1
-          \item Mixed precision: bfloat16
-          \item Hardware: RTX 4060 8GB
+          \item AdamW, weight\_decay=0.1
+          \item Warmup + Cosine LR
+          \item GradAccum=4, bfloat16
+          \item RTX 4060 8GB
         \end{itemize}
       \end{block}
   \end{columns}
 \end{frame}
 
-\section{Phase 1: Four-Experiment Design}
+\begin{frame}{Training Pipeline \& Data Flow}
+  \begin{center}
+    \includegraphics[width=0.8\textwidth]{../slides_figures/pipeline_overview.pdf}
+  \end{center}
+  \begin{block}{Data Collection $\rightarrow$ Training $\rightarrow$ Evaluation}
+    \begin{center}
+    KiCad SVG $\rightarrow$ stroked-text extraction $\rightarrow$ 7-round verification $\rightarrow$ \\
+    + synth text (20\%) + real photos $\rightarrow$ PaddleOCR-VL LoRA $\rightarrow$ CompF1 + JointF1 + NED
+    \end{center}
+  \end{block}
+\end{frame}
 
-% ═══════════════════════════════════════════════════════════
-\begin{frame}{Phase 1: Experiment Design}
+% ══════════════════════════════════════════
+\section{Experiments \& Results}
+% ══════════════════════════════════════════
+
+\begin{frame}{Phase 1: Four-Experiment Design}
   \begin{table}
     \centering
     \small
-    \begin{tabular}{lcccccc}
+    \begin{tabular}{lcccccl}
       \toprule
-      \textbf{Experiment} & \textbf{Resolution} & \textbf{LR} & \textbf{Dropout} & \textbf{Epochs} & \textbf{Special} \\
+      \textbf{Exp} & \textbf{Resolution} & \textbf{LR} & \textbf{Dropout} & \textbf{Epochs} & \textbf{Special} & \textbf{CompF1} \\
       \midrule
-      \rowcolor{blue!5}  exp1 (Baseline)    & 384px & $2\times10^{-5}$ & 0.05 & 2 & — \\
-      \rowcolor{blue!3}  exp2 (HiRes)       & \textbf{512px} & $2\times10^{-5}$ & 0.05 & 2 & — \\
-      \rowcolor{red!5}   exp3 (Anti-Overfit)& 384px & $1\times10^{-5}$ & \textbf{0.10} & \textbf{3} & Low LR + High DO \\
-      \rowcolor{green!5} exp4 (Unfrozen)    & 384px & $2\times10^{-5}$ & 0.05 & 2 & \textbf{Projector unfrozen} \\
+      \rowcolor{blue!5}  exp1 & 384px & $2\times10^{-5}$ & 0.05 & 2 & Baseline & 0.037 \\
+      \rowcolor{blue!3}  exp2 & 512px & $2\times10^{-5}$ & 0.05 & 2 & HiRes & 0.058 \\
+      \rowcolor{red!5}   exp3 & 384px & $1\times10^{-5}$ & 0.10 & 3 & Anti-Overfit & 0.028 \\
+      \rowcolor{green!5} exp4 & 384px & $2\times10^{-5}$ & 0.05 & 2 & Unfrozen Proj. & 0.092 \\
       \bottomrule
     \end{tabular}
   \end{table}
-
-  \begin{block}{Motivation}
-    \begin{itemize}
-      \item \textbf{exp3}: Hypothesis — lower LR + higher dropout prevents overfitting on 1200 samples
-      \item \textbf{exp4}: Hypothesis — unfreezing projector allows better visual-text alignment
-      \item \textbf{exp2}: Hypothesis — 512px captures fine text details (pin numbers, small labels)
-    \end{itemize}
-  \end{block}
-
   \begin{center}
-    \small Data: 1200 clean circuit schematics (1080 train + 120 val)
+    \small Data: 1200 clean schematics \; | \; All models below V10-Fixed baseline (CompF1=0.206, 3800 samples)
   \end{center}
 \end{frame}
 
-% ═══════════════════════════════════════════════════════════
-\begin{frame}{Phase 1: Results — Component F1}
-  \begin{center}
-    \includegraphics[width=0.82\textwidth]{../slides_figures/comp_f1_comparison.pdf}
-  \end{center}
-
-  \begin{block}{Key Finding}
-    \begin{itemize}
-      \item Best Phase 1 model: \textbf{exp4 (Unfrozen Projector)} — CompF1 = 0.092
-      \item All models \textbf{far below} V10-Fixed S600 baseline (CompF1 = 0.206, trained on 3800 samples)
-      \item \textbf{Modality Collapse} observed: models output repetitive patterns (``1,2,3,...'') instead of reading images
-    \end{itemize}
-  \end{block}
-\end{frame}
-
-% ═══════════════════════════════════════════════════════════
-\begin{frame}{Phase 1: Modality Collapse Analysis}
+\begin{frame}{Modality Collapse Problem}
   \begin{columns}[T]
     \column{0.5\textwidth}
       \begin{block}{Collapse Pattern}
         \begin{itemize}
-          \item \textbf{S200}: ``1,2,3,4,5,6,...'' (pure counting)
-          \item \textbf{S400}: ``+3.3V, +3.3V, +3.3V...'' (voltage repetition)
-          \item \textbf{S600}: ``R1, 10k, 12V...'' (partial recovery)
-          \item \textbf{exp3 only}: S800 showed ``R1\textbackslash n10k\textbackslash nR2\textbackslash n10k...''
+          \item \textbf{S200}: ``1,2,3,4,5...'' (pure counting)
+          \item \textbf{S400}: ``+3.3V, +3.3V...'' (voltage repetition)
+          \item \textbf{S600}: Partial recovery
+          \item Small dataset $\rightarrow$ model ignores image
         \end{itemize}
       \end{block}
-
     \column{0.5\textwidth}
       \begin{block}{Root Cause}
         \begin{itemize}
-          \item Small dataset (1200 samples) — model learns to \textbf{ignore image} and predict frequent patterns
-          \item Training loss decreases but validation quality degrades — \textbf{loss-quality mismatch}
-          \item Frozen projector may limit visual feature extraction
+          \item 1200 samples insufficient for VLM
+          \item Model learns shortcut: output frequent patterns
+          \item Training loss $\downarrow$ but quality $\downarrow$
+          \item Loss-quality mismatch
         \end{itemize}
       \end{block}
   \end{columns}
-
   \vspace{0.3cm}
   \begin{center}
-    \small\textcolor{sysured}{\textbf{→ Solution: Inject synthetic text-image pairs to force visual-text alignment}}
+    \textcolor{sysured}{\textbf{Solution: Inject synthetic text-image pairs to force visual-text alignment}}
   \end{center}
 \end{frame}
 
-\section{Phase 2: Synthetic Data Anti-Collapse}
-
-% ═══════════════════════════════════════════════════════════
-\begin{frame}{Synthetic Data Strategy}
+\begin{frame}{Phase 2: Synthetic Data Anti-Collapse Strategy}
   \begin{columns}[T]
     \column{0.45\textwidth}
-      \begin{block}{What We Did}
+      \begin{block}{Method}
         \begin{enumerate}
-          \item Generated \textbf{300 synthetic text images}
-          \item Content: component tables, pinouts, net labels, BOM entries
-          \item Rendered as clean document-style images (white background, black text)
-          \item Mixed with original 1200 circuit images at \textbf{20\% ratio}
-          \item Total: \textbf{1500 training samples}
+          \item Generate 300 synthetic text images (6 templates)
+          \item Mix at 20\% ratio with circuit data
+          \item Total: 1500 training samples
+          \item Two configurations tested:
+          \begin{itemize}
+            \item exp5: Anti-Overfit (lr=1e-5, do=0.1)
+            \item exp6: Baseline (lr=2e-5, do=0.05)
+          \end{itemize}
         \end{enumerate}
       \end{block}
-
     \column{0.55\textwidth}
-      \begin{block}{Why It Works}
-        \begin{itemize}
-          \item Synthetic images have \textbf{perfect visual→text mapping}
-          \item Model cannot ``guess'' the text — must read the image
-          \item Forces the vision encoder to remain active
-          \item Text content matches circuit domain (resistors, capacitors, voltages)
-          \item Acts as a \textbf{regularizer} against counting collapse
-        \end{itemize}
+      \begin{block}{Results}
+        \includegraphics[width=\textwidth]{../slides_figures/synth_ablation.pdf}
       \end{block}
   \end{columns}
+\end{frame}
 
-  \vspace{0.3cm}
+\begin{frame}{All Experiments: CompF1 Comparison}
   \begin{center}
-    \begin{tikzpicture}
-      \node[draw,fill=blue!5,rounded corners,minimum width=3cm,minimum height=1cm] (a) {1200 Circuit Images};
-      \node[draw,fill=orange!10,rounded corners,minimum width=3cm,minimum height=1cm,right=0.5cm of a] (b) {300 Synthetic Text};
-      \node[draw,fill=green!10,rounded corners,minimum width=3cm,minimum height=1cm,right=0.5cm of b] (c) {1500 Mixed Dataset};
-      \draw[->,thick] (a) -- (b);
-      \draw[->,thick] (b) -- (c);
-    \end{tikzpicture}
+    \includegraphics[width=0.82\textwidth]{../slides_figures/comp_f1_comparison.pdf}
+  \end{center}
+  \begin{center}
+    \small Phase 2 (exp5/exp6) with synthetic data: \textbf{4.2$\times$} improvement over Phase 1
   \end{center}
 \end{frame}
 
-% ═══════════════════════════════════════════════════════════
-\begin{frame}{Phase 2: Results}
-  \begin{center}
-    \includegraphics[width=0.78\textwidth]{../slides_figures/synth_ablation.pdf}
-  \end{center}
-
-  \begin{block}{Improvement}
-    \begin{itemize}
-      \item \textbf{CompF1}: 0.037 → 0.156 (Baseline, \textbf{4.2$\times$} improvement)
-      \item \textbf{CompF1}: 0.028 → 0.126 (Anti-Overfit, \textbf{4.5$\times$} improvement)
-      \item \textbf{JointF1}: 0.005 → 0.011 (\textbf{2.2$\times$} improvement)
-      \item Training validation shows \textbf{perfect recognition} of capacitor BOM and schematic labels
-    \end{itemize}
-  \end{block}
-\end{frame}
-
-% ═══════════════════════════════════════════════════════════
 \begin{frame}{Training Quality Evolution}
   \begin{center}
     \includegraphics[width=0.75\textwidth]{../slides_figures/training_evolution.pdf}
   \end{center}
-
   \begin{block}{Key Insight}
+    Without synthetic data (exp3): gradual, peaks at S800. With synthetic data (exp5): \textbf{immediate high quality at S200}, stable through S800.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Comprehensive Results}
+  \begin{center}
+    \small
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Metric} & \textbf{Phase 1 Best} & \textbf{Phase 2 Best} & \textbf{V10-Fixed S600} & \textbf{Target} \\
+      \midrule
+      CompF1  & 0.092 (exp4) & \textbf{0.156 (exp6)} & 0.206 (3800 samples) & >0.25 \\
+      JointF1 & 0.005 (exp1/4) & \textbf{0.011 (exp5/6)} & 0.019 & >0.05 \\
+      NED     & 0.941 (exp4) & 0.941 (exp5) & 0.803 & <0.75 \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+  \vspace{0.3cm}
+  \begin{block}{Status}
     \begin{itemize}
-      \item Without synthetic data (exp3): gradual improvement, peaks at S800, still partial
-      \item With synthetic data (exp5): \textbf{immediate high quality at S200}, stable through S800
-      \item Synthetic data provides \textbf{strong initialization signal} for visual-text alignment
+      \item Synthetic data strategy \textbf{confirmed effective}: CompF1 $\uparrow$4.2$\times$, JointF1 $\uparrow$2.2$\times$
+      \item Model remains below usable threshold (JointF1 0.011 vs target 0.05)
+      \item \textbf{Bottleneck}: 1200 training schematics insufficient; need 3000+ for generalization
     \end{itemize}
   \end{block}
 \end{frame}
 
-\section{Comprehensive Results}
+% ══════════════════════════════════════════
+\section{Key Findings \& Future Work}
+% ══════════════════════════════════════════
 
-% ═══════════════════════════════════════════════════════════
-\begin{frame}{All Experiments: CompF1 \& JointF1}
-  \begin{center}
-    \includegraphics[width=0.78\textwidth]{../slides_figures/comp_f1_comparison.pdf}
-  \end{center}
-
-  \begin{center}
-    \small
-    \begin{tabular}{lccc}
-      \toprule
-      \textbf{Metric} & \textbf{Phase 1 Best} & \textbf{Phase 2 Best} & \textbf{vs V10-Fixed S600} \\
-      \midrule
-      CompF1  & 0.092 (exp4) & \textbf{0.156 (exp6)} & 0.206 (3800 samples) \\
-      JointF1 & 0.005 (exp1/4) & \textbf{0.011 (exp5/6)} & 0.019 \\
-      NED     & 0.941 (exp4) & 0.941 (exp5) & 0.803 \\
-      \bottomrule
-    \end{tabular}
-  \end{center}
-\end{frame}
-
-% ═══════════════════════════════════════════════════════════
-\begin{frame}{NED Comparison}
-  \begin{center}
-    \includegraphics[width=0.85\textwidth]{../slides_figures/ned_comparison.pdf}
-  \end{center}
-
-  \begin{block}{Observation}
-    NED remains consistently high ($\sim$0.94) across all experiments — even with improved CompF1 and JointF1, the edit distance is dominated by repetitive/collapsed predictions on unseen samples.
-  \end{block}
-\end{frame}
-
-\section{Key Findings \& Analysis}
-
-% ═══════════════════════════════════════════════════════════
 \begin{frame}{Key Findings}
   \begin{columns}[T]
     \column{0.5\textwidth}
-      \begin{block}{What Worked}
+      \begin{block}{What Worked ($\checkmark$)}
         \begin{enumerate}
-          \item \textbf{Synthetic text data mixing} — single most effective intervention ($4\times$ CompF1 gain)
-          \item \textbf{Anti-overfit config} (exp3/exp5): low LR + high dropout gave \textbf{stable} training
-          \item \textbf{LoRA + frozen projector} — prevents catastrophic modality collapse
-          \item \textbf{Multi-metric evaluation} — CompF1 + JointF1 + NED + RepRate captures different failure modes
+          \item \textbf{Synthetic data mixing} — 4.2$\times$ CompF1 gain
+          \item \textbf{Anti-overfit config} — stable training, no degradation
+          \item \textbf{Frozen projector + LoRA} — prevents catastrophic collapse
+          \item \textbf{Multi-metric evaluation} — CompF1 + JointF1 + NED + RepRate
+          \item \textbf{7-round annotation pipeline} — >99\% label accuracy
         \end{enumerate}
       \end{block}
-
     \column{0.5\textwidth}
-      \begin{block}{What Didn't Work}
+      \begin{block}{What Didn't Work ($\times$)}
         \begin{enumerate}
-          \item \textbf{512px high-res} (exp2) — no benefit, similar collapse
-          \item \textbf{Unfrozen projector} (exp4) — higher CompF1 but still collapsed on most samples
-          \item \textbf{Loss-based checkpoint selection} — lowest loss $\neq$ best quality
-          \item \textbf{1200 samples insufficient} — even with synthetic data, joint\_f1 $\ll$ 0.05 target
+          \item \textbf{512px high-res} — no benefit over 384px
+          \item \textbf{Unfrozen projector} — higher CompF1 but still collapsed
+          \item \textbf{Loss-based checkpoint selection} — loss $\neq$ quality
+          \item \textbf{1200 samples} — insufficient for JointF1 $>$ 0.05
+          \item \textbf{Single CAD source} — limits diversity score (1.3: 2.5/5)
         \end{enumerate}
       \end{block}
   \end{columns}
-
   \vspace{0.3cm}
   \begin{center}
-    \small\textcolor{sysublue}{\textbf{Core Insight:} Synthetic data teaches visual-text alignment, but real schematic diversity is needed for generalization.}
+    \textbf{Core insight:} Synthetic data teaches visual-text alignment. Real schematic diversity needed for generalization.
   \end{center}
 \end{frame}
 
-\section{Limitations \& Future Work}
+\begin{frame}{Dataset Evaluation Summary}
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{lclc}
+      \toprule
+      \textbf{Dimension} & \textbf{Score} & \textbf{Key Strength} & \textbf{Key Gap} \\
+      \midrule
+      1.1 Scale      & 4.0/5 & 4810 OCR instances & Test set could be larger \\
+      1.2 Accuracy   & 4.5/5 & Quality report + visuals & No dual-annotator Kappa \\
+      1.3 Diversity  & 2.5/5 & 3 sources, real photos & Only 20 photos, single CAD \\
+      1.4 Difficulty & 4.5/5 & OCR + 3 visual dims & No visual degradation labels \\
+      \midrule
+      \textbf{Total} & \textbf{15.5/20} & & \textbf{Priority: $\uparrow$1.3 Diversity} \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \begin{center}
+    \footnotesize Full report: \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{circuit\_ocr\_dataset\_final}}
+  \end{center}
+\end{frame}
 
-% ═══════════════════════════════════════════════════════════
 \begin{frame}{Limitations \& Future Work}
   \begin{columns}[T]
     \column{0.5\textwidth}
       \begin{block}{Current Limitations}
         \begin{itemize}
-          \item JointF1 (0.011) far below usable threshold (0.05)
-          \item NED ($\sim$0.94) indicates poor per-token accuracy
-          \item 1200 training samples insufficient for generalization
-          \item Real-camera photos not yet integrated
-          \item Validation set (3 samples) too small for reliable monitoring
+          \item JointF1 (0.011) $\ll$ usable threshold (0.05)
+          \item 1200 schematics from single source (KiCad)
+          \item Only 20 real-camera photos
+          \item No degraded samples (blur, tilt, low-light)
+          \item Validation set (3 samples) too small
         \end{itemize}
       \end{block}
-
     \column{0.5\textwidth}
-      \begin{block}{Future Directions}
+      \begin{block}{Next Steps}
         \begin{enumerate}
-          \item \textbf{Scale up data}: collect 3000+ diverse real schematics
-          \item \textbf{Real-camera data}: add photographed circuit boards/prints
-          \item \textbf{More synthetic variety}: fonts, sizes, layouts, noise
-          \item \textbf{Larger LoRA rank}: try $r=32$ or $r=64$
-          \item \textbf{Two-stage training}: synthetic pre-train → real fine-tune
-          \item \textbf{Better evaluation}: 50+ sample validation set
+          \item \textbf{Scale data}: 3000+ schematics from multiple EDA tools
+          \item \textbf{Real photos}: 200+ photographed circuits
+          \item \textbf{Degraded samples}: blur, tilt, low-light variants
+          \item \textbf{Two-stage training}: synth pre-train $\rightarrow$ real fine-tune
+          \item \textbf{Larger LoRA}: try $r=32$, $r=64$
         \end{enumerate}
       \end{block}
   \end{columns}
 \end{frame}
 
+% ══════════════════════════════════════════
 \section{Summary}
+% ══════════════════════════════════════════
 
-% ═══════════════════════════════════════════════════════════
 \begin{frame}{Summary}
-  \begin{block}{Project Status}
+  \begin{block}{Project Achievements}
     \begin{itemize}
-      \item Built complete \textbf{training + evaluation pipeline} for circuit schematic OCR
-      \item Achieved \textbf{CompF1 = 0.156} with synthetic data mixing (Phase 2)
-      \item Demonstrated \textbf{anti-collapse training strategy} via synthetic text-image injection
-      \item \textbf{JointF1 = 0.011} — model beginning to learn (refdes, value) pairs but not yet usable
+      \item Built \textbf{high-quality dataset} (15.5/20 score, 7-round verification)
+      \item Established \textbf{complete training pipeline} with anti-collapse strategy
+      \item Achieved \textbf{CompF1 = 0.156} via synthetic data mixing (Phase 2)
+      \item Generated \textbf{quality report} with visual spot-checks + multi-dim difficulty labels
     \end{itemize}
   \end{block}
 
   \begin{block}{Next Milestone}
     \begin{enumerate}
-      \item Collect \textbf{larger dataset} (3000+ real schematics)
-      \item Integrate \textbf{real-camera photos} for robustness
+      \item Expand diversity (1.3): 200+ real photos, multi-CAD, degraded samples
+      \item Scale training data: 3000+ schematics
       \item Target: \textbf{JointF1 > 0.05}, \textbf{CompF1 > 0.25}
     \end{enumerate}
   \end{block}
 
   \begin{center}
     \small
-    \href{https://github.com/ZhangJ83/circuit-ocr-paddle}{\texttt{github.com/ZhangJ83/circuit-ocr-paddle}}\\
-    \vspace{0.2cm}
-    Full code, dataset, training scripts, and experiment logs available.
+    \href{https://github.com/ZhangJ83/circuit-ocr-paddle}{\texttt{github.com/ZhangJ83/circuit-ocr-paddle}} \;
+    | \; \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{circuit\_ocr\_dataset\_final}}
   \end{center}
 \end{frame}
 
-% ═══════════════════════════════════════════════════════════
-% FINAL SLIDE
-% ═══════════════════════════════════════════════════════════
 \begin{frame}[plain]
   \begin{center}
     \Huge\textcolor{sysublue}{\textbf{Thank You!}}\\[1cm]
     \Large 谢谢！\\[1cm]
     \normalsize
     \textbf{张健宁} \; | \; 中山大学 \\[0.5cm]
-    \href{https://github.com/ZhangJ83/circuit-ocr-paddle}{\texttt{github.com/ZhangJ83/circuit-ocr-paddle}}\\[0.5cm]
+    \href{https://github.com/ZhangJ83/circuit-ocr-paddle}{\texttt{github.com/ZhangJ83/circuit-ocr-paddle}}\\[0.3cm]
+    \href{https://github.com/ZhangJ83/circuit_ocr_dataset_final}{\texttt{github.com/ZhangJ83/circuit\_ocr\_dataset\_final}}\\[0.5cm]
     \small
-    PaddleOCR-VL-0.9B + LoRA Fine-tuning\\
-    Circuit Schematic OCR
+    PaddleOCR-VL-0.9B + LoRA \; | \; Dataset Score: 15.5/20
   \end{center}
 \end{frame}
 
