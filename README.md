@@ -6,6 +6,7 @@
 [![HuggingFace Space](https://img.shields.io/badge/Demo-HuggingFace-orange)](https://huggingface.co/spaces/yingchu83/CircuitOCR)
 
 > 📄 **Technical Report:** [中文版 (PDF)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf) | [English (PDF)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf) | [LaTeX Source](https://github.com/ZhangJ83/circuit-ocr-paddle/tree/master/arxiv_template)
+> 🎞️ **Beamer Slides:** [16-slide PDF](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf) — Phase 2 results with charts
 
 > 🎮 **Live Demo:** [HuggingFace Space](https://huggingface.co/spaces/yingchu83/CircuitOCR)
 
