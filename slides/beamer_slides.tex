@@ -41,6 +41,34 @@
   \tableofcontents
 \end{frame}
 
+% ═══════════ 引言 ═══════════
+\section{引言}
+
+\begin{frame}{项目背景与动机}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{电路原理图 OCR 的挑战}
+        \footnotesize
+        \begin{itemize}
+          \item 电路图含有密集的工程文字：元件标号、参数值、引脚号、网络标签
+          \item 现有 OCR 引擎（PaddleOCR、Tesseract、EasyOCR）均无法处理
+          \item 基座 VLM 输出为幻觉文本，CompF1 = 0，JointF1 = 0
+          \item 小数据集上微调存在严重的模态塌缩问题
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{本项目工作}
+        \footnotesize
+        \begin{enumerate}
+          \item 构建首个电路 OCR 高质量标注数据集（7 轮验证）
+          \item 提出合成文字数据防塌缩策略
+          \item Phase 1-4 共 9 组系统消融实验
+          \item 全开源：代码、数据、权重、报告、Demo
+        \end{enumerate}
+      \end{block}
+  \end{columns}
+\end{frame}
+
 % ═══════════ 数据集 ═══════════
 \section{数据集构建}
 
@@ -277,6 +305,39 @@
   \end{block}
 \end{frame}
 
+% ═══════════ 训练构建科学性 ═══════════
+\section{训练数据集构建}
+
+\begin{frame}{数据采集与标注流程}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{数据来源与版权}
+        \footnotesize
+        \begin{itemize}
+          \item KiCad 原理图：自绘设计，SVG 导出，MIT 协议
+          \item 合成文字：PIL 程序生成，6 种模板，MIT 协议
+          \item 真实拍照：作者手机拍摄，MIT 协议
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{7 轮质量控制}
+        \footnotesize
+        \begin{enumerate}
+          \item JSON Schema 自动校验
+          \item 图片路径验证
+          \item 控制字符扫描
+          \item 标号正则匹配
+          \item 单位标准化
+          \item KiCad 网表交叉验证
+          \item 人工抽检（10\%）
+        \end{enumerate}
+      \end{block}
+  \end{columns}
+  \begin{center}
+    \footnotesize 测试集确认：150 样本全部为真实 KiCad 电路图，不含合成数据
+  \end{center}
+\end{frame}
+
 % ═══════════ 实验与结果 ═══════════
 \section{实验与结果}
 
@@ -391,6 +452,59 @@
       \bottomrule
     \end{tabular}
   \end{table}
+\end{frame}
+
+% ═══════════ 讨论 ═══════════
+\section{讨论}
+
+\begin{frame}{合成数据为何有效}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{机制分析}
+        \footnotesize
+        \begin{itemize}
+          \item 合成图片具有完美的视觉→文字映射
+          \item 模型无法通过统计模式"猜"对
+          \item 唯一的降低 loss 路径：真正读取图片
+          \item 强制保持视觉编码器活跃
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{关键权衡}
+        \footnotesize
+        \begin{itemize}
+          \item 20\% 是最优混合比例
+          \item 过低：防塌缩效果不足
+          \item 过高：过拟合简单视觉风格
+          \item 方法具有通用性：任何小数据集 VLM-OCR 可复用
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{当前瓶颈与局限}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{数据瓶颈}
+        \footnotesize
+        \begin{itemize}
+          \item 1,200 训练样本不足以支撑 VLM 泛化
+          \item JointF1 = 0.011，距可用阈值 0.05 差 5 倍
+          \item 更大 LoRA 秩在当前数据量下无效
+          \item 精标小数据 > 粗标大数据
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{模型瓶颈}
+        \footnotesize
+        \begin{itemize}
+          \item 复杂样本持续塌缩（ESP32 引脚表）
+          \item 参数值幻觉未解决
+          \item ExactMatch = 0\%
+          \item 0.9B 参数容量限制
+        \end{itemize}
+      \end{block}
+  \end{columns}
 \end{frame}
 
 % ═══════════ 总结 ═══════════
