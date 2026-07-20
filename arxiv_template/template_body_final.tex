@@ -117,6 +117,26 @@ KiCad 原理图   & 1,200 & SVG 光栅化导出 & stroked-text 提取 + 7 轮验
 \end{tabular}
 \end{table}
 
+\subsection{数据集可视化分析}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.48\textwidth]{../slides_figures/dataset_composition.pdf}
+\hfill
+\includegraphics[width=0.48\textwidth]{../slides_figures/component_types.pdf}
+\caption{左：数据集构成（划分 + 来源分布）。右：10 种元件类型分布（测试集，n=4,810 OCR 实例）。}
+\label{fig:dataset_charts1}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.48\textwidth]{../slides_figures/ocr_distribution.pdf}
+\hfill
+\includegraphics[width=0.48\textwidth]{../slides_figures/radar_scores.pdf}
+\caption{左：OCR 实例分布直方图，带难度分区（绿 Easy / 橙 Medium / 红 Hard）和 KDE 密度曲线。右：四维度雷达图（15.5/20）。}
+\label{fig:dataset_charts2}
+\end{figure}
+
 \subsection{四维度评估体系}
 
 按照数据集质量标准，从四个维度对 Dataset A 进行系统评估：
