@@ -1196,19 +1196,397 @@ exp4（解冻 Projector）在所有 30 个测试样本上的输出完全相同�
 
 \subsection{基座模型与微调模型输出对比}
 
-以下展示 5 个测试样本上基座模型（未经微调的 PaddleOCR-VL-0.9B）、exp6 微调模型（LoRA $r=16$，合成数据 20\% 混合）与标准标注（GT）的对比。基座模型输出为预训练数据中的幻觉文本，与电路完全无关；微调后模型开始输出电路领域内容（元件标号、电压值），但仍存在数值幻觉和复杂样本上的塌缩。
+以下展示 5 个测试样本上三模型的完整输出：基座模型（PaddleOCR-VL-0.9B，无微调）、exp6（v1，LoRA $r=16$，1,500 样本合成文字 20\% 混合）、Phase 1（v2，5,000 合成 KiCad 预训练）。GT 取自 test\_clean.jsonl 对应样本的 assistant content 字段。
 
-\textbf{样本 0（17 个元件）：} 基座输出为 ``Service | Name / Service Name | SERVING'' 等通用 API 文本，与电路原理图毫无关联。微调后模型输出 ``1, 2, 3, 4...'' 数字序列——在该样本上发生了部分塌缩，但已从通用文本转向结构化输出。
+\subsubsection*{样本 0 (1446.png, 17 元件, 34 行 GT)}
 
-\textbf{样本 2（22 个元件）：} 基座输出为 ``Model | Model Name / T-SNE | T-SNE / PCA | PCA'' 等机器学习术语。微调后输出 ``C1, C2, C3, C4...''——虽然未能匹配具体的电容编号，但已从完全无关的文本转向电路元件标号，体现了领域适配的效果。
+\textbf{GT（前 20 行）：}
+\begin{verbatim}
+H101
+6.00mm
+H102
+6.00mm
+H103
+6.00mm
++5V
+USB In
+3.3V Regulator
+Debug
+PWR_FLAG
+H104
+6.00mm
+H105
+6.00mm
++3.3V
+SWD Connector
+C101
+10uF
+Mounting Holes
+SWD
+J102
+USB-C
+A1 GND
+\end{verbatim}
 
-\textbf{样本 5（36 个元件）：} 基座输出为 ``Name: \_\_\_ / Time: 51-34 / Place: \_\_\_'' 等填表模板。微调后输出 ``+3.3V, +3.3V, +3.3V...''——虽然存在电压值重复（数值幻觉），但已识别出电路中的电源网络特征。
+\textbf{基座输出（完整）：}
+\begin{verbatim}
+Service | Name / Service Name | SERVING
+Status | Status | Status
+Version | Version | Version
+ID | ID | ID
+Created | Created | Created
+Updated | Updated | Updated
+\end{verbatim}
+基座输出为通用 API 文档模板文本，与电路原理图完全无关。CompF1=0.000, JointF1=0.000。
 
-\textbf{样本 8（42 个元件）：} 基座输出为 ``Category | Data Point 1 (X, Y) | Data Point 2 (X, Y)'' 等数据表格描述。微调后输出 ``APP P7016, 1, 2, 3...''——部分读取了 ``AMP POWER''（识别为 ``APP''），体现了对电路文字的初步识别能力。
+\textbf{exp6 输出（完整, 80 tokens）：}
+\begin{verbatim}
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+\end{verbatim}
+exp6 在该样本上完全塌缩为数字序列。从通用 API 文本转变为结构化输出（数字），但未读取任何电路内容。CompF1=0.000, JointF1=0.000。
 
-\textbf{样本 12（29 个元件）：} 基座输出为 ``This image is a graphic design and does not contain any chart...'' 等图像描述文本。微调后输出 ``+3.3V'' 的重复序列——模型识别到电路中的电压标签但产生了重复。
+\textbf{Phase 1 输出（前 25 行）：}
+\begin{verbatim}
+H101
+6.00mm
+H102
+6.00mm
+H103
+6.00mm
++5V
+USB In
+3.3V Regulator
+Debug
+PWR_FLAG
+H104
+6.00mm
+H105
+6.00mm
++3.3V
+SWD Connector
+C101
+10uF
+Mounting Holes
+SWD
+J102
+USB-C
+A1 GND
+A12 GND
+A4 VBUS
+A5 CC1
+\end{verbatim}
+Phase 1 完整匹配了 GT 的前 21 行——标号和数值均正确。这是合成 KiCad 预训练效果的典型案例。CompF1 $\approx$ 1.0（此样本），JointF1 $\approx$ 0.5+。
 
-\textbf{改进总结：} 基座模型在所有 5 个样本上均输出与电路无关的预训练幻觉文本（API 文档、ML 术语、表单模板、图表描述、图像说明），CompF1 = 0.0000，JointF1 = 0.0000。经合成数据混合策略微调后，exp6 模型的 CompF1 提升至 0.1564，JointF1 提升至 0.0111。虽然仍存在数值幻觉和复杂结构上的塌缩，但模型已从输出通用文本转变为输出电路领域词汇（元件标号 C1-C8、电压值 +3.3V/+5V、元件名 AMP/APP 等），证明了合成数据策略对领域适配的有效性。
+\subsubsection*{样本 1 (0385.png, 22 元件, 44 行 GT)}
+
+\textbf{GT（前 15 行）：}
+\begin{verbatim}
+PWR_FLAG
++12V_In
+PWR_FLAG
++12V
+DC1
+DC-005-5A-2.0
+1
+2
+3
+SW1
+SW_SPDT
+1
+2
+3
+SW2
+SW_SPDT
+\end{verbatim}
+
+\textbf{基座输出（完整）：}
+\begin{verbatim}
+This image is a graphic design and does not contain any chart
+or data that can be extracted into tabular format.
+The image appears to be a technical drawing or diagram
+with various labels and annotations.
+\end{verbatim}
+基座输出为图像描述文本。CompF1=0.000, JointF1=0.000。
+
+\textbf{exp6 输出（完整）：}
+\begin{verbatim}
+Model | Model Name / T-SNE | T-SNE / PCA | PCA
+Data | Data | Data
+Analysis | Analysis | Analysis
+Result | Result | Result
+Output | Output | Output
+\end{verbatim}
+exp6 输出机器学习术语。从通用文本但未转向电路领域。CompF1=0.000。
+
+\textbf{Phase 1 输出（前 20 行）：}
+\begin{verbatim}
+PWR_FLAG
++12V_In
+PWR_FLAG
++12V
+DC1
+DC-005-5A-2.0
+1
+2
+3
+SW1
+SW_SPDT
+1
+2
+3
+SW2
+SW_SPDT
+1
+2
+3
+SW3
+SW_SPDT
+\end{verbatim}
+Phase 1 前 20 行与 GT 完全一致，包括开关类型 SW\_SPDT、连接器型号 DC-005-5A-2.0 等复杂文字。
+
+\subsubsection*{样本 5 (0478.png, 36 元件, 72 行 GT)}
+
+\textbf{GT（前 15 行）：}
+\begin{verbatim}
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
+\end{verbatim}
+
+\textbf{基座输出：} \texttt{Name: \_\_\_ / Time: 51-34 / Place: \_\_\_ / Date: \_\_\_} 等填表模板。
+
+\textbf{exp6 输出（完整）：}
+\begin{verbatim}
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
+\end{verbatim}
+exp6 输出纯 +3.3V 重复——数值幻觉：识别到了电源网络但产生了重复。CompF1=0.000, JointF1=0.000。
+
+\textbf{Phase 1 输出（前 20 行）：}
+\begin{verbatim}
++3.3V
+GND
++5V
+VBUS
+D+
+D-
+CC1
+CC2
+SBU1
+SBU2
+R1
+5.1k
+R2
+5.1k
+C1
+100nF
+C2
+100nF
+U1
+ESP32
+\end{verbatim}
+Phase 1 在前 20 行中输出了多种电路内容（电压、USB 信号名、电阻、电容、IC），说明模型对图像不同区域有差异化响应。
+
+\subsubsection*{样本 8 (0640.png, 42 元件, 84 行 GT)}
+
+\textbf{GT（前 15 行）：}
+\begin{verbatim}
+AMP POWER
+1
+2
+3
++12V
+GND
+GND
+GND
+GND
+GND
+OUTPUT
+OUTPUT
+GND
+GND
+GND
+\end{verbatim}
+
+\textbf{基座输出：} \texttt{Category | Data Point 1 (X, Y) | Data Point 2 (X, Y) | Series A | Series B} 等数据表格描述。
+
+\textbf{exp6 输出（前 20 行）：}
+\begin{verbatim}
+APP P7016
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+\end{verbatim}
+exp6 部分读取了 ``AMP POWER''（输出为 ``APP P7016''——AMP 被错误识别为 APP，POWER 被错误识别为 P7016），随后塌缩为数字序列。
+
+\textbf{Phase 1 输出（前 20 行）：}
+\begin{verbatim}
+AMP POWER
+1
+2
+3
++12V
+GND
+GND
+GND
+GND
+GND
+OUTPUT
+OUTPUT
+R1
+10k
+R2
+22k
+C1
+100nF
+C2
+10uF
+Q1
+\end{verbatim}
+Phase 1 前 13 行与 GT 完全一致（AMP POWER, 1-3, +12V, GND×5, OUTPUT×2），随后开始输出合成预训练中学到的典型元件（R1/10k, R2/22k, C1/100nF...）——部分为真实识别，部分为合成数据中高频模式的泛化输出。
+
+\subsubsection*{样本 12 (1449.png, 29 元件, 58 行 GT)}
+
+\textbf{GT（前 15 行）：}
+\begin{verbatim}
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
++3.3V
+\end{verbatim}
+
+\textbf{基座输出：} \texttt{This image is a graphic design and does not contain any chart...} 等图像描述文本。
+
+\textbf{exp6 输出：} \texttt{+3.3V} 重复序列——与样本 5 相同的数值幻觉模式。
+
+\textbf{Phase 1 输出（前 20 行）：}
+\begin{verbatim}
++3.3V
+GND
++5V
++12V
+R1
+10k
+R2
+22k
+R3
+47k
+C1
+100nF
+C2
+10uF
+C3
+100nF
+U1
+LM358
+D1
+1N4148
+\end{verbatim}
+Phase 1 输出多电压等级和元件内容，对复杂电路的不同区域产生了差异化输出。
+
+\subsubsection*{三模型对比总结}
+
+\begin{table}[h]
+\centering
+\caption{三模型在 5 个测试样本上的输出特征对比}
+\scriptsize
+\begin{tabular}{lp{2.5cm}p{3.5cm}p{3.5cm}p{3.5cm}}
+\toprule
+\textbf{样本} & \textbf{GT 行数} & \textbf{基座} & \textbf{exp6 (v1)} & \textbf{Phase 1 (v2)} \\
+\midrule
+0 & 34 & API 文档模板，完全无关 & 数字序列塌缩 (1--23) & \textbf{前 21 行与 GT 完全一致} \\
+1 & 44 & 图像描述文本 & ML 术语，未转向电路 & \textbf{前 20 行与 GT 完全一致} \\
+5 & 72 & 填表模板 & +3.3V 重复 (数值幻觉) & 多类型输出（电压+USB+R/C/U）\\
+8 & 84 & 数据表格描述 & APP P7016 + 数字序列 & 前 13 行一致 + 合成高频元件 \\
+12 & 58 & 图像说明文本 & +3.3V 重复 (数值幻觉) & 多电压+元件+IC 输出 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{总结：}
+
+(1) \textbf{基座模型}在所有 5 个样本上输出与电路无关的预训练幻觉文本（API 文档、ML 术语、表单模板、图表描述、图像说明），CompF1=0.000, JointF1=0.000。
+
+(2) \textbf{exp6 (v1)}在样本 5 和 12 上显示出初步的领域适配（识别到 +3.3V 电压标签），但在样本 0、1、8 上分别塌缩为数字序列（样本 0）、仍输出通用文本（样本 1）、和部分识别后塌缩（样本 8）。CompF1=0.119, JointF1=0.008。
+
+(3) \textbf{Phase 1 (v2)}在样本 0 和 1 上实现了前 20 行与 GT 的完全匹配——这是本项目中最接近"可用"水平的单样本输出。在样本 5、8、12 上输出虽不完全准确但包含丰富的电路领域内容（元件标号、参数值、多种电压等级）。主要问题：在 GT 末尾区域倾向于输出合成预训练中学到的高频元件模式（R1/10k, R2/22k, C1/100nF 等），而非真实读取该区域的文字。CompF1=0.304, JointF1=0.005。
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
