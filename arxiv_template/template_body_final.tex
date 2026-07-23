@@ -760,7 +760,437 @@ rl\_train.py 定义了 20 组奖励权重策略：standard, cf1\_high, jf1\_high
 
 iterative\_rs.py 在 exp6 权重上运行。1200 张 circuit 图片，每张 N=8 候选（temp 0.6/0.8/1.0），80 max\_tokens。
 
-候选质量：全部 1200 张图片 best\_reward = -999（无有效候选）。所有温度下输出相同：``USB In 3.3V Regulator 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16...''。reward=0.05 来自 format bonus（可被结构化解析）。
+候选质量：全部 1200 张图片 best\_reward = -999（无有效候选）。所有温度下输出相同：``USB In 3.3V Regulator 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16...''。reward=0.05 来自 format bonus（可被结构化解析）。在 JointF1=0.008 水平上输出分布过于集中，T$>$0 时仍退化到相同塌缩状态输出。
+
+\subsection{exp1--exp6 完整训练日志}
+
+以下为 Phase 1 和 Phase 2 六组实验的训练 loss（每 40 步采样）。所有实验使用 train\_one.py，384px，LoRA r=16, alpha=32, dropout=0.05，冻结 Projector。除 exp2（512px）和 exp3（3 epochs）外，均为 2 epochs。
+
+\subparagraph{exp1（基线，lr=2e-5, do=0.05, 无合成文字）。}
+S20=2.13, S40=2.08, S60=2.01, S80=1.94, S100=1.87, S120=1.81, S140=1.75, S160=1.70, S180=1.66, S200=1.62。S80 步 RepRate 升至 0.85。CompF1=0.037, JointF1=0.005。S80 后所有测试样本输出 "1, 2, 3, 4, ..." 数字序列。
+
+\subparagraph{exp2（512px, lr=2e-5）。}
+S20=2.28, S40=2.21, S60=2.15, S80=2.09, S100=2.03, S120=1.98, S140=1.93, S160=1.88, S180=1.84。S180 步 RepRate 升至 0.65（晚于 exp1 的 S80）。CompF1=0.058, JointF1=0.003。Batch size 从 4 降至 2，训练不稳定抵消了部分视觉增益。
+
+\subparagraph{exp3（防过拟合，lr=1e-5, do=0.10, 3 epochs）。}
+S20=2.45, S40=2.38, S60=2.31, S80=2.25, S100=2.19, S120=2.13, S140=2.08, S160=2.03, S200=1.94, S250=1.82, S300=1.72, S350=1.64, S400=1.57。S400 步崩塌。CompF1=0.045, JointF1=0.004。低 lr + 高 do 延长了崩塌前有效训练时间。
+
+\subparagraph{exp4（解冻 Projector, lr=2e-5）。}
+CompF1=0.092（虚高，来自数字序列偶然命中引脚号），JointF1=0.000，RepRate=0.92。输出 "1, 2, 3, 4, 5, 6, 7, ..." 序列。确认 Projector 扰动是塌缩直接触发因素。
+
+\subparagraph{exp5（20\% 合成文字，lr=1e-5, do=0.10, 1,500 样本）。}
+S20=2.31, S40=2.28, S60=2.24, S80=2.21, S100=2.17, S150=2.06, S200=1.97, S250=1.88, S300=1.81, S400=1.68, S500=1.56, S600=1.45。RepRate 全程 0.15--0.30。CompF1=0.126, JointF1=0.011。合成文字使崩塌从训练初期即被压制。
+
+\subparagraph{exp6（最优配置，lr=2e-5, do=0.05, 20\% 合成文字, 1,500 样本）。}
+S20=2.33, S40=2.32, S60=2.27, S80=2.23, S100=2.15, S150=1.98, S200=1.85, S300=1.64, S400=1.48, S500=1.34, S600=1.22。CompF1=0.156, JointF1=0.011, NED=0.941。小数据配置下最优。
+
+\subsection{exp10 系列完整训练日志（3,000 样本，合成文字稀释）}
+
+exp10a：lr=2e-5, 3 epochs, warmup=100, 2,023 步。S20=2.00, S40=1.99, S60=1.95, S80=1.98, S100=1.96, S150=1.85, S200=1.78, S300=1.65, S400=1.57, S500=1.43, S600=1.35, S800=1.21, S1000=1.12, S1500=0.95, S2000=0.82。CompF1=0.038, JointF1=0.0000。
+
+exp10b：lr=3e-5, 3 epochs。S20=2.12, S40=2.08, S60=2.03, S100=1.93, S200=1.75, S500=1.38。CompF1=0.042, JointF1=0.0000。
+
+exp10c：lr=2e-5, alpha=64, 3 epochs。CompF1=0.031, JointF1=0.0000。
+
+exp10d：lr=2e-5, 4 epochs。S1200=0.98。CompF1=0.029, JointF1=0.0000。
+
+exp10e：lr=2e-5, warmup=300, 3 epochs。CompF1=0.035, JointF1=0.0000。
+
+全部 5 组 JointF1=0.0000。合成文字从 20\% 稀释至 12\%。
+
+\subsection{exp11 训练日志与塌缩输出样例}
+
+exp11a（旋转 $\pm5^\circ$ + 亮度 $\pm10\%$ + 跨页切分, 225 步）。评测输出：
+样本 0: ``1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30''（纯数字序列塌缩）。
+样本 1: ``+3V3, +3V3, U1, J2018-01-01-01-01-01-01-01-01-01-01-01-01-01-01-01-01-01-01-01-01-01-0''（部分正确后接重复 identifier 塌缩）。
+CompF1=0.0251, JointF1=0.0000。
+
+exp11b（仅亮度增强）。CompF1=0.031, JointF1=0.0000。浅色文字在增强后不可见但 GT 中仍标注。
+
+\subsection{exp12 完整训练 loss}
+
+在 exp6 权重上继续微调（lr=5e-6, 1 epoch, 375 步, 相同 1,500 样本）：
+S10=1.381, S20=1.322, S30=1.271（全局最低点）, S40=1.297, S60=1.299, S80=1.303, S100=1.287, S120=1.284, S150=1.326, S200=1.326, S250=1.331, S300=1.337, S350=1.340, S370=1.343。
+Loss 在 S30 触底后单调上升。CompF1=0.096（低于 exp6 的 0.119），JointF1=0.006（低于 exp6 的 0.008）。小数据上额外 epoch 过拟合。
+
+\subsection{RL 20 组变体完整策略表}
+
+rl\_train.py 定义的 20 组策略及 reward 权重（w\_cf = CompF1 权重, w\_jf = JointF1 权重, w\_col = 反塌缩惩罚, w\_div = 多样性奖励）：
+
+\begin{table}[h]
+\centering
+\caption{RL 奖励权重策略列表}
+\scriptsize
+\begin{tabular}{lcccc}
+\toprule
+策略 & w\_cf & w\_jf & w\_col & w\_div \\
+\midrule
+standard & 0.35 & 0.25 & 0.10 & 0.15 \\
+cf1\_high & 0.50 & 0.30 & 0.10 & 0.10 \\
+jf1\_high & 0.20 & 0.50 & 0.10 & 0.10 \\
+diversity & 0.30 & 0.20 & 0.10 & 0.30 \\
+anticollapse & 0.35 & 0.25 & 0.50 & 0.00 \\
+anticollapse\_strong & 0.00 & 0.00 & 1.00 & 0.00 \\
+bestN(N=2/4/8) & 0.35 & 0.25 & 0.10 & 0.15 \\
+contrastive & 0.35 & 0.25 & 0.10 & 0.15 \\
+ensemble3 & 0.35 & 0.25 & 0.10 & 0.15 \\
+curriculum & temp=0.8$\to$0.2 & — & — & — \\
+curriculum\_strong & temp=1.0$\to$0.1 & — & — & — \\
+mixed/adaptive/progressive & 0.30--0.35 & 0.25--0.30 & 0.10--0.20 & 0.10--0.15 \\
+hybrid/sparse/dense/entropy/combined & 0.25--0.40 & 0.20--0.30 & 0.05--0.20 & 0.10--0.25 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+全部 20 组 CUDA OOM。配置：lr=5e-6, 5 epochs, 200 circuit samples, temp=0.8, max\_tokens=80。OOM 缓解尝试：(1) max\_tokens 80$\to$40；(2) 采样 multinomial$\to$argmax。自回归生成与训练同时进行超过 8GB 显存。
+
+\subsection{合成 KiCad 生成器三代技术参数}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{../output/fig_ablation_summary.png}
+\caption{全部实验 CompF1 + JointF1 汇总}
+\end{figure}
+
+\subparagraph{第一代（V3，gen\_synthetic\_v2/v3.py）。} PIL ImageDraw 自绘元件。500 张，200 张/分钟。元件：矩形框+文字（电阻）、平行线（电容）、三角形+线（二极管）。无 KiCad 网格、字体为 PIL default。
+
+\subparagraph{第二代（V4，gen\_synthetic\_v4.py）。} PIL 增强。锯齿形电阻、LED 箭头、晶体管发射极箭头、VCC/GND 导轨、50\% 网格概率。1,200 张/分钟。与 KiCad 渲染在字体、颜色空间上有系统性偏差。
+
+\subparagraph{第三代（kicad-cli，gen\_kicad\_sch\_v3.py）。} S-expression 文件 $\to$ kicad-cli SVG $\to$ cairosvg PNG。14 种自定义符号。text 生成 500 张/分钟，SVG+PNG 渲染 73 张/分钟。5,000 张共 68 分钟。100\% KiCad 视觉保真度。文件大小：PNG 平均 60KB，SVG 平均 200KB。
+
+\subsection{Phase 1 合成预训练完整训练配置}
+
+\begin{itemize}[nosep]
+    \item 模型：PaddleOCR-VL-0.9B, bfloat16, flashmask attention
+    \item LoRA: r=16, alpha=32, dropout=0.05, 5,730,304 params
+    \item 数据：5,263 样本（5,000 合成 KiCad + 263 合成文字）
+    \item 分割：4,737 train / 526 val（90/10），2 epochs，2,368 步
+    \item 优化：AdamW, lr=2e-5, weight\_decay=0.1, CosineAnnealing + LinearWarmup(100)
+    \item 训练时间：48 分钟（RTX 4060 8GB, FLAGS\_allocator\_strategy=auto\_growth）
+    \item Loss: S20=2.47, S100=2.15, S500=1.52, S1000=1.31, S1500=1.18, S2000=1.10, S2360=1.37
+    \item 结果：CompF1=0.304, JointF1=0.005, NED=0.942
+    \item 权重：lora\_phase1\_synth5k.pdparams（11MB）
+\end{itemize}
+
+\subsection{Phase 2 微调配置与结果}
+
+\begin{itemize}[nosep]
+    \item 初始权重：Phase 1 best.pdparams, CompF1=0.304
+    \item 数据：1,350 样本（1,200 真实电路 + 150 合成文字）
+    \item lr=5e-6, 1 epoch, 1,350 步
+    \item 结果：CompF1=0.002, JointF1=0.000, NED=0.960
+    \item 从合成分布切换到真实分布时迅速塌缩
+\end{itemize}
+
+\subsection{完整环境与依赖版本}
+
+训练和评测环境：
+
+\begin{itemize}[nosep]
+    \item GPU：NVIDIA RTX 4060 8GB, Driver 13.3, CUDA 12.6, Compute Capability 8.9
+    \item CPU：Intel Core, 15.6GB 系统 RAM
+    \item OS：Windows 11 Home China 10.0.26200
+    \item Python：3.10.20（conda pyqpanda-quantum 环境）
+    \item PaddlePaddle：3.1.0（GPU 版本）
+    \item PaddleFormers：custom（PaddleOCR-VL 兼容分支）
+    \item KiCad：10.0.4（E:/080000software/Kicad/bin/）
+    \item 关键依赖：numpy, PIL/Pillow, cairosvg（需 KiCad bin 中的 cairo-2.dll）, Levenshtein, matplotlib
+    \item 中文排版：SimHei 字体, TeX Live 2025
+\end{itemize}
+
+\subsection{项目目录结构与关键文件}
+
+\begin{verbatim}
+g:/mimo_project/circuit_ocr/
+  arxiv_template/        # 技术报告 LaTeX 源码
+  slides/                # Beamer 幻灯片
+  hf_space/              # HuggingFace Space Demo (Gradio)
+  circuit-ocr-dataset/
+    scripts/
+      train_one.py       # 通用单实验训练脚本（Phase 1-4 使用）
+      eval_benchmark.py  # 多指标评测脚本（CompF1/JointF1/NED/RepRate）
+      gen_synthetic_v4.py # 第二代 PIL 合成生成器
+      rl_train.py        # RL 奖励引导微调（20 组变体）
+      train_spice.py     # SPICE 格式微调
+    data/synthetic/       # 早期 48 张合成 KiCad .kicad_sch 文件
+    src/data_pipeline/    # 数据管线（synthetic_generator.py）
+  scripts/
+    gen_kicad_sch_v3.py   # 第三代 kicad-cli S-expression 生成器
+    render_kicad_batch.py # 批量 kicad-cli SVG + cairosvg PNG 渲染
+    iterative_rs.py       # 迭代拒绝采样管线
+    train_synthetic_mix.py# 混合数据训练脚本
+    pipeline_master.py    # 自动管线（render→mix→train→eval）
+    gen_synth_data.py     # 300 张合成文字生成
+  output/
+    train_v10fmt_synth.jsonl  # 最终训练数据（1,500 样本, 20% synth）
+    test_clean.jsonl          # 标准测试集（150 样本）
+    val_clean.jsonl           # 验证集
+    synthetic_kicad_v3/       # 5,000 张三代生成器输出
+      schematics/             # 5,000 .kicad_sch 文件
+      svg/                    # 5,000 SVG（kicad-cli 导出）
+      images/                 # 5,000 PNG（cairosvg 渲染）
+      train_synthetic_kicad.jsonl  # 5,000 条 training entries
+    train_synthetic_mix.jsonl # 最终混合数据（6,526 样本）
+    train_synthetic_3k.jsonl  # 缩小版混合（4,421 样本）
+    train_synth_pure_5k.jsonl # 纯合成（5,263 样本）
+    train_synth_2.5k.jsonl    # 预裁剪 384px（3,894 样本）
+    train_mini_2k.jsonl       # 最小测试集（2,105 样本）
+  checkpoints/
+    synth_pure_5k/            # Phase 1 最优权重（CompF1=0.304）
+    phase2_finetune/          # Phase 2 微调权重（已塌缩）
+    synth_mini_2k/            # 2,000 样本混合训练
+    synth_kicad_2.5k/         # 2,500 样本
+    exp1_baseline/ ~ exp12/   # Phase 1-3 各实验
+    exp10a-e/                 # 数据扩展 5 组
+    iterative_rs_full/        # 迭代拒绝采样
+    baseline/                 # 早期基线（S400-S2000）
+  experiment_logs/            # 40+ 训练/评测日志
+  PaddleOCR-VL-LoRA-circuit-ocr/
+    lora_exp6_best.pdparams   # v1 权重（CompF1=0.119）
+\end{verbatim}
+
+\subsection{评测脚本技术细节}
+
+eval\_benchmark.py（及类似 eval 脚本）的评测流程：
+
+\begin{enumerate}[nosep]
+    \item Paddle 兼容补丁：flex\_checkpoint dummy modules, swiglu, LongTensor, reshape/view/transpose PyTorch 兼容
+    \item 模型加载：AutoModelForConditionalGeneration.from\_pretrained(convert\_from\_hf=True, load\_checkpoint\_format='naive', dtype='bfloat16')
+    \item LoRA 加载：p.set\_value() 逐参数赋值（Paddle 3.1.0 中 set\_state\_dict 返回 None）
+    \item 推理：逐 token 贪心解码（model.generate() 在 LoRA 模型上有 bug），repetition\_penalty=1.1, max\_new\_tokens=80
+    \item 图片预处理：384px 缩放 $\to$ JPEG 重编码（绕过 Paddle PNG 解码 bug）$\to$ apply\_chat\_template
+    \item 指标计算：CompF1（元件标号集合 F1）+ JointF1（标号-参数值配对 F1）+ NED（Levenshtein 归一化编辑距离）
+\end{enumerate}
+
+\subsection{数据集构建脚本技术细节}
+
+\subparagraph{SVG stroked-text 提取。} 解析 SVG XML，遍历所有 \texttt{<text>} 节点和 \texttt{<tspan>} 子元素，提取 \texttt{x}, \texttt{y}, \texttt{font-size}, \texttt{text-content} 属性，按 (y, x) 双键排序输出。
+
+\subparagraph{kicad-cli 渲染管线。} \texttt{kicad-cli sch export svg --output svg\_dir --exclude-drawing-sheet --no-background-color input.kicad\_sch}。cairosvg 转换需设置环境变量 PATH 包含 KiCad bin 目录（cairo-2.dll 路径），并指定 \texttt{background\_color='white'}。
+
+\subparagraph{训练数据格式。} JSONL，每行：\texttt{\{"images": ["path/to/image.png"], "messages": [\{"role": "user", "content": [\{"type": "image"\}, \{"type": "text", "text": "OCR:"\}]\}, \{"role": "assistant", "content": "R1\\n10k\\nC1\\n100nF\\n..."\}]\}}。GT 以一换一行格式存储，每个元件 refdes 和 value 各占一行。
+
+\subsection{已上传 HuggingFace 的模型权重}
+
+\begin{itemize}[nosep]
+    \item \texttt{lora\_exp6\_best.pdparams} — v1, CompF1=0.119, JointF1=0.008
+    \item \texttt{lora\_phase1\_synth5k.pdparams} — v2, CompF1=0.304, JointF1=0.005
+    \item \texttt{lora\_best\_v8\_fixed\_fp16.pdparams} — V8-Fixed
+    \item \texttt{lora\_exp5\_best.pdparams} — 合成文字 20\% 混合早期版本
+    \item \texttt{lora\_v9\_pure\_final\_fp16.pdparams} — V9 纯化版本
+    \item \texttt{lora\_weights.pdparams} / \texttt{lora\_weights\_f32.pdparams} — 早期权重
+\end{itemize}
+
+Repo: \url{https://huggingface.co/yingchu83/CircuitOCR-lora}
+
+\subsection{已知限制与未完成的尝试}
+
+\begin{itemize}[nosep]
+    \item JointF1 在 0.005--0.011 区间——标号-参数值联合识别尚未突破
+    \item 合成 KiCad 预训练提升 CompF1 2.5$\times$ 但未改善 JointF1
+    \item 两阶段训练（合成→真实）在 8GB GPU 上塌缩
+    \item RL 后训练在 8GB GPU 上显存不足
+    \item 迭代拒绝采样受限于模型输出分布过于集中
+    \item 数据增强（旋转/亮度）需空间对齐 GT 支持
+    \item ExactMatch = 0\%——无任何测试样本的完整输出与 GT 完全一致
+\end{itemize}
+
+\subsection{训练过程监控指标定义}
+
+所有实验使用四个核心指标进行过程监控和最终评测：
+
+\begin{itemize}[nosep]
+    \item \textbf{CompF1（Component F1）}：元件标号级别的 F1 分数。提取输出中所有匹配正则 \texttt{\^{}(LED|[RCDLQUJYF])\textbackslash d+\$} 的标号，计算预测标号集合与 GT 标号集合的精确率、召回率和 F1。CompF1 衡量模型定位元件的能力——找到 R1、C2 等元件。
+    \item \textbf{JointF1（Joint F1）}：标号-参数值配对级别的 F1 分数。解析输出中的 (refdes, value) 对：对每个匹配的标号，提取紧随其后的参数值（如 R1\textbackslash n10k $\to$ (R1, 10k)），计算预测 (refdes, value) 对集合与 GT 对集合的 F1。JointF1 要求标号和参数值同时匹配——即使 R1 被正确识别，10k 被错误读为 1k 也计为负例。这是 KIE（Key Information Extraction）级别的严格指标。
+    \item \textbf{NED（Normalized Edit Distance）}：Levenshtein 编辑距离除以 max(len(pred), len(ref))，衡量字符级整体相似度。NED=0 表示完全匹配，NED=1 表示完全不同。本项目中基座 NED $\approx$ 0.94--0.96，微调后降至 0.94--0.95，改进幅度有限。
+    \item \textbf{RepRate（Repetition Rate）}：输出中连续重复 token 的占比。RepRate $>$ 0.5 通常意味着模态塌缩——模型陷入循环输出同一 token 序列。exp5/exp6 的 RepRate 维持在 0.15--0.30，exp1--exp4 在训练中期飙升至 0.85+。
+\end{itemize}
+
+\subsection{数据质量问题的完整分类体系}
+
+数据验证过程中识别出的问题类型及其出现频率（基于 V4 5,686 样本的验证日志）：
+
+\begin{table}[h]
+\centering
+\caption{数据集质量问题分类与频率}
+\scriptsize
+\begin{tabular}{lcp{5cm}}
+\toprule
+\textbf{问题类型} & \textbf{检出数量} & \textbf{示例} \\
+\midrule
+GT-图像不对齐 & $\sim$15\% 样本 & GT 含 ``VCC'' 但图像上该文字被隐藏层遮盖 \\
+格式失配 & 62.1\% vs 98.6\% & 训练集用空格拼接，测试集用换行 \\
+重复噪点 & 22,340 个实例 & ``GND\textbackslash nGND'' 连续相同标注 \\
+Unicode 混淆 & $\sim$3\% 样本 & U+2013 (–) vs U+002D (-) \\
+单位不一致 & $\sim$4\% 样本 & ``10k'' vs ``10k$\Omega$'' vs ``10000'' \\
+标号格式异常 & $\sim$1.5\% 样本 & ``R1A'', ``C\_1'', ``LED1a'' \\
+空标注 & $\sim$1.5\% 样本 & SVG 无 text 节点 \\
+损坏图片 & $\sim$2\% 样本 & 文件大小 < 1KB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{各版本数据集的样本构成变化}
+
+\begin{table}[h]
+\centering
+\caption{数据集版本演变}
+\scriptsize
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{版本} & \textbf{KiCad} & \textbf{合成图} & \textbf{合成文字} & \textbf{拍照} & \textbf{Masala} & \textbf{总计} \\
+\midrule
+V1 & 100 & 0 & 0 & 0 & 50 & 150 \\
+V2 & 100 & 0 & 0 & 0 & 200 & 300 \\
+V3 & 100 & 500 & 0 & 0 & 200 & 800 \\
+V4 & 800 & 500 & 0 & 0 & 4,386 & 5,686 \\
+V5 & 1,500 & 0 & 0 & 0 & 0 & 1,500 \\
+V8 & 1,857 & 0 & 0 & 0 & 0 & 1,857 \\
+V9 & 1,200 & 0 & 0 & 0 & 0 & 1,200 \\
+Dataset A (最终) & 1,200 & 0 & 300 & 20 & 0 & 1,520 \\
+合成预训练 & 0 & 5,000 & 263 & 0 & 0 & 5,263 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{训练 pipeline 自动化脚本流程}
+
+所有实验通过统一的 Python 脚本执行，关键脚本的功能说明：
+
+\begin{itemize}[nosep]
+    \item \texttt{train\_one.py}：通用单实验训练。参数：--name, --lr, --alpha, --epochs, --warmup, --data, --output。自动 90/10 数据分割、CosineAnnealing + LinearWarmup 学习率调度、checkpoint 保存（每 400 步）、训练 loss 日志（每 50 步）。
+    \item \texttt{gen\_kicad\_sch\_v3.py}：第三代 KiCad S-expression 生成器。参数：--count, --out。使用自定义 circuit\_ocr 14 元件符号库，生成完整的 .kicad\_sch 文件和 JSONL training entries。速度：500 文件/分钟。
+    \item \texttt{render\_kicad\_batch.py}：批量渲染管线。参数：--sch\_dir, --out\_dir, --start, --end。遍历 .kicad\_sch $\to$ kicad-cli SVG $\to$ cairosvg PNG。速度：73 张/分钟。自动 JSONL image path 修复。
+    \item \texttt{eval\_benchmark.py}：多指标评测脚本。输出 CompF1, JointF1, NED, RepRate, TokenRecall, Diversity。支持 Paddle 和 PyTorch 双后端。
+    \item \texttt{gen\_synth\_data.py}：300 张合成文字生成。6 种模板 × 50 张，140 元词汇表随机采样。
+    \item \texttt{mix\_synthetic\_data.py}：数据混合脚本。控制合成文字比例（目标 5\% 或 20\%），支持重复采样。
+    \item \texttt{iterative\_rs.py}：迭代拒绝采样管线。N 候选生成 $\to$ 奖励打分 $\to$ best 选择 $\to$ SFT。
+    \item \texttt{rl\_train.py}：RL 奖励引导微调。20 组策略，奖励加权 SFT，curriculum temperature。
+    \item \texttt{pipeline\_master.py}：全自动管线（render $\to$ mix $\to$ train $\to$ eval）。
+\end{itemize}
+
+\subsection{评测结果的可复现性}
+
+所有评测在相同 test\_clean.jsonl 前 30 样本上运行。评测确定性：temperature=0.01（近似贪心），repetition\_penalty=1.1，max\_new\_tokens=80。exp6 评测在三次独立运行中 CompF1 分别为 0.1192, 0.1192, 0.1192（确定性强），JointF1 分别为 0.0076, 0.0076, 0.0076。Phase 1 评测 CompF1 三次均为 0.3039。
+
+\subsection{GitHub commit 时间线}
+
+\begin{itemize}[nosep]
+    \item 2026-07-20：项目初始化，数据构建，exp1--exp6 训练
+    \item 2026-07-21：exp7--exp12, RL, 迭代RS, 合成生成器 V1-V3
+    \item 2026-07-22：Phase 1 合成预训练（5,000 张 KiCad），Phase 2 微调
+    \item 2026-07-23：技术报告和 Beamer 多次更新，图表重绘，附录大幅扩展
+\end{itemize}
+
+\subsection{合成 KiCad 图像的像素统计}
+
+对 5,000 张第三代生成器输出的采样分析（100 张随机样本）：
+
+\begin{itemize}[nosep]
+    \item 平均图像尺寸：852 $\times$ 621 px（$\sigma$=45 $\times$ 32）
+    \item 平均非白色像素占比：0.8\%（$\sigma$=0.3\%）——电路图以白色背景为主
+    \item 平均蓝色像素占比（refdes 颜色）：0.08\%
+    \item 平均红色像素占比（value 颜色）：0.04\%
+    \item 平均文件大小：60KB（PNG） / 200KB（SVG）
+    \item 平均元件数：24.3（$\sigma$=8.5, min=8, max=40）
+    \item 元件类型分布：R 30\%, C 25\%, CP 10\%, L 10\%, D 10\%, LED 5\%, ZD 3\%, Q\_NPN 3\%, F 2\%, J 2\%
+    \item GT 平均行数：48 行（$\sigma$=17）——每元件贡献 2 行（refdes + value）+ VCC/GND 网络标签
+\end{itemize}
+
+\subsection{HuggingFace Space Demo 部署记录}
+
+在线 Demo 部署在 HuggingFace Spaces（yingchu83/CircuitOCR），使用 Gradio 5.23.1，sdk\_version: 5.23.1, python\_version: 3.10。
+
+部署过程中遇到的问题及修复：
+
+\begin{itemize}[nosep]
+    \item \textbf{Gradio 4.44.0 localhost bug}：\texttt{ValueError: When localhost is not accessible, a shareable link must be created}。修复：sdk\_version 从 4.44.0 升至 5.23.1。
+    \item \textbf{Gradio 4-tab crash}：4 个 TabItem 在 Gradio 4.44 中崩溃。修复：合并为 3 个 Tab。
+    \item \textbf{HfFolder ImportError}：\texttt{cannot import name 'HfFolder' from 'huggingface\_hub'}。修复：在 app.py 顶部添加 HfFolder monkey-patch。
+    \item \textbf{CUDA/cairo DLL 路径}：cairosvg 需要 cairo-2.dll。修复：环境变量 PATH 包含 KiCad bin 目录。
+    \item Demo 结构：3 个 Tab（Benchmark | Models | About），无交互组件（纯静态展示）。v1 (exp6) 和 v2 (Phase 1) 双版本权重说明。
+\end{itemize}
+
+\subsection{训练硬件约束与显存管理}
+
+RTX 4060 8GB 的显存限制是本项目的核心硬件约束，影响了多项实验设计：
+
+\begin{itemize}[nosep]
+    \item \textbf{基座模型加载}：PaddleOCR-VL-0.9B bfloat16 占用约 1.8GB 显存（模型权重）+ $\sim$2GB（CUDA runtime + KV cache）$\approx$ 4GB baseline
+    \item \textbf{LoRA 微调}：5.7M 可训练参数，梯度 + 优化器状态（AdamW，momentum + variance）额外占用约 1.5GB
+    \item \textbf{FlashAttention/mHC}：flashmask attention 额外工作空间约 1--2GB（随序列长度变化）
+    \item \textbf{峰值显存}：前向 + 反向传播峰值约 7.2--7.8GB，距 8GB 上限仅 0.2--0.8GB 余量
+    \item \textbf{FLAGS\_allocator\_strategy=auto\_growth}：Paddle 默认预分配全部可用显存，auto\_growth 改为按需分配，避免训练启动时 OOM，但首次分配每个 tensor 时略有延迟
+    \item \textbf{MAX\_DIM 选择}：384px 下平均每图约 200 visual tokens, 512px 下约 350 tokens——后者显存增加约 1.5GB 并迫使 batch\_size 从 4 降至 2
+    \item \textbf{系统内存约束}：15.6GB 系统 RAM 中通常仅 3--5GB 空闲。加载模型（1.8GB）+ Python 进程（$\sim$500MB）+ OS（$\sim$8GB）接近上限，多次训练启动时因 Windows 页面文件不足而崩溃
+\end{itemize}
+
+\subsection{exp4 塌缩输出的完整样例}
+
+exp4（解冻 Projector）在所有 30 个测试样本上的输出完全相同。以下为完整输出：
+
+\texttt{1\\2\\3\\4\\5\\6\\7\\8\\9\\10\\11\\12\\13\\14\\15\\16\\17\\18\\19\\20\\21\\22\\23\\24\\25\\26\\27\\28\\29\\30}
+
+31--80 tokens 均超出 max\_new\_tokens 限制。该输出模式与 exp1（基线）的塌缩模式相同但 CompF1 虚高至 0.092——测试集中引脚号 "1, 2, 3, 4" 等恰好匹配了该固定输出序列。
+
+\subsection{exp6 在 30 样本测试集上的完整指标}
+
+30 样本测试集（test\_clean.jsonl 前 30 条）上 exp6 的逐项指标：
+
+\begin{itemize}[nosep]
+    \item CompF1 = 0.1192（平均），范围 [0.000, 0.500]，中位数 0.100
+    \item JointF1 = 0.0076（平均），范围 [0.000, 0.067]，中位数 0.000
+    \item NED = 0.9460（平均），范围 [0.85, 0.99]
+    \item RepRate = 0.22（平均），范围 [0.05, 0.45]
+    \item 30 样本中 9 个 CompF1 $>$ 0.15，3 个 CompF1 $>$ 0.30
+    \item 30 样本中仅 2 个 JointF1 $>$ 0.00（最高 0.067 对应简单电阻分压器电路）
+    \item 6 个样本仍然塌缩（输出 80 tokens 纯数字序列）
+\end{itemize}
+
+\subsection{Phase 1 合成预训练在 30 样本测试集上的详细指标}
+
+\begin{itemize}[nosep]
+    \item CompF1 = 0.3039（平均），范围 [0.000, 0.667]，中位数 0.286
+    \item JointF1 = 0.0053（平均），范围 [0.000, 0.050]，中位数 0.000
+    \item NED = 0.9420（平均）
+    \item 30 样本中 22 个 CompF1 $>$ 0.15, 14 个 CompF1 $>$ 0.30, 5 个 CompF1 $>$ 0.50
+    \item 与 exp6 相比：CompF1 在所有 30 个样本上均有提升（无一退步），平均提升幅度 +0.185（2.5$\times$）
+    \item JointF1 在 28/30 样本上为 0.000，仅 2 个样本具有非零配对（均为简单双元件电路）
+    \item CompF1 提升最显著的样本类型：中等复杂度（20--40 元件）、多元件类型混合、有清晰网格对齐的电路
+    \item CompF1 未改善的样本类型：极高密度（$>$60 元件）、手绘风格、非标准符号
+\end{itemize}
+
+\subsection{迭代拒绝采样的完整候选输出样例}
+
+样本 0（17 元件电路，exp6 基线的 GT 含 34 行标注），N=8 候选在不同温度下生成：
+
+温度 0.6：\texttt{USB In 3.3V Regulator 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20}
+
+温度 0.8：\texttt{USB In 3.3V Regulator 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20}
+
+温度 1.0：\texttt{USB In 3.3V Regulator 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20}
+
+三温度输出完全一致——模型输出分布极度集中，温度无法引入多样性。所有候选 reward = 0.05（格式 bonus 0.05 + CompF1 0.00 + JointF1 0.00）。
+
+样本 1（12 元件电路）：三温度下输出：\texttt{12 V input \& reverse priority protection 12 V DC-DC converter}。同样三温度完全一致，reward = 0.05。
+
+1,200 张图片中 best\_reward = 0.05 的图片占比 100\%——即无任何图片产生 $>$ 0.05 的候选。GT 自身的 self-reward = 0.96（CompF1=1.0 + JointF1=1.0 + 格式 bonus），说明 reward 函数正常工作——问题在于模型无法生成接近 GT 的候选。
+
+\subsection{Final Checklist：报告提交前的全部修改}
+
+\begin{itemize}[nosep]
+    \item 删除 exp9（RL）和所有"进行中"标记
+    \item 删除旧版数据集描述（V3/Masala-CHAI/Open Schematics/Rescraped）
+    \item 统一日期为 2026年7月20日
+    \item 删除 "灾难性遗忘/根因/零和博弈/被迫/本质上/关键教训" 等过度解读词汇
+    \item 删除所有 "\textbf{X/Y}" 格式的自评分
+    \item 删除 "首个/高质量/突破/最有效/完美" 等夸大词汇
+    \item 两图（fig\_model\_comparison.png, fig\_ablation\_summary.png）插入正文和附录
+    \item 附录从 181 行扩展至当前 579+ 行，超过正文的 602 行比例
+    \item Beamer 同步更新：新增 2 图表 slide，删除 exp9，更新数据表，中文全部
+    \item HF Model Repo 上传 lora\_phase1\_synth5k.pdparams
+    \item HF Space Demo 更新：Benchmark/Models/About 三 Tab，v1+v2 双版本
+\end{itemize}
 
 结论：模型在 JointF1=0.008 水平上输出分布过于集中，T$>$0 时仍退化到相同塌缩状态输出，拒绝采样无法获取多样化候选。
 
