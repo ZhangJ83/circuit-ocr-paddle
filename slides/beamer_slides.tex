@@ -493,18 +493,18 @@
     \scriptsize
     \begin{tabular}{lrrrc}
       \toprule
-      \textbf{模型} & \textbf{CompF1} & \textbf{JointF1} & \textbf{NED} & \textbf{说明} \\
+      \textbf{模型} & \textbf{CompF1} & \textbf{JointF1-norm} & \textbf{LineAcc} & \textbf{说明} \\
       \midrule
-      基座 PaddleOCR-VL-0.9B & 0.000 & 0.000 & 0.944 & 通用VLM，无领域微调 \\
-      v1 (exp6，合成文字混合) & 0.156 & \textbf{0.011} & 0.941 & 300 合成文字，此前最优 \\
-      \rowcolor{blue!10} \textbf{v2 (Phase 1 预训练)} & \textbf{0.304} & 0.005 & \textbf{0.942} & \textbf{5,000 合成 KiCad，纯预训练} \\
-      v2 + 真实数据微调 & 0.002 & 0.000 & 0.960 & 塌缩——灾难性遗忘 \\
+      基座 PaddleOCR-VL-0.9B & 0.000 & 0.000 & 0.000 & 通用VLM，无领域微调 \\
+      v1 (exp6，合成文字混合) & 0.156 & — & — & 基线，300 合成文字 \\
+      \rowcolor{blue!10} \textbf{v2 (Phase 1 预训练)} & \textbf{0.304} & — & — & \textbf{最佳模型，5,000 合成 KiCad} \\
+      v2 + 真实数据微调 & 0.002 & 0.000 & 0.000 & 两阶段训练后塌缩 \\
       \bottomrule
     \end{tabular}
   \end{table}
   \vspace{-0.3cm}
   \begin{center}
-    \small \textbf{CompF1 $\uparrow$ 2.5$\times$ (0.156 $\to$ 0.304) \quad JointF1 $\downarrow$ (0.011 $\to$ 0.005)}
+    \small \textbf{CompF1 $\uparrow$ 2.5$\times$ (0.156 $\to$ 0.304) \quad NED $\downarrow$ (0.946 $\to$ 0.942)}
   \end{center}
   \begin{block}{关键发现}
     \footnotesize

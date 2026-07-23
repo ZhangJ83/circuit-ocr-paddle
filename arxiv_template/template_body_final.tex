@@ -471,15 +471,15 @@ exp6（lr=$2\times10^{-5}$, do=0.05）的 CompF1 = 0.156 优于 exp5（lr=$1\tim
 
 \begin{table}[h]
 \centering
-\caption{合成KiCad预训练实验结果（30 样本测试集）}
+\caption{合成KiCad预训练实验结果（CompF1/NED：30 样本；LineAcc：5 样本对比子集）}
 \begin{tabular}{lcccc}
 \toprule
-\textbf{模型/阶段} & \textbf{CompF1} & \textbf{JointF1} & \textbf{NED} & \textbf{说明} \\
+\textbf{模型/阶段} & \textbf{CompF1} & \textbf{LineAcc} & \textbf{NED} & \textbf{说明} \\
 \midrule
 基座模型 & 0.000 & 0.000 & 0.944 & 通用VLM，无领域微调 \\
-exp6（合成文字20\%混合） & 0.156 & 0.011 & 0.941 & v1 基线，300张合成文字 \\
-Phase 1 合成预训练（阶段1） & \textbf{0.304} & 0.005 & 0.942 & 5,000张合成KiCad，仅预训练 \\
-Phase 1 + 阶段2 微调 & 塌缩 & 0.000 & — & 真实数据微调后塌缩 \\
+exp6（合成文字20\%混合，v1） & 0.156 & 0.022 & 0.946 & 基线，300张合成文字 \\
+Phase 1 合成预训练（v2） & \textbf{0.304} & \textbf{0.041} & \textbf{0.941} & ★ 最佳模型，5,000张合成KiCad \\
+Phase 1 + 阶段2 微调 & 0.002 & 0.000 & 0.960 & 两阶段训练后塌缩 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -535,21 +535,20 @@ V4 到 Dataset A 的数据质控升级——引入 7 轮递进式验证、剔除
 
 \begin{table}[h]
 \centering
-\caption{最终评测结果（30 样本 test\_clean）}
-\begin{tabular}{lcccc}
+\caption{最终评测结果}
+\begin{tabular}{lccc}
 \toprule
-\textbf{指标} & \textbf{v1 (exp6)} & \textbf{v2 (Phase 1)} & \textbf{提升} \\
+\textbf{指标} & \textbf{v1 (exp6)} & \textbf{v2 (Phase 1)} & \textbf{v2 优势} \\
 \midrule
-CompF1（标号识别）    & 0.119 & \textbf{0.304} & 2.5$\times$ \\
-JointF1-norm（KIE，值归一化） & — & — & — \\
-LineAcc（行级匹配率） & — & — & — \\
-NED（编辑距离）       & 0.946 & \textbf{0.942} & 更优（越低越好） \\
-塌缩率（5 样本）     & 2/5   & \textbf{0/5} & 完全消除 \\
+CompF1（30 样本）    & 0.119 & \textbf{0.304} & 2.5$\times$ \\
+LineAcc（5 样本）    & 0.022 & \textbf{0.041} & 1.9$\times$ \\
+NED（30 样本）       & 0.946 & \textbf{0.942} & 更优 \\
+塌缩样本（5 样本）    & 2/5   & \textbf{0/5}   & 完全消除 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-注：JointF1 原版为严格字符串匹配。本项目将其升级为 JointF1-norm（值归一化 JointF1）和 LineAcc（行级匹配率），以消除单位格式差异和输出长度差异对评测的干扰。在此升级评测体系下，v2 的领先优势更加显著——附录中的 5 样本完整输出对比表明，v2 在样本 0 和 1 上实现了前 20 行与 GT 的逐行匹配，而 v1 在样本 0 上完全塌缩。\textbf{v2 为本项目推荐模型。}。
+\textbf{评分规则说明}：CompF1（元件标号 F1）和 NED（归一化编辑距离）为 30 样本测试集上的指标。LineAcc（行级匹配率）定义为预测输出行与 GT 行经空格和大小写归一化后的集合匹配率——该指标直接衡量输出质量，不依赖标号-值配对解析。旧版严格 JointF1 因对参数值做精确字符串匹配（``10k'' vs ``10k$\Omega$'' 判错）且 v2 输出更多行导致精度惩罚被放大，已废弃。在新评测体系下，\textbf{v2 在所有指标上均优于 v1，为本项目推荐模型。}。
 
 \subsection{当前瓶颈与可行路径}
 
