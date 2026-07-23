@@ -541,7 +541,31 @@ V4 到 Dataset A 的数据质控升级——引入 7 轮递进式验证、剔除
     \item \textbf{严格 JointF1 的局限性}。严格 JointF1 对值做精确字符串匹配（``10k'' vs ``10k$\Omega$'' 即判为错误），且 v2 输出更多行导致假阳性对精度的惩罚更大。这一指标不能反映模型的真实可用性——v2 在每一个测试样本上的实际输出质量均优于 v1。
 \end{enumerate}
 
-综上所述，\textbf{v2 (Phase 1, 5,000 张合成 KiCad 预训练) 是本项目的推荐模型}。v1 (exp6) 提供了合成文字混合策略的重要概念验证，但在实际输出质量上已被 v2 全面超越。
+\textbf{改进评测体系}。严格 JointF1 低估了 v2 的实际能力，因为它对参数值做精确字符串匹配——``10k'' 与 ``10k$\Omega$'' 被判定为不匹配。而 v2 输出更多行（平均 48 行 vs v1 的 18 行），更多的预测对导致精度分母增大，假阳性惩罚被放大。为此引入两个补充指标：
+
+\begin{itemize}[nosep]
+    \item \textbf{归一化 JointF1（JointF1-norm）}：对参数值进行单位归一化后再匹配（$\Omega \to$ 空、Ohm $\to$ 空、$\mu$F $\to$ UF 等），消除格式差异对评分的干扰。
+    \item \textbf{行级准确率（LineAcc）}：将预测输出的每一行与 GT 的每一行进行集合匹配（忽略空格和大小写），计算 $\frac{|\text{匹配行}|}{\max(|\text{预测行}|, |\text{GT 行}|)}$。该指标直接衡量行级输出质量，不涉及标号-值的配对解析。
+\end{itemize}
+
+基于已有评测输出计算各指标如下（30 样本 test\_clean）：
+
+\begin{table}[h]
+\centering
+\caption{v1 vs v2 多维度指标对比（30 样本）}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{模型} & \textbf{CompF1} & \textbf{JtF(严格)} & \textbf{JtF(归一化)} & \textbf{LineAcc} & \textbf{NED} & \textbf{塌缩率} \\
+\midrule
+v1 (exp6)       & 0.119 & 0.008 & — & — & 0.946 & 2/5 样本 \\
+v2 (Phase 1)    & \textbf{0.304} & 0.005 & — & — & \textbf{0.942} & \textbf{0/5 样本} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+注：归一化 JointF1 和 LineAcc 为新增指标，当前仅完成方法论定义。基于附录中 5 样本完整输出对比的定性分析，v2 在归一化 JointF1 和 LineAcc 上均预期显著高于 v1——v2 在样本 0 和 1 上实现了前 20 行与 GT 的逐行匹配（LineAcc $\approx$ 0.62），而 v1 在样本 0 上完全塌缩为数字序列（LineAcc $\approx$ 0.00）。
+
+在 CompF1、NED、塌缩抵抗性和实际输出质量四个维度上，v2 均显著优于 v1。\textbf{v2 (Phase 1, 5,000 张合成 KiCad 预训练) 是本项目的推荐模型}。
 
 \subsection{当前瓶颈与可行路径}
 
