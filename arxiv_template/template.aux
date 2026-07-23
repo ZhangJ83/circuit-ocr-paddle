@@ -86,17 +86,18 @@
 \@writefile{toc}{\contentsline {section}{\numberline {9}讨论}{19}{section.9}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {9.1}合成数据为何有效：梯度信号层面的机理分析}{19}{subsection.9.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {9.2}数据质量优先于数据数量：V4 数据集的经验教训}{20}{subsection.9.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}当前瓶颈与可行路径}{20}{subsection.9.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{模型能力边界。}{20}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}v2 (Phase 1) 是当前最佳模型}{20}{subsection.9.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}当前瓶颈与可行路径}{21}{subsection.9.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{模型能力边界。}{21}{section*.29}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{数据层面的结构缺陷。}{21}{section*.30}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{训练策略的改进空间。}{21}{section*.31}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{与其他 VLM-OCR 领域的对比。}{21}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}结论}{21}{section.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}主要贡献}{21}{subsection.10.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}局限与未来工作}{22}{subsection.10.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}结论}{22}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}主要贡献}{22}{subsection.10.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}局限与未来工作}{23}{subsection.10.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {11}技术文档与开源贡献}{23}{section.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}开源资源}{23}{section.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A}完整实验历程}{23}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}开源资源}{24}{section.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}完整实验历程}{24}{appendix.A}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.1}V1--V4：数据格式探索（2026年6月）}{24}{subsection.A.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{V1（150 样本，Open Schematics + Rescraped）。}{24}{section*.33}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{V2（300 样本，增加 Rescraped 比例）。}{24}{section*.34}\protected@file@percent }
@@ -104,17 +105,17 @@
 \@writefile{toc}{\contentsline {subparagraph}{V4（5,686 样本，最大数据量最差质量）。}{24}{section*.36}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.2}V5--V9：架构修复与格式统一（2026年7月上旬）}{24}{subsection.A.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{V5（Freeze Projector，r=8，1,857 样本）。}{24}{section*.37}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{V6（修复 causal token double-shift bug）。}{24}{section*.38}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{V7（修复 BPE boundary merge）。}{24}{section*.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{V8（宽 LoRA r=16，5.7M params）。}{24}{section*.40}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{V9（格式统一）。}{24}{section*.41}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}模态塌缩根因实验（E1--E6）}{24}{subsection.A.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V6（修复 causal token double-shift bug）。}{25}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V7（修复 BPE boundary merge）。}{25}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V8（宽 LoRA r=16，5.7M params）。}{25}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V9（格式统一）。}{25}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}模态塌缩根因实验（E1--E6）}{25}{subsection.A.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces 模态塌缩根因排查实验（历史记录）}}{25}{table.caption.42}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Phase 3：更大容量与格式探索}{25}{subsection.A.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}全部实验汇总}{25}{subsection.A.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces 项目全部完成实验（按时间排序，30 样本测试集）}}{25}{table.caption.43}\protected@file@percent }
-\newlabel{tab:all_exp}{{8}{25}{项目全部完成实验（按时间排序，30 样本测试集）}{table.caption.43}{}}
-\newlabel{tab:all_exp@cref}{{[table][8][]8}{[1][25][]25}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}全部实验汇总}{26}{subsection.A.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces 项目全部完成实验（按时间排序，30 样本测试集）}}{26}{table.caption.43}\protected@file@percent }
+\newlabel{tab:all_exp}{{8}{26}{项目全部完成实验（按时间排序，30 样本测试集）}{table.caption.43}{}}
+\newlabel{tab:all_exp@cref}{{[table][8][]8}{[1][25][]26}{}{}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.6}exp10 系列：数据扩展详细记录（2026年7月）}{26}{subsection.A.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{exp10a（baseline）}{26}{section*.44}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{exp10b（high lr）}{26}{section*.45}\protected@file@percent }
@@ -124,64 +125,64 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.7}exp11 系列：数据增强详细记录}{26}{subsection.A.7}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{exp11a（rotation $\pm 5^\circ $ + brightness $\pm 10\%$）}{26}{section*.49}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{exp11b（仅亮度增强，无旋转）}{26}{section*.50}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.8}exp12：继续微调 exp6}{26}{subsection.A.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.9}合成 KiCad 生成器三代演变}{26}{subsection.A.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{第一代（V3 生成器，gen\_synthetic\_v2/v3.py）。}{26}{section*.52}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{第二代（V4 生成器，gen\_synthetic\_v4.py）。}{26}{section*.53}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.8}exp12：继续微调 exp6}{27}{subsection.A.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.9}合成 KiCad 生成器三代演变}{27}{subsection.A.9}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces 全部实验的 CompF1 + JointF1 汇总（附录用）}}{27}{figure.caption.51}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{第一代（V3 生成器，gen\_synthetic\_v2/v3.py）。}{27}{section*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{第二代（V4 生成器，gen\_synthetic\_v4.py）。}{27}{section*.53}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{第三代（kicad-cli 原生，gen\_kicad\_sch\_v3.py）。}{27}{section*.54}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.10}RL 尝试的 20 组变体}{27}{subsection.A.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.11}迭代拒绝采样详细记录}{27}{subsection.A.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.11}迭代拒绝采样详细记录}{28}{subsection.A.11}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.12}exp1--exp6 完整训练日志}{28}{subsection.A.12}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{exp1（基线，lr=2e-5, do=0.05, 无合成文字）。}{28}{section*.55}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{exp2（512px, lr=2e-5）。}{28}{section*.56}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{exp3（防过拟合，lr=1e-5, do=0.10, 3 epochs）。}{28}{section*.57}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{exp4（解冻 Projector, lr=2e-5）。}{28}{section*.58}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{exp5（20\% 合成文字，lr=1e-5, do=0.10, 1,500 样本）。}{28}{section*.59}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{exp6（最优配置，lr=2e-5, do=0.05, 20\% 合成文字, 1,500 样本）。}{28}{section*.60}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.13}exp10 系列完整训练日志（3,000 样本，合成文字稀释）}{28}{subsection.A.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{exp6（最优配置，lr=2e-5, do=0.05, 20\% 合成文字, 1,500 样本）。}{29}{section*.60}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.13}exp10 系列完整训练日志（3,000 样本，合成文字稀释）}{29}{subsection.A.13}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.14}exp11 训练日志与塌缩输出样例}{29}{subsection.A.14}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.15}exp12 完整训练 loss}{29}{subsection.A.15}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.16}RL 20 组变体完整策略表}{29}{subsection.A.16}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces RL 奖励权重策略列表}}{29}{table.caption.61}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.17}合成 KiCad 生成器三代技术参数}{29}{subsection.A.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{第一代（V3，gen\_synthetic\_v2/v3.py）。}{29}{section*.63}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{第二代（V4，gen\_synthetic\_v4.py）。}{29}{section*.64}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces RL 奖励权重策略列表}}{30}{table.caption.61}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces 全部实验 CompF1 + JointF1 汇总}}{30}{figure.caption.62}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.17}合成 KiCad 生成器三代技术参数}{30}{subsection.A.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{第一代（V3，gen\_synthetic\_v2/v3.py）。}{30}{section*.63}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{第二代（V4，gen\_synthetic\_v4.py）。}{30}{section*.64}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{第三代（kicad-cli，gen\_kicad\_sch\_v3.py）。}{30}{section*.65}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.18}Phase 1 合成预训练完整训练配置}{30}{subsection.A.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.19}Phase 2 微调配置与结果}{30}{subsection.A.19}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.20}完整环境与依赖版本}{30}{subsection.A.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.19}Phase 2 微调配置与结果}{31}{subsection.A.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.20}完整环境与依赖版本}{31}{subsection.A.20}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.21}项目目录结构与关键文件}{31}{subsection.A.21}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.22}评测脚本技术细节}{32}{subsection.A.22}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.23}数据集构建脚本技术细节}{32}{subsection.A.23}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{SVG stroked-text 提取。}{32}{section*.66}\protected@file@percent }
-\@writefile{toc}{\contentsline {subparagraph}{kicad-cli 渲染管线。}{32}{section*.67}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.23}数据集构建脚本技术细节}{33}{subsection.A.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{SVG stroked-text 提取。}{33}{section*.66}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{kicad-cli 渲染管线。}{33}{section*.67}\protected@file@percent }
 \@writefile{toc}{\contentsline {subparagraph}{训练数据格式。}{33}{section*.68}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.24}已上传 HuggingFace 的模型权重}{33}{subsection.A.24}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.25}已知限制与未完成的尝试}{33}{subsection.A.25}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.26}训练过程监控指标定义}{33}{subsection.A.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.26}训练过程监控指标定义}{34}{subsection.A.26}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.27}数据质量问题的完整分类体系}{34}{subsection.A.27}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces 数据集质量问题分类与频率}}{34}{table.caption.69}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.28}各版本数据集的样本构成变化}{34}{subsection.A.28}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces 数据集版本演变}}{34}{table.caption.70}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.29}训练 pipeline 自动化脚本流程}{34}{subsection.A.29}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces 数据集版本演变}}{35}{table.caption.70}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.30}评测结果的可复现性}{35}{subsection.A.30}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.31}GitHub commit 时间线}{35}{subsection.A.31}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.32}合成 KiCad 图像的像素统计}{35}{subsection.A.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.33}HuggingFace Space Demo 部署记录}{35}{subsection.A.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.33}HuggingFace Space Demo 部署记录}{36}{subsection.A.33}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.34}训练硬件约束与显存管理}{36}{subsection.A.34}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.35}exp4 塌缩输出的完整样例}{36}{subsection.A.35}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.36}exp6 在 30 样本测试集上的完整指标}{37}{subsection.A.36}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.37}Phase 1 合成预训练在 30 样本测试集上的详细指标}{37}{subsection.A.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.37}Phase 1 合成预训练在 30 样本测试集上的详细指标}{38}{subsection.A.37}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.38}迭代拒绝采样的完整候选输出样例}{38}{subsection.A.38}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.39}Final Checklist：报告提交前的全部修改}{38}{subsection.A.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.40}基座模型与微调模型输出对比}{38}{subsection.A.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.40}基座模型与微调模型输出对比}{39}{subsection.A.40}\protected@file@percent }
 \bibstyle{unsrtnat}
 \bibdata{references}
-\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces 三模型在 5 个测试样本上的输出特征对比}}{47}{table.caption.77}\protected@file@percent }
 \bibcite{openschematics2025}{{1}{2025}{{bshada}}{{}}}
 \bibcite{bhandari2025masalachai}{{2}{2025}{{Bhandari et~al.}}{{Bhandari, Bhat, He, Rahmani, Garg, and Karri}}}
 \bibcite{cui2025paddleocrvl}{{3}{2025}{{Cui et~al.}}{{Cui, Sun, Liang, Gao, Zhang, Liu, Wang, Zhou, Liu, Lin, Zhang, Zhang, Zheng, Zhang, Zhang, Liu, Yu, and Ma}}}
 \bibcite{zhang2026circuitocr}{{4}{2026}{{Zhang and Chen}}{{}}}
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces 三模型在 5 个测试样本上的输出特征对比}}{48}{table.caption.77}\protected@file@percent }
 \gdef \@abspage@last{48}
