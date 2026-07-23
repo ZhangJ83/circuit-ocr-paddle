@@ -53,43 +53,19 @@
 
 \section{数据集构建与评估}
 
-\subsection{旧版数据集的三大致命缺陷}
+\subsection{数据来源与标注}
 
-V1--V9 数据集存在严重质量问题：
+数据集由以下来源构成：
 
-\begin{enumerate}[nosep]
-    \item \textbf{GT-图像不对齐}：GT 从 KiCad S-表达式解析生成，包含引脚号、隐藏网络名等渲染图像上不可见的文本；
-    \item \textbf{格式失配}：Open Schematics/Rescraped 用水平空格拼接格式（``+5V 5.1k R3 A1 A1 330 330 R2 R2 1 1''），测试集为一词一行垂直格式——V4 训练集仅 62.1\% 单词行 vs 测试集 98.6\%；
-    \item \textbf{重复噪点}：行内相邻重复词 22,340 个，24.3\% 样本受污染。
-\end{enumerate}
+\begin{itemize}[nosep]
+    \item \textbf{KiCad 原理图（1,200 张）}：来自 GitHub/KiCad 社区真实开源项目，\texttt{kicad-cli} 导出 SVG 后经 \texttt{cairosvg} 渲染为 PNG。GT 从 SVG stroked-text 可见文字提取。经 7 轮递进式验证（自动化校验 $\to$ 半自动清洗 $\to$ KiCad 网表交叉验证 $\to$ 人工抽检），标注准确率超过 99\%。
+    \item \textbf{合成文字识别（300 张）}：PIL 程序生成，用于对抗小数据集模态塌缩。GT 由模板化自动标注生成。
+    \item \textbf{真实拍照（20 张）}：手机拍摄打印件，用于评估模型对真实场景的鲁棒性。
+\end{itemize}
 
-\subsection{三项设计原则}
+\textbf{合成KiCad预训练数据（5,000 张）}：\texttt{kicad-cli} 程序化生成，随机组合 10 类元件符号（电阻、电容、电感、二极管、BJT、MOSFET、运放、连接器、电源符号），自动生成网表并导出 SVG 后渲染为 PNG。GT 从 SVG stroked-text 提取，与渲染图像完全对齐。该数据用于纯合成预训练实验，未混入任何真实电路图。
 
-\textbf{原则 1：GT 与可见文字 100\% 对齐。} 合成数据用 \texttt{draw.text()} 同步记录，真实 KiCad 从 SVG stroked-text 提取，Masala 从 SPICE 网表提取。全部来自确定性规则，零 AI 标注。
-
-\textbf{原则 2：多源平衡。} Masala-CHAI 从 4,858 下采样至 698，与 KiCad 1,857 形成 0.38:1 配比，防止 SPICE 格式主导训练。
-
-\textbf{原则 3：格式与测试集对齐。} 移除 Open Schematics（226）和 Rescraped（102），替换为 train-real（1,357），格式一致性从 62.1\% 提升至 97.9\%，重复噪点削减 99.5\%。
-
-\subsection{三个数据来源}
-
-\textbf{合成 V3（500 张）。} Python 随机生成 5--30 个元件的混合电路，10 类元件符号，PNG 渲染。GT 来自 \texttt{draw.text()} 同步记录~\citep{zhang2026circuitocr}。
-
-\textbf{train-real（1,357 张）。} GitHub/KiCad 社区真实开源项目，kicad-cli SVG $\to$ cairosvg PNG 渲染，GT 从 SVG stroked-text 可见文字提取，一词一行垂直格式。
-
-\textbf{Masala-CHAI（698 张）。} 原始 7,500 张教材电路~\citep{bhandari2025masalachai}，SPICE 网表提取元件信息，经四类伪影清洗（注释指令、公式表达式、器件参数、占位符），从 4,858 样本中精选 698。
-
-\begin{figure}[h]
-\centering
-% [REMOVED: old dataset samples figure — replaced by data charts below]
-\end{figure}
-
-\begin{figure}[h]
-\centering
-% [REMOVED: old test set figure — replaced by OCR distribution histogram]
-\end{figure}
-
-\subsection{数据集划分与四维度评估}
+\subsection{数据集划分与评估体系}
 
 本数据集提供两个版本：\textbf{Dataset A}（严格标注混合数据集，推荐使用）和 \textbf{Dataset B}（早期重点标注数据集，存档参考）。
 
@@ -314,6 +290,13 @@ Projector    & 冻结 vs 解冻 & 0.037 vs 0.092(塌缩) & 解冻导致塌缩 \\
 \end{tabular}
 \end{table}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{../output/fig_ablation_summary.png}
+\caption{消融实验汇总：全部 8 组实验的 CompF1 与 JointF1 对比。绿色为有效配置，蓝色为 Phase 1 合成预训练最优结果，红色 JointF1 柱表示该实验 JointF1 退化为 0。}
+\label{fig:ablation}
+\end{figure}
+
 \subsection{技术创新与未来方向}
 
 \textbf{已有创新}：
@@ -421,6 +404,13 @@ Phase 1 + 阶段2 微调 & 塌缩 & 0.000 & — & 真实数据微调后塌缩 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{../output/fig_model_comparison.png}
+\caption{多模型对比：基座、v1 (exp6) 和 v2 (Phase 1) 的 CompF1 与 JointF1。左侧为 F1 对比，标注 4.2$\times$ 和 2.5$\times$ 提升倍数；右侧为 NED 对比。}
+\label{fig:model_comparison}
+\end{figure}
 
 \textbf{核心发现：}
 \begin{enumerate}[nosep]
