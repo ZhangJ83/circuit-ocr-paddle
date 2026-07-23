@@ -7,7 +7,7 @@
 
 (2) \textbf{合成数据防塌缩与规模化}：发现合成文字数据以 20\% 比例混入训练集可有效对抗小数据集模态塌缩，CompF1 提升 4.2$\times$（0.037 $\to$ 0.156）。进一步通过 \texttt{kicad-cli} 程序化生成 5,000 张 KiCad 原理图进行纯合成预训练，CompF1 达到 \textbf{0.304}——较此前最优提升 2.5$\times$。JointF1 仅 0.005，标号-参数值联合识别仍为核心瓶颈。
 
-(3) \textbf{系统消融实验}：Phase 1--4 共 9 组受控实验，系统对比分辨率、学习率、dropout、投影器状态、合成数据混合、LoRA 秩、SPICE 格式微调等维度。关键发现：冻结 Projector 层可防止模态塌缩；数据质量优先于数据数量。
+(3) \textbf{系统消融实验}：Phase 1--4 共 8 组受控实验，系统对比分辨率、学习率、dropout、投影器状态、合成数据混合、LoRA 秩、SPICE 格式微调等维度。关键发现：冻结 Projector 层可防止模态塌缩；数据质量优先于数据数量。
 
 (4) \textbf{完整开源}：数据集、LoRA 权重（v1: exp6, v2: Phase 1）、标注质量报告、技术报告、Beamer 演示、在线 Demo 均已发布。所有训练在单卡 RTX 4060 8GB 上完成。
 \end{abstract}
@@ -28,7 +28,7 @@
 \begin{enumerate}[nosep]
     \item \textbf{标注数据集}：1,820 样本经 7 轮验证，标注准确率 >99\%，附带质量报告与多维难度标签；
     \item \textbf{合成数据规模化}：合成文字 20\% 混合提升 CompF1 4.2$\times$；\texttt{kicad-cli} 程序化生成 5,000 张 KiCad 原理图，纯合成预训练 CompF1 达到 \textbf{0.304}（2.5$\times$ 提升），验证合成数据规模化路径；
-    \item \textbf{系统消融}：Phase 1--4 共 9 组实验（exp1--exp9），覆盖分辨率、LoRA秩、投影器、SPICE 等维度；
+    \item \textbf{系统消融}：Phase 1--4 共 8 组实验（exp1--exp8），覆盖分辨率、LoRA秩、投影器、SPICE 等维度；
     \item \textbf{完整开源}：数据集、双版本 LoRA 权重、质量报告、在线 Demo 均已发布。
 \end{enumerate}
 
@@ -394,7 +394,6 @@ exp6 (Baseline + Synth, lr=2e-5, do=0.05)     & \textbf{0.156} & \textbf{0.011} 
 
 \textbf{exp8：SPICE 格式微调。} 在 exp6 权重上继续微调 1 epoch，目标标签转换为 SPICE 网表格式（``R1 N1 N2 10k''）。结果 CompF1 = 0.042，JointF1 = 0.000，但 30/30 个测试样本均输出 SPICE 格式——\textbf{模型成功学会了格式转换，但以牺牲识别精度为代价}。
 
-\textbf{exp9：RL 奖励引导微调（未完成）。} 尝试在 exp6 权重上采用奖励引导微调，直接优化 CompF1+JointF1 奖励信号。由于 RTX 4060 8GB 显存限制，自回归生成与训练无法同时进行——20 组 RL 变体均因 CUDA OOM 失败。RL 后训练在 8GB 消费级 GPU 上不可行。
 
 \textbf{BPE 边界合并修复。} Prompt 和 label 分别独立分词后在 token ID 空间拼接，避免 BPE 在边界合并字符对（如 ``\textbackslash nR'' $\to$ 单 token）导致 label 首字符被吞。
 
@@ -452,7 +451,7 @@ Phase 1 + 阶段2 微调 & 塌缩 & 0.000 & — & 真实数据微调后塌缩 \\
 \begin{enumerate}
     \item \textbf{数据集}：1,820 样本经 7 轮验证，标注准确率 >99\%，附质量报告与多维难度标签；
     \item \textbf{合成数据规模化}：合成文字 20\% 混合提升 CompF1 4.2$\times$；\texttt{kicad-cli} 生成 5,000 张合成 KiCad 原理图，纯合成预训练 CompF1 达到 \textbf{0.304}（2.5$\times$ 提升）。JointF1 仍为 0.005--0.011，标号-参数值联合识别是核心瓶颈；
-    \item \textbf{系统消融}：9 组实验系统对比分辨率、LoRA秩、投影器、合成数据、SPICE 等维度。关键发现：冻结 Projector 防止塌缩；数据质量优先于数据数量；RL 在 8GB GPU 上不可行；
+    \item \textbf{系统消融}：8 组实验系统对比分辨率、LoRA秩、投影器、合成数据、SPICE 等维度。关键发现：冻结 Projector 防止塌缩；数据质量优先于数据数量；
     \item \textbf{完整开源}：数据集、双版本 LoRA 权重（exp6 + Phase 1）、技术报告、Beamer、在线 Demo 均已发布。
 \end{enumerate}
 

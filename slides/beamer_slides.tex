@@ -62,7 +62,7 @@
         \begin{enumerate}
           \item 构建电路原理图 OCR 标注数据集（7 轮验证）
           \item 提出合成文字数据防塌缩策略
-          \item Phase 1-4 共 9 组系统消融实验
+          \item Phase 1-4 共 8 组系统消融实验
           \item 全开源：代码、数据、权重、报告、Demo
         \end{enumerate}
       \end{block}
@@ -420,13 +420,13 @@
       \midrule
       exp7（r=32，两阶段）& 0.084 & 0.000 & 更大秩未带来增益 \\
       exp8（SPICE 微调）& 0.042 & 0.000 & 学会了格式但识别退化 \\
-      exp9（RL 奖励引导）& — & — & 未完成（8GB OOM） \\
+
       \bottomrule
     \end{tabular}
   \end{table}
   \begin{block}{}
     \footnotesize
-    在现有 1,200 样本数据规模下，增大 LoRA 秩、格式微调和 RL 均未能超越 exp6 的基线水平。
+    在现有 1,200 样本数据规模下，增大 LoRA 秩和格式微调均未能超越 exp6 的基线水平。
     根本瓶颈是训练数据量不足以支撑 VLM 泛化。
   \end{block}
 \end{frame}
