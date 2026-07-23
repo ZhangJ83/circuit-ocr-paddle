@@ -52,7 +52,7 @@
         \begin{itemize}
           \item 电路图含有密集的工程文字：元件标号、参数值、引脚号、网络标签
           \item 现有 OCR 引擎（PaddleOCR、Tesseract、EasyOCR）均无法处理
-          \item 基座 VLM 输出为幻觉文本，CompF1 = 0，JointF1 = 0
+          \item 基座 VLM 输出为幻觉文本，CompF1=0, LineAcc=0
           \item 小数据集上微调存在严重的模态塌缩问题
         \end{itemize}
       \end{block}
@@ -272,7 +272,7 @@
       文字方向 & 水平为主 & 多方向（水平/垂直/旋转） \\
       符号混合 & 极少 & 密集电气符号与文字交错 \\
       领域知识 & 通用语言 & 电子工程（Ω/F/H/V 等） \\
-      评估方式 & 字符级 & 元件级（CompF1 + JointF1） \\
+      评估方式 & 字符级（NED） & 元件级（CompF1 + LineAcc） \\
       \bottomrule
     \end{tabular}
   \end{table}
@@ -296,7 +296,7 @@
   \end{center}
   \begin{block}{}
     \footnotesize
-    元件检测 → 参数值读取 → 标号-值配对（核心 KIE 指标 JointF1）→ 引脚解析 → 网络标号识别。
+    元件检测 → 参数值读取 → 标号-值配对（核心指标 CompF1 + LineAcc）→ 引脚解析 → 网络标号识别。
     五个子任务共享同一个 VLM 解码器，无显式任务边界，模型需隐式学习多任务协同。
   \end{block}
 \end{frame}
@@ -343,17 +343,18 @@
     \footnotesize
     \begin{tabular}{lccc}
       \toprule
-      \textbf{模型} & \textbf{CompF1} & \textbf{JointF1} & \textbf{NED} \\
+      \textbf{模型} & \textbf{CompF1} & \textbf{LineAcc} & \textbf{NED} \\
       \midrule
-      基座 PaddleOCR-VL-0.9B & \textbf{0.0000} & \textbf{0.0000} & 0.9437 \\
-      exp6（最优微调）& \textbf{0.156} & \textbf{0.011} & 0.941 \\
+      基座 PaddleOCR-VL-0.9B & 0.000 & 0.000 & 0.944 \\
+      exp6（v1, 合成文字混合）& 0.156 & 0.022 & 0.946 \\
+      \textbf{Phase 1（v2, KiCad预训练）} & \textbf{0.304} & \textbf{0.041} & \textbf{0.942} \\
       \bottomrule
     \end{tabular}
   \end{table}
   \begin{block}{}
     \footnotesize
     基座模型输出为预训练幻觉文本（"Service Name / Data Source"），完全无法识别电路元件。
-    LoRA 微调后 CompF1 从零提升至 0.156，但 JointF1 仅 0.011，距可用阈值（0.05）仍有差距。
+    LoRA 微调后 CompF1 从零提升至 0.156，LineAcc 为 0.022——输出开始包含电路领域词汇。
   \end{block}
 \end{frame}
 
@@ -508,7 +509,7 @@
   \end{center}
   \begin{block}{关键发现}
     \footnotesize
-    合成 KiCad 预训练显著提升元件标号识别（2.5$\times$），但标号-参数值联合配对未见改善。真实数据微调导致灾难性遗忘——两阶段训练的领域偏移需要渐进式适配。
+    v2 在 CompF1（2.5$\times$）、LineAcc（1.9$\times$）、NED 和塌缩率上全面超越 v1，为本项目最佳模型。
   \end{block}
 \end{frame}
 
@@ -547,7 +548,7 @@
         \footnotesize
         \begin{itemize}
           \item 1,200 训练样本不足以支撑 VLM 泛化
-          \item JointF1 = 0.011，距可用阈值 0.05 差 5 倍
+          \item CompF1=0.304 但 LineAcc 仅 0.041，行级匹配率有待提升
           \item 更大 LoRA 秩在当前数据量下无效
           \item 精标小数据 > 粗标大数据
         \end{itemize}
@@ -603,10 +604,10 @@
       \begin{block}{当前局限}
         \footnotesize
         \begin{itemize}
-          \item JointF1 = 0.011，距可用阈值（0.05）差 4.5$\times$
+          \item LineAcc = 0.041，v2 较 v1 提升 1.9$\times$ 但仍需提高
           \item 最优 CompF1 = 0.304，但 ExactMatch = 0\%
           \item 仅 1,200 真实训练样本（单 CAD 来源）
-          \item 合成$\to$真实两阶段微调塌缩（灾难性遗忘）
+          \item 合成$\to$真实两阶段微调塌缩（性能下降）
           \item 复杂样本持续塌缩（ESP32 引脚表等）
         \end{itemize}
       \end{block}
