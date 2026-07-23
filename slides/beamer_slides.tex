@@ -450,6 +450,59 @@
   \end{table}
 \end{frame}
 
+% ═══════════ 合成KiCad预训练 ═══════════
+\begin{frame}{合成KiCad预训练：规模化数据生成}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+      \begin{block}{kicad-cli 程序化生成}
+        \footnotesize
+        \begin{itemize}
+          \item 5,000 张合成 KiCad 原理图
+          \item Python 脚本随机组合 10 类元件符号
+          \item kicad-cli 自动导出 SVG $\to$ PNG
+          \item GT 从 SVG stroked-text 提取，100\% 对齐
+          \item 纯合成数据，未混合任何真实电路图
+        \end{itemize}
+      \end{block}
+    \column{0.5\textwidth}
+      \begin{block}{两阶段训练策略}
+        \footnotesize
+        \begin{itemize}
+          \item 阶段1：5,000 张合成原理图预训练
+          \item LoRA（$r=16$, $\alpha=32$），冻结 Projector
+          \item 阶段2：1,200 张真实电路图微调
+          \item 目标：合成预训练 $\to$ 真实数据领域适配
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{合成预训练实验结果}
+  \begin{table}
+    \centering
+    \scriptsize
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{模型} & \textbf{CompF1} & \textbf{JointF1} & \textbf{NED} \\
+      \midrule
+      基座 PaddleOCR-VL-0.9B & 0.000 & 0.000 & 0.944 \\
+      exp6（合成文字20\%混合）& 0.156 & 0.011 & 0.941 \\
+      \textbf{Phase 1 合成预训练} & \textbf{0.304} & 0.005 & 0.942 \\
+      Phase 1 + 真实数据微调 & 塌缩 & 0.000 & — \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{0.2cm}
+  \begin{center}
+    \footnotesize \textbf{CompF1 提升 2.5 倍（0.156 $\to$ 0.304），但 JointF1 未见改善}
+  \end{center}
+  \begin{block}{}
+    \footnotesize
+    纯合成KiCad预训练大幅改善元件标号识别，但标号-参数值配对仍是瓶颈。
+    阶段2真实数据微调塌缩，需更精细的领域适配策略。
+  \end{block}
+\end{frame}
+
 % ═══════════ 讨论 ═══════════
 \section{讨论}
 
@@ -517,6 +570,7 @@
           \item 冻结 Projector + LoRA
           \item 多指标评估体系
           \item 7 轮标注验证管线
+          \item 合成KiCad预训练：CompF1 达 0.304（2.5 倍提升）
         \end{enumerate}
       \end{block}
     \column{0.5\textwidth}
@@ -528,6 +582,7 @@
           \item 更大 LoRA 秩（r=32）
           \item SPICE 格式微调（精度退化）
           \item Loss 最优 ≠ 质量最优
+          \item 合成$\to$真实两阶段微调（导致塌缩）
         \end{enumerate}
       \end{block}
   \end{columns}
@@ -544,9 +599,20 @@
           \item 单 CAD 来源
           \item 真实拍照仅 20 张
           \item ExactMatch = 0\%
+          \item 合成$\to$真实微调塌缩
         \end{itemize}
       \end{block}
     \column{0.5\textwidth}
+      \begin{block}{未来方向}
+        \footnotesize
+        \begin{itemize}
+          \item 扩大合成数据规模（5k $\to$ 50k+）
+          \item 渐进式领域适配：合成$\to$真实
+          \item 改进标号-参数值配对机制
+          \item 探索更大基座模型容量
+          \item 多 CAD 来源数据增强
+        \end{itemize}
+      \end{block}
   \end{columns}
 \end{frame}
 
