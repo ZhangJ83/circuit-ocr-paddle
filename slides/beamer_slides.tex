@@ -481,25 +481,24 @@
   \begin{table}
     \centering
     \scriptsize
-    \begin{tabular}{lcccc}
+    \begin{tabular}{lrrrc}
       \toprule
-      \textbf{模型} & \textbf{CompF1} & \textbf{JointF1} & \textbf{NED} \\
+      \textbf{模型} & \textbf{CompF1} & \textbf{JointF1} & \textbf{NED} & \textbf{说明} \\
       \midrule
-      基座 PaddleOCR-VL-0.9B & 0.000 & 0.000 & 0.944 \\
-      exp6（合成文字20\%混合）& 0.156 & 0.011 & 0.941 \\
-      \textbf{Phase 1 合成预训练} & \textbf{0.304} & 0.005 & 0.942 \\
-      Phase 1 + 真实数据微调 & 塌缩 & 0.000 & — \\
+      基座 PaddleOCR-VL-0.9B & 0.000 & 0.000 & 0.944 & 通用VLM，无领域微调 \\
+      v1 (exp6，合成文字混合) & 0.156 & \textbf{0.011} & 0.941 & 300 合成文字，此前最优 \\
+      \rowcolor{blue!10} \textbf{v2 (Phase 1 预训练)} & \textbf{0.304} & 0.005 & \textbf{0.942} & \textbf{5,000 合成 KiCad，纯预训练} \\
+      v2 + 真实数据微调 & 0.002 & 0.000 & 0.960 & 塌缩——灾难性遗忘 \\
       \bottomrule
     \end{tabular}
   \end{table}
-  \vspace{0.2cm}
+  \vspace{-0.3cm}
   \begin{center}
-    \footnotesize \textbf{CompF1 提升 2.5 倍（0.156 $\to$ 0.304），但 JointF1 未见改善}
+    \small \textbf{CompF1 $\uparrow$ 2.5$\times$ (0.156 $\to$ 0.304) \quad JointF1 $\downarrow$ (0.011 $\to$ 0.005)}
   \end{center}
-  \begin{block}{}
+  \begin{block}{关键发现}
     \footnotesize
-    纯合成KiCad预训练大幅改善元件标号识别，但标号-参数值配对仍是瓶颈。
-    阶段2真实数据微调塌缩，需更精细的领域适配策略。
+    合成 KiCad 预训练显著提升元件标号识别（2.5$\times$），但标号-参数值联合配对未见改善。真实数据微调导致灾难性遗忘——两阶段训练的领域偏移需要渐进式适配。
   \end{block}
 \end{frame}
 
@@ -594,12 +593,11 @@
       \begin{block}{当前局限}
         \footnotesize
         \begin{itemize}
-          \item JointF1 = 0.011，远低于 0.05
-          \item 仅 1,200 训练样本
-          \item 单 CAD 来源
-          \item 真实拍照仅 20 张
-          \item ExactMatch = 0\%
-          \item 合成$\to$真实微调塌缩
+          \item JointF1 = 0.011，距可用阈值（0.05）差 4.5$\times$
+          \item 最优 CompF1 = 0.304，但 ExactMatch = 0\%
+          \item 仅 1,200 真实训练样本（单 CAD 来源）
+          \item 合成$\to$真实两阶段微调塌缩（灾难性遗忘）
+          \item 复杂样本持续塌缩（ESP32 引脚表等）
         \end{itemize}
       \end{block}
     \column{0.5\textwidth}
