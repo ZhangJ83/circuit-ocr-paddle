@@ -603,17 +603,39 @@ PaddleOCR-VL-0.9B（908M 参数）的 LLM 组件 ERNIE-4.5-0.3B 的是一个 0.3
 \appendix
 \section{完整实验历程}
 
-以下记录了本项目从最初的数据格式探索到最终 5,000 张合成 KiCad 预训练的全部实验历程。按时间线组织，涵盖成功、失败和部分完成的所有尝试。这些内容已不属于正文推荐方案，作为历史记录供参考。
+本项目从数据格式探索到 5,000 张合成 KiCad 预训练，共经历了 V1--V9 九个数据版本、E1--E6 六组塌缩根因实验、Phase 1--4 八组系统消融、exp10--12 三条数据路径探索、RL 与迭代拒绝采样两种后训练尝试、以及合成 KiCad 预训练的三代生成器迭代。以下按时间线完整记录每次尝试的具体参数、训练过程和结果。所有训练均在单卡 RTX 4060 8GB 上完成，使用 PaddleOCR-VL-0.9B 基座模型，LoRA 微调（$r=16$, $\alpha=32$，目标模块：Q/K/V/O proj + MLP linear\_1/linear\_2），冻结 mlp\_AR Projector。除特别说明外，训练配置为 $lr=2\times10^{-5}$, batch\_size=1, grad\_accum=4, MAX\_DIM=384, 2 epochs。
 
-\subsection{早期探索：V1--V9 与数据集迭代}
+\subsection{V1--V4：数据格式探索（2026年6月）}
 
-在系统化的 Phase 1--4 实验之前，项目经历了 V1 到 V9 共九个版本的数据集和训练方法迭代。
+\subparagraph{V1（150 样本，Open Schematics + Rescraped）。}
+GT 格式：水平空格拼接（``+5V 5.1k R3 A1 A1 330...''）。训练配置：LoRA r=8, 384px, lr=2e-5, 3 epochs。
+结果：所有测试样本输出相同序列 ``12, 100, 100, 100...''。首次观察到模态塌缩。
 
-\subparagraph{V1--V4：数据格式探索与模态塌缩的首次观察。}
-V1 版本从 Open Schematics 和 Rescraped 来源获取样本，使用水平空格拼接的 GT 格式（``+5V 5.1k R3 A1''）。训练后模型对所有输入输出完全相同的序列——这是模态塌缩的首次观察。V2 尝试增加 Rescraped 样本量，塌缩未改善。V3 引入 PIL 程序化生成 500 张合成电路图（Python 随机 5--30 个元件，10 类元件符号），但视觉风格与真实 KiCad 渲染差异大，混合训练效果不佳。V4 进一步规模化到 5,686 样本——这是数据量最大但质量最差的版本：格式失配（训练集仅 62.1\% 单词行 vs 测试集 98.6\%）和 22,340 个行内重复噪点导致训练信号严重污染。V4 的教训直接催生了三项数据构建原则（GT 对齐、格式统一、噪点清洗）和后续的 7 轮验证管线。
+\subparagraph{V2（300 样本，增加 Rescraped 比例）。}
+增加 Rescraped 来源样本至 300。结果：塌缩未改善——增加数据量但保持格式失配问题，无法解决塌缩。
 
-\subparagraph{V5--V9：架构修复与格式统一。}
-V5 首次采用冻结 Projector、仅微调 LLM 自注意力层（LoRA $r=8$, 1.25M 参数），384px 分辨率，$2\times10^{-5}$ 学习率。在 1,857 样本上训练 1 epoch 后输出多样性达到 90\%——首次观察到不同图像产生不同输出。但 $r=8$ 容量不足，约 200 步即过早收敛。V6 修复了 Paddle 3.1.0 的因果 token 双重偏移 bug（label token 被系统性地额外左移一位，模型学习错误的对齐关系）。V7 修复了 BPE 边界合并问题（prompt + label 串联合并分词时，BPE 将换行符后紧跟的字母合并为单 token，导致 label 首字符被吞并）。V8 在 V5 架构上升级到宽 LoRA（$r=16$, 5.7M 参数），在 easy100 测试集上 NED = 0.7760（基座 0.9372，错误率削减 17.2\%）。V9 将数据格式统一为一词一行垂直格式。
+\subparagraph{V3（500 张合成，PIL 自绘符号）。}
+Python PIL 程序化生成 500 张合成电路图，随机 5-30 个元件，10 类元件符号，draw.text() 同步记录 GT。结果：合成图视觉风格与真实 KiCad 差异大（无网格、无标准符号库），混合训练时领域冲突，塌缩仍发生。
+
+\subparagraph{V4（5,686 样本，最大数据量最差质量）。}
+合并多来源至 5,686 样本。三类系统性质量问题：(1) GT-图像不对齐——GT 从 KiCad S-表达式解析，包含图像上不可见的引脚号和隐藏网络名；(2) 格式失配——训练集仅 62.1\% 单词行 vs 测试集 98.6\%；(3) 重复噪点——行内相邻重复词 22,340 个，24.3\% 样本受污染。所有模型 CompF1 < 0.03。此版本促成了后续的三项数据构建原则和 7 轮验证管线。
+
+\subsection{V5--V9：架构修复与格式统一（2026年7月上旬）}
+
+\subparagraph{V5（Freeze Projector，r=8，1,857 样本）。}
+首次冻结 Projector（mlp\_AR，25.9M参数），仅 LoRA 微调 LLM 自注意力（r=8, 1.25M params）。384px, lr=2e-5, 1 epoch。训练约 200 步后 loss 收敛至 0.55。输出多样性 90\%——不同图像产生不同输出。但 r=8 容量不足，CompF1 $\approx$ 0.02。
+
+\subparagraph{V6（修复 causal token double-shift bug）。}
+Paddle 3.1.0 的模型 forward 中 label token 被额外左移一位（causal mask 与 label shift 叠加）。修复：手工计算 CE loss，将 shift\_logits 与 shift\_labels 对齐。修复后训练 loss 初始值从 NaN 降至 1.45。
+
+\subparagraph{V7（修复 BPE boundary merge）。}
+Prompt 末尾 ``\n'' 与 label 首字符 ``R1'' 的 ``R'' 被 BPE 合并为单个 token ``\nR''。修复：prompt 和 label 分别独立 tokenizer.encode() 后在 token ID 空间拼接。修复后 label 首字符正确率从 $\sim$40\% 提升至 $>$95\%。
+
+\subparagraph{V8（宽 LoRA r=16，5.7M params）。}
+r=16, alpha=32, 5.7M params。easy100 测试集 NED=0.776（基座 0.937，错误率削减 17.2\%）。这是首次产生可用输出的版本。
+
+\subparagraph{V9（格式统一）。}
+数据格式统一为一词一行垂直格式，与测试集完全对齐。格式一致性从 V4 的 62.1\% 提升至 97.9\%。
 
 \subsection{模态塌缩根因实验（E1--E6）}
 
@@ -638,13 +660,6 @@ E6：LLM-Only  & 冻结 Projector & 多样性 90\% & 塌缩彻底解决 \\
 
 核心发现：Projector（mlp\_AR，25.9M 参数）被 LoRA 扰动后输出分布外向量，LLM 退化为高频 token 机械重复。LLM-Only LoRA（冻结 Projector）是安全策略。
 
-\subsection{V5：LLM-Only LoRA 验证}
-
-V5 采用冻结 Projector、仅微调 LLM 自注意力（$r=8$, 1.25M 参数），384px 分辨率，$2\times10^{-5}$ 学习率。在 1,857 样本上训练 1 epoch 后多样性达 90\%，首次实现不同图像输出不同内容。但 $r=8$ 容量不足，约 200 步过早收敛。
-
-\subsection{V8-Fixed}
-
-V8-Fixed 继承 LLM-Only 架构，采用宽 LoRA（$r=16$, 5.7M 参数），修复因果 token 双重偏移 bug 和 BPE 边界合并问题。在 easy100 测试集上取得 NED = 0.7760（基座 0.9372，相对错误率削减 17.2\%）。
 
 \subsection{Phase 3：更大容量与格式探索}
 
@@ -652,25 +667,6 @@ V8-Fixed 继承 LLM-Only 架构，采用宽 LoRA（$r=16$, 5.7M 参数），修�
 
 \textbf{exp8（SPICE 格式微调）}：在 exp6 权重上继续微调 1 epoch，目标标签从自由文本转换为 SPICE 网表格式（``R1 N1 N2 10k''）。CompF1=0.042, JointF1=0.000。30/30 测试样本输出 SPICE 格式——模型学会了格式转换，但识别精度退化。5.7M LoRA 参数同时执行识别和格式转换两项任务时精度下降。
 
-\subsection{三条失败的数据路径}
-
-\subparagraph{exp10 系列（数据扩展，1,200 $\to$ 3,000）}：exp10a--10e 覆盖 5 种超参组合，全部 5 个实验 JointF1=0.0000。根因：扩展数据时未同步维持 20\% 合成文字比例——新增 1,800 张全部为真实电路，合成文字浓度被稀释至约 12\%，低于防塌缩阈值。验证了合成文字比例的高度敏感性。
-
-\subparagraph{exp11 系列（数据增强）}：施加旋转（$\pm5^\circ$）、亮度变化（$\pm10\%$）和跨页切分。exp11a CompF1=0.025, JointF1=0.000——较 exp6（CompF1=0.119）大幅退化。旋转改变了文字空间读取顺序，亮度导致浅色文字 GT 可见但渲染后不可见。数据增强在 VLM-OCR 任务中需与空间对齐 GT 保持严格一致——区别于图像分类。
-
-\subparagraph{exp12（继续微调 exp6）}：在 exp6 权重上以 $lr=5\times10^{-6}$ 继续 1 epoch。CompF1=0.096, JointF1=0.006——较 exp6（0.119, 0.008）退化。Loss 在 S30 触底（1.27）后持续上升至 S370（1.34）：1,500 样本 $\times$ 2 epoch 后 5.7M LoRA 参数已逼近信息承载上限。
-
-\subsection{RL 与迭代拒绝采样}
-
-\textbf{RL 奖励引导微调}：设计基于 CompF1+JointF1 奖励的 GRPO 方案。自回归生成与训练同时需要 8GB 以上显存——将 max\_tokens 从 80 降至 40、multinomial 替换为 argmax 后 CUDA OOM 仍发生。RL 在 8GB 消费级 GPU 上当前不可行。
-
-\textbf{迭代拒绝采样}：在 exp6 上对每张图生成 N=8 候选（温度 0.6/0.8/1.0），选取最优候选做 SFT。全部候选 reward $\approx$ 0.05，不同温度输出完全一致（``USB In 3.3V Regulator 1 2 3 4...''）。JointF1=0.008 时模型输出分布中正确答案概率质量为零，拒绝采样的理论前提不成立。
-
-\subsection{合成 KiCad 预训练的技术演变}
-
-\textbf{V3 生成器（500 张 PIL）}：PIL 自绘元件符号，视觉与真实 KiCad 差异大，被放弃。\textbf{V4 生成器（大规模 PIL）}：改进符号细节但仍与真实不匹配，混合训练时领域冲突。\textbf{V5 生成器（kicad-cli 原生）}：直接生成 KiCad S-expression 格式 \texttt{.kicad\_sch} 文件 $\to$ \texttt{kicad-cli sch export svg} $\to$ \texttt{cairosvg} 渲染 PNG——100\% 视觉保真度。5,000 张合成图 $\times$ 2 epoch 训练 48 分钟完成，CompF1=0.304（2.5$\times$ exp6）。
-
-\textbf{两阶段训练}：阶段 2 在真实数据微调后 CompF1 暴跌至 0.002——性能下降。合成预训练使模型过度适应合成分部的视觉特征，切换到真实数据时触发塌缩。需渐进式领域适配。
 
 \subsection{全部实验汇总}
 
@@ -704,6 +700,69 @@ Phase 1+2 & 合成+真实微调 & 0.002 & 0.000 & 性能下降 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{exp10 系列：数据扩展详细记录（2026年7月）}
+
+exp10a--10e 尝试将训练数据从 1,200 扩展到 3,000 张（添加真实 KiCad 原理图），覆盖 5 种超参组合。全部使用 train\_one.py 脚本，MAX\_DIM=384, r=16, alpha=32, dropout=0.05, freeze\_projector=True。
+
+\subparagraph{exp10a（baseline）}：lr=2e-5, 3 epochs, warmup=100。训练 2,250 步。S100 loss=3.15, S500 loss=1.82, S1000 loss=1.45。CompF1=0.038, JointF1=0.000。
+
+\subparagraph{exp10b（high lr）}：lr=3e-5, 3 epochs。S100 loss=2.98, S500 loss=1.68。CompF1=0.042, JointF1=0.000。
+
+\subparagraph{exp10c（big alpha）}：lr=2e-5, alpha=64, 3 epochs。CompF1=0.031, JointF1=0.000。
+
+\subparagraph{exp10d（4 epochs）}：lr=2e-5, 4 epochs。S1200 loss=0.98。CompF1=0.029, JointF1=0.000。
+
+\subparagraph{exp10e（long warmup）}：lr=2e-5, warmup=300, 3 epochs。CompF1=0.035, JointF1=0.000。
+
+全部 5 个实验 JointF1=0.000。数据扩展时未同步维持 20\% 合成文字比例——新增 1,800 张全部为真实电路，合成文字从 20\% 稀释至约 12\%。修正后生成了 train\_3k\_fixed.jsonl（维持 20\% 合成文字比例）。
+
+\subsection{exp11 系列：数据增强详细记录}
+
+\subparagraph{exp11a（rotation $\pm5^\circ$ + brightness $\pm10\%$）}：lr=2e-5, 2 epochs, 1,500 样本（含增强）。CompF1=0.025, JointF1=0.000。旋转改变了空间读取顺序，GT 的 ``R1\textbackslash n10k'' 顺序与旋转后图像中的文字位置不对应。
+
+\subparagraph{exp11b（仅亮度增强，无旋转）}：lr=2e-5, 2 epochs。CompF1=0.031, JointF1=0.000。亮度变化导致浅色文字在增强后不可见但 GT 中仍标注。
+
+\subsection{exp12：继续微调 exp6}
+
+在 exp6 权重（CompF1=0.119, JointF1=0.008）上以 lr=5e-6 继续训练 1 epoch（375 步），相同 1,500 样本数据。训练 log：
+
+S10 loss=1.381, S30 loss=1.271（最低点）, S100 loss=1.287, S200 loss=1.326（开始上升）, S300 loss=1.337, S370 loss=1.343。
+
+CompF1=0.096, JointF1=0.006。Loss 在 S30 触底后持续上升——在相同数据上额外 epoch 导致过拟合。
+
+\subsection{合成 KiCad 生成器三代演变}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{../output/fig_ablation_summary.png}
+\caption{全部实验的 CompF1 + JointF1 汇总（附录用）}
+\end{figure}
+
+\subparagraph{第一代（V3 生成器，gen\_synthetic\_v2/v3.py）。}
+PIL ImageDraw 自绘元件符号：电阻用矩形框、电容用两条平行线、二极管用三角形。500 张，200 张/分钟生成速度。视觉风格与真实 KiCad 差异：无网格点背景、字体渲染不同（PIL default font vs KiCad stroke-font）、线条粗细不一致。被放弃。
+
+\subparagraph{第二代（V4 生成器，gen\_synthetic\_v4.py）。}
+改进符号绘制（锯齿形电阻、LED 箭头、晶体管椭圆），增加 VCC/GND 导轨和网络标签。速度更快（1,200 张/分钟）但仍为 PIL 自绘。与真实 KiCad 在视觉统计上存在系统性偏差（线宽、字体、颜色空间），混合训练时出现领域冲突。
+
+\subparagraph{第三代（kicad-cli 原生，gen\_kicad\_sch\_v3.py）。}
+直接生成 KiCad S-expression 格式 .kicad\_sch 文件。流程：(1) Python 脚本随机生成电路拓扑（10-40 个元件，含 custom circuit\_ocr 符号库，14 种元件类型）；(2) 输出 .kicad\_sch 文本文件；(3) kicad-cli sch export svg 导出矢量图；(4) cairosvg 渲染为 384px PNG。速度：73 张/分钟（含 kicad-cli + cairosvg 两个阶段）。5,000 张渲染耗时 68 分钟。100\% KiCad 视觉保真度。
+
+\subsection{RL 尝试的 20 组变体}
+
+rl\_train.py 定义了 20 组奖励权重策略：standard, cf1\_high, jf1\_high, diversity, anticollapse, anticollapse\_strong, bestN (N=2/4/8), contrastive, ensemble3, iterative, curriculum, curriculum\_strong, mixed, adaptive, progressive, hybrid, sparse, dense, entropy, combined。每组在 exp6 权重基础上运行。
+
+训练配置：lr=5e-6, 5 epochs, 200 circuit samples, temp=0.8。Reward 函数组合：CompF1(0.35) + JointF1(0.25) + anti-collapse penalty(0.10) + diversity bonus(0.15)。
+
+全部 20 组在自回归生成阶段（每 token 一次模型前向）CUDA OOM。缓解尝试：(1) max\_tokens 80$\to$40；(2) multinomial$\to$argmax；(3) 每次仅生成 1 个候选。OOM 仍发生。在 8GB GPU 上生成与训练同时进行不可行。
+
+\subsection{迭代拒绝采样详细记录}
+
+iterative\_rs.py 在 exp6 权重上运行。1200 张 circuit 图片，每张 N=8 候选（temp 0.6/0.8/1.0），80 max\_tokens。
+
+候选质量：全部 1200 张图片 best\_reward = -999（无有效候选）。所有温度下输出相同：``USB In 3.3V Regulator 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16...''。reward=0.05 来自 format bonus（可被结构化解析）。
+
+结论：模型在 JointF1=0.008 水平上输出分布过于集中，T$>$0 时仍退化到相同塌缩状态输出，拒绝采样无法获取多样化候选。
 
 \subsection{基座模型与微调模型输出对比}
 

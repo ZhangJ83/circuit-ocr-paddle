@@ -11,75 +11,132 @@
 \@writefile{toc}{\contentsline {section}{\numberline {2}背景与系统设置}{2}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1}基座模型与任务定义}{2}{subsection.2.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.2}基座模型失效模式}{2}{subsection.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}数据集构建与评估}{2}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}旧版数据集的三大致命缺陷}{2}{subsection.3.1}\protected@file@percent }
-\citation{zhang2026circuitocr}
-\citation{bhandari2025masalachai}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}三项设计原则}{3}{subsection.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}三个数据来源}{3}{subsection.3.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}数据集划分与四维度评估}{3}{subsection.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}数据集可视化分析}{3}{subsection.3.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}四维度评估体系}{3}{subsection.3.6}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Dataset A 构成（推荐）}}{4}{table.caption.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}数据集构建与评估}{3}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}数据来源与标注}{3}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{KiCad 原理图：真实领域数据的采集与渲染管线。}{3}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{合成文字识别数据：防塌缩对抗样本的设计原理。}{3}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{真实拍照数据：鲁棒性评估探针。}{4}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}7 轮递进式验证管线}{4}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}数据质量度量体系}{5}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}合成 KiCad 预训练数据的规模化生成管线}{5}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}数据集划分与评估体系}{6}{subsection.3.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Dataset A 构成（推荐）}}{6}{table.caption.5}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{tab:dataset}{{1}{4}{Dataset A 构成（推荐）}{table.caption.4}{}}
-\newlabel{tab:dataset@cref}{{[table][1][]1}{[1][3][]4}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces 左：数据集构成（划分 + 来源分布）。右：10 种元件类型分布（测试集，n=4,810 OCR 实例）。}}{4}{figure.caption.5}\protected@file@percent }
-\newlabel{fig:dataset_charts1}{{1}{4}{左：数据集构成（划分 + 来源分布）。右：10 种元件类型分布（测试集，n=4,810 OCR 实例）。}{figure.caption.5}{}}
-\newlabel{fig:dataset_charts1@cref}{{[figure][1][]1}{[1][3][]4}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}场景稀缺性与应用价值}{4}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}研究稀缺性}{4}{subsection.4.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces 左：OCR 实例分布直方图，带难度分区（绿 Easy / 橙 Medium / 红 Hard）和 KDE 密度曲线。右：数据集关键指标一览（规模/标注质量/来源/难度分布）。}}{5}{figure.caption.6}\protected@file@percent }
-\newlabel{fig:dataset_charts2}{{2}{5}{左：OCR 实例分布直方图，带难度分区（绿 Easy / 橙 Medium / 红 Hard）和 KDE 密度曲线。右：数据集关键指标一览（规模/标注质量/来源/难度分布）。}{figure.caption.6}{}}
-\newlabel{fig:dataset_charts2@cref}{{[figure][2][]2}{[1][3][]5}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}工业需求价值}{5}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}场景独特性}{5}{subsection.4.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces 电路 OCR 与通用 OCR 的本质差异}}{5}{table.caption.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}任务复杂度分析}{6}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}视觉复杂度：电路图本身的工程挑战}{6}{subsection.5.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces 电路 OCR 与通用文档 OCR 的视觉复杂度对比（7 个维度）。}}{6}{figure.caption.8}\protected@file@percent }
-\newlabel{fig:vis_complexity}{{3}{6}{电路 OCR 与通用文档 OCR 的视觉复杂度对比（7 个维度）。}{figure.caption.8}{}}
-\newlabel{fig:vis_complexity@cref}{{[figure][3][]3}{[1][6][]6}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}结构复杂度：隐式多任务联合优化}{6}{subsection.5.2}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces 电路 OCR 的 5 个隐式子任务，构成多任务联合优化问题。}}{7}{figure.caption.9}\protected@file@percent }
-\newlabel{fig:multitask}{{4}{7}{电路 OCR 的 5 个隐式子任务，构成多任务联合优化问题。}{figure.caption.9}{}}
-\newlabel{fig:multitask@cref}{{[figure][4][]4}{[1][6][]7}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}理解复杂度：从字符识别到结构理解}{7}{subsection.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}训练数据集构建科学性}{7}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}采集流程规范性}{7}{subsection.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}标注规范与质量控制}{8}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}数据统计分析}{8}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}微调策略与实验设计}{8}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}微调策略合理性}{8}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}系统消融实验}{8}{subsection.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}技术创新与未来方向}{8}{subsection.7.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 消融实验矩阵}}{9}{table.caption.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}模型微调与实验}{9}{section.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}基座模型性能}{9}{subsection.8.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Phase 1：四组控制变量实验（1,200 样本）}{9}{subsection.8.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Phase 1 实验结果（30 样本测试集）}}{10}{table.caption.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Phase 2：合成数据防塌缩（1,500 样本）}{10}{subsection.8.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Phase 2 实验结果（30 样本测试集）}}{10}{table.caption.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Phase 3：更大 LoRA 与格式微调（exp7/exp8）}{10}{subsection.8.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Phase 4：RL 奖励引导微调（exp9，进行中）}{10}{subsection.8.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}讨论}{11}{section.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}合成数据为何有效}{11}{subsection.9.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}数据质量优先于数据数量}{11}{subsection.9.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}当前瓶颈}{11}{subsection.9.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}结论}{11}{section.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}主要贡献}{11}{subsection.10.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}技术文档与开源贡献}{11}{section.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}开源资源}{12}{section.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A}早期实验记录（V5--V8）}{12}{appendix.A}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}模态塌缩根因实验（E1--E6）}{12}{subsection.A.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces 模态塌缩根因排查实验（历史记录）}}{12}{table.caption.13}\protected@file@percent }
+\newlabel{tab:dataset}{{1}{6}{Dataset A 构成（推荐）}{table.caption.5}{}}
+\newlabel{tab:dataset@cref}{{[table][1][]1}{[1][6][]6}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}数据集可视化分析}{6}{subsection.3.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces 左：数据集构成（划分 + 来源分布）。右：10 种元件类型分布（测试集，n=4,810 OCR 实例）。}}{6}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:dataset_charts1}{{1}{6}{左：数据集构成（划分 + 来源分布）。右：10 种元件类型分布（测试集，n=4,810 OCR 实例）。}{figure.caption.6}{}}
+\newlabel{fig:dataset_charts1@cref}{{[figure][1][]1}{[1][6][]6}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}四维度评估体系}{6}{subsection.3.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces 左：OCR 实例分布直方图，带难度分区（绿 Easy / 橙 Medium / 红 Hard）和 KDE 密度曲线。右：数据集关键指标一览（规模/标注质量/来源/难度分布）。}}{7}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:dataset_charts2}{{2}{7}{左：OCR 实例分布直方图，带难度分区（绿 Easy / 橙 Medium / 红 Hard）和 KDE 密度曲线。右：数据集关键指标一览（规模/标注质量/来源/难度分布）。}{figure.caption.7}{}}
+\newlabel{fig:dataset_charts2@cref}{{[figure][2][]2}{[1][6][]7}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}场景稀缺性与应用价值}{7}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}研究稀缺性}{7}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}工业需求价值}{7}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}场景独特性}{8}{subsection.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces 电路 OCR 与通用 OCR 的本质差异}}{8}{table.caption.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}任务复杂度分析}{8}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}视觉复杂度：电路图本身的工程挑战}{8}{subsection.5.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces 电路 OCR 与通用文档 OCR 的视觉复杂度对比（7 个维度）。}}{9}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:vis_complexity}{{3}{9}{电路 OCR 与通用文档 OCR 的视觉复杂度对比（7 个维度）。}{figure.caption.9}{}}
+\newlabel{fig:vis_complexity@cref}{{[figure][3][]3}{[1][8][]9}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}结构复杂度：隐式多任务联合优化}{9}{subsection.5.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces 电路 OCR 的 5 个隐式子任务，构成多任务联合优化问题。}}{9}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:multitask}{{4}{9}{电路 OCR 的 5 个隐式子任务，构成多任务联合优化问题。}{figure.caption.10}{}}
+\newlabel{fig:multitask@cref}{{[figure][4][]4}{[1][9][]9}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}理解复杂度：从字符识别到结构理解}{10}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}训练数据集构建科学性}{10}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}采集流程规范性}{10}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}标注规范与质量控制}{10}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}数据统计分析}{10}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}微调策略与实验设计}{11}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}微调策略合理性}{11}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}系统消融实验}{11}{subsection.7.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 消融实验矩阵}}{11}{table.caption.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{学习率的影响：2e-5 vs 1e-5。}{11}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{分辨率的影响：384px vs 512px。}{12}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{Dropout 与 Epoch 数的联合效应。}{12}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{Projector 冻结 vs 解冻：模态塌缩的根因。}{12}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{合成数据混合：防塌缩的主要手段。}{12}{section*.16}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces 消融实验汇总：全部 8 组实验的 CompF1 与 JointF1 对比。绿色为有效配置，蓝色为 Phase 1 合成预训练最优结果，红色 JointF1 柱表示该实验 JointF1 退化为 0。}}{13}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:ablation}{{5}{13}{消融实验汇总：全部 8 组实验的 CompF1 与 JointF1 对比。绿色为有效配置，蓝色为 Phase 1 合成预训练最优结果，红色 JointF1 柱表示该实验 JointF1 退化为 0。}{figure.caption.17}{}}
+\newlabel{fig:ablation@cref}{{[figure][5][]5}{[1][12][]13}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}技术创新与未来方向}{13}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}模型微调与实验}{14}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}基座模型性能}{14}{subsection.8.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Phase 1：四组控制变量实验（1,200 样本）}{14}{subsection.8.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Phase 1 实验结果（30 样本测试集）}}{14}{table.caption.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Phase 2：合成数据防塌缩（1,500 样本）}{15}{subsection.8.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Phase 2 实验结果（30 样本测试集）}}{16}{table.caption.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{训练动力学的质变。}{16}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{exp5 vs exp6：学习率与 Dropout 的反直觉角色。}{16}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{混合比例的敏感性。}{16}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Phase 3：更大 LoRA 与格式微调（exp7/exp8）}{16}{subsection.8.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}合成KiCad预训练：规模化合成数据实验}{17}{subsection.8.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces 合成KiCad预训练实验结果（30 样本测试集）}}{18}{table.caption.23}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces 多模型对比：基座、v1 (exp6) 和 v2 (Phase 1) 的 CompF1 与 JointF1。左侧为 F1 对比，标注 4.2$\times $ 和 2.5$\times $ 提升倍数；右侧为 NED 对比。}}{18}{figure.caption.24}\protected@file@percent }
+\newlabel{fig:model_comparison}{{6}{18}{多模型对比：基座、v1 (exp6) 和 v2 (Phase 1) 的 CompF1 与 JointF1。左侧为 F1 对比，标注 4.2$\times $ 和 2.5$\times $ 提升倍数；右侧为 NED 对比。}{figure.caption.24}{}}
+\newlabel{fig:model_comparison@cref}{{[figure][6][]6}{[1][17][]18}{}{}{}}
+\@writefile{toc}{\contentsline {subparagraph}{发现 1：纯合成预训练在元件标号识别上效果显著。}{18}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{发现 2：JointF1 在纯合成预训练下未见改善的根因分析。}{18}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{发现 3：阶段 2 真实数据微调导致性能下降。}{19}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{发现 4：合成数据规模化路径可行，扩展空间明确。}{19}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}讨论}{19}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}合成数据为何有效：梯度信号层面的机理分析}{19}{subsection.9.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}数据质量优先于数据数量：V4 数据集的经验教训}{20}{subsection.9.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}当前瓶颈与可行路径}{20}{subsection.9.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{模型能力边界。}{20}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{数据层面的结构缺陷。}{21}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{训练策略的改进空间。}{21}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{与其他 VLM-OCR 领域的对比。}{21}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}结论}{21}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}主要贡献}{21}{subsection.10.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}局限与未来工作}{22}{subsection.10.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}技术文档与开源贡献}{23}{section.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}开源资源}{23}{section.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}完整实验历程}{23}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}V1--V4：数据格式探索（2026年6月）}{24}{subsection.A.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V1（150 样本，Open Schematics + Rescraped）。}{24}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V2（300 样本，增加 Rescraped 比例）。}{24}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V3（500 张合成，PIL 自绘符号）。}{24}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V4（5,686 样本，最大数据量最差质量）。}{24}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}V5--V9：架构修复与格式统一（2026年7月上旬）}{24}{subsection.A.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V5（Freeze Projector，r=8，1,857 样本）。}{24}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V6（修复 causal token double-shift bug）。}{24}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V7（修复 BPE boundary merge）。}{24}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V8（宽 LoRA r=16，5.7M params）。}{24}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{V9（格式统一）。}{24}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}模态塌缩根因实验（E1--E6）}{24}{subsection.A.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces 模态塌缩根因排查实验（历史记录）}}{25}{table.caption.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Phase 3：更大容量与格式探索}{25}{subsection.A.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}全部实验汇总}{25}{subsection.A.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces 项目全部完成实验（按时间排序，30 样本测试集）}}{25}{table.caption.43}\protected@file@percent }
+\newlabel{tab:all_exp}{{8}{25}{项目全部完成实验（按时间排序，30 样本测试集）}{table.caption.43}{}}
+\newlabel{tab:all_exp@cref}{{[table][8][]8}{[1][25][]25}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.6}exp10 系列：数据扩展详细记录（2026年7月）}{26}{subsection.A.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{exp10a（baseline）}{26}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{exp10b（high lr）}{26}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{exp10c（big alpha）}{26}{section*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{exp10d（4 epochs）}{26}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{exp10e（long warmup）}{26}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.7}exp11 系列：数据增强详细记录}{26}{subsection.A.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{exp11a（rotation $\pm 5^\circ $ + brightness $\pm 10\%$）}{26}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{exp11b（仅亮度增强，无旋转）}{26}{section*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.8}exp12：继续微调 exp6}{26}{subsection.A.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.9}合成 KiCad 生成器三代演变}{26}{subsection.A.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{第一代（V3 生成器，gen\_synthetic\_v2/v3.py）。}{26}{section*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{第二代（V4 生成器，gen\_synthetic\_v4.py）。}{26}{section*.53}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces 全部实验的 CompF1 + JointF1 汇总（附录用）}}{27}{figure.caption.51}\protected@file@percent }
+\@writefile{toc}{\contentsline {subparagraph}{第三代（kicad-cli 原生，gen\_kicad\_sch\_v3.py）。}{27}{section*.54}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.10}RL 尝试的 20 组变体}{27}{subsection.A.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.11}迭代拒绝采样详细记录}{27}{subsection.A.11}\protected@file@percent }
 \bibstyle{unsrtnat}
 \bibdata{references}
 \bibcite{openschematics2025}{{1}{2025}{{bshada}}{{}}}
 \bibcite{bhandari2025masalachai}{{2}{2025}{{Bhandari et~al.}}{{Bhandari, Bhat, He, Rahmani, Garg, and Karri}}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}V5：LLM-Only LoRA 验证}{13}{subsection.A.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}V8-Fixed}{13}{subsection.A.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}基座模型与微调模型输出对比}{13}{subsection.A.4}\protected@file@percent }
 \bibcite{cui2025paddleocrvl}{{3}{2025}{{Cui et~al.}}{{Cui, Sun, Liang, Gao, Zhang, Liu, Wang, Zhou, Liu, Lin, Zhang, Zhang, Zheng, Zhang, Zhang, Liu, Yu, and Ma}}}
 \bibcite{zhang2026circuitocr}{{4}{2026}{{Zhang and Chen}}{{}}}
-\gdef \@abspage@last{14}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.12}基座模型与微调模型输出对比}{28}{subsection.A.12}\protected@file@percent }
+\gdef \@abspage@last{28}
