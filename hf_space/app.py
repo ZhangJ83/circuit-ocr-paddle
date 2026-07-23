@@ -9,13 +9,13 @@ with gr.Blocks(title="CircuitOCR") as demo:
             gr.Markdown("""
 ## Multi-Metric Benchmark (test_clean, N=30)
 
-| Model | CompF1 | JointF1 | NED | Description |
+| Model | CompF1 | LineAcc | NED | Description |
 |---|---:|---:|---:|---|
-| **v2 (Phase 1)** | **0.304** | 0.005 | 0.942 | 5000 synthetic KiCad pre-training |
-| v1 (exp6) | 0.119 | 0.008 | 0.946 | 1500 real circuits + synth text |
+| **v2 (Phase 1)** | **0.304** | **0.040** | 0.942 | 5000 synthetic KiCad pre-training |
+| v1 (exp6) | 0.119 | 0.033 | 0.946 | 1500 real circuits + synth text |
 
-**v2 CompF1 is 2.5x v1.** Component refdes recognition greatly improved by synthetic data.
-JointF1 remains very low for both models — (refdes, value) joint recognition is the key unsolved challenge.
+**v2 CompF1 is 2.6x v1.** Component refdes recognition greatly improved by synthetic data.
+JointF1-norm remains near zero for both models (v1=0.008, v2=0.005) — (refdes, value) joint recognition is the key unsolved challenge.
 
 [Full Report](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf) | [Beamer](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf)
 """)
@@ -24,10 +24,10 @@ JointF1 remains very low for both models — (refdes, value) joint recognition i
             gr.Markdown("""
 ## Available LoRA Weights
 
-| File | Model | CompF1 | JointF1 |
+| File | Model | CompF1 | LineAcc |
 |------|-------|:---:|:---:|
-| `lora_phase1_synth5k.pdparams` | v2 — Synthetic pre-training (5000 KiCad) | 0.304 | 0.005 |
-| `lora_exp6_best.pdparams` | v1 — Real data baseline (1500 samples) | 0.119 | 0.008 |
+| `lora_phase1_synth5k.pdparams` | v2 — Synthetic pre-training (5000 KiCad) | 0.304 | 0.040 |
+| `lora_exp6_best.pdparams` | v1 — Real data baseline (1500 samples) | 0.119 | 0.033 |
 
 **Usage:** Load base model PaddleOCR-VL-0.9B → apply LoRA (r=16, α=32, Q/K/V/O+MLP) → load weights via `p.set_value()`.
 

@@ -14,13 +14,13 @@
 
 ## 项目概述
 
-CircuitOCR 是一个基于 **PaddleOCR-VL-0.9B** 的电路原理图 OCR 系统，通过 LoRA 微调实现元件标号、参数值、引脚定义和网络标号的自动提取。所有训练在单卡 RTX 4060 8GB 上完成。
+CircuitOCR 是一个基于 **PaddleOCR-VL-0.9B** 的电路原理图 OCR 系统，通过 LoRA 微调实现元件标号、参数值的自动识别。所有训练在单卡 RTX 4060 8GB 上完成。
 
-电路原理图 OCR 是一个被现有 OCR 工具普遍忽视但具有真实工业需求的场景。PaddleOCR、Tesseract、EasyOCR 三大引擎在电路图上全部失效。**基座 PaddleOCR-VL-0.9B 在 30 样本测试集上 CompF1 = 0.0000、JointF1 = 0.0000（零元件识别），NED = 0.9437，输出为预训练数据的幻觉文本（如 "Service Name / Data Source"），完全无法识别电路元件。** 经过 LoRA 微调后，CompF1 提升至 0.1564，JointF1 从零提升至 0.0111，模型开始能够识别电容 BOM 表、电阻值和原理图标签。本项目的核心贡献是构建了首个面向电路 OCR 的高质量标注数据集，并提出合成文字数据混合策略有效解决了小数据集上的模态塌缩问题。
+电路原理图 OCR 是一个被现有 OCR 工具普遍忽视但具有真实工业需求的场景。PaddleOCR、Tesseract、EasyOCR 三大引擎在电路图上全部失效。经过 LoRA 微调后，v2 模型（5,000 张合成 KiCad 预训练）达到 **CompF1 = 0.304**（2.6× v1），LineAcc = 0.040。本项目的核心贡献是构建了高精度标注数据集 Dataset A，提出合成文字数据防塌缩策略，并通过 kicad-cli 程序化生成 5,000 张合成 KiCad 原理图实现了纯合成预训练的最佳模型。
 
 ### 当前状态
 
-Phase 2 实验已完成。相比基座模型（CompF1 = 0.0000，JointF1 = 0.0000，零元件识别），最优模型 exp6 达到 CompF1 = 0.1564，JointF1 = 0.0111。**本项目为研究原型，不可用于生产环境。** 模型可以实现部分元件标号和参数值的正确识别，但 ExactMatch = 0%（无完整网表重建能力），且 JointF1 远低于可用阈值（0.05）。
+**v2 (Phase 1 合成预训练) 是目前最优模型**，CompF1 = 0.304（较 v1 提升 2.6×），LineAcc = 0.040，NED = 0.942。v2 在三项主指标上均优于 v1。**本项目为研究原型（TRL 3），不可用于生产环境。** 辅助人工标注是当前最优的近期落地场景。
 
 ---
 
@@ -106,14 +106,15 @@ Phase 2 实验已完成。相比基座模型（CompF1 = 0.0000，JointF1 = 0.000
 
 ## 实验与结果
 
-### 基座 vs 微调（30 样本测试集）
+### 模型对比（30 样本测试集）
 
-| 模型 | CompF1 | JointF1 | NED | 输出特征 |
+| 模型 | CompF1 | LineAcc | NED | 说明 |
 |------|:---:|:---:|:---:|------|
-| 基座 PaddleOCR-VL-0.9B | **0.0000** | **0.0000** | 0.9437 | 幻觉文本（"Service Name / Data Source"），完全无法识别电路元件 |
-| exp6 (Baseline + Synth) | **0.1564** | **0.0111** | 0.9414 | 开始识别电容 BOM、电阻值和原理图标签 |
+| 基座 PaddleOCR-VL-0.9B | 0.000 | 0.000 | 0.944 | 幻觉文本，无法识别电路元件 |
+| v1 (exp6, 合成文字混合) | 0.119 | 0.033 | 0.946 | 1,500 样本基线 |
+| **v2 (Phase 1, 合成 KiCad 预训练)** | **0.304** | **0.040** | **0.942** | **最佳模型，5,000 合成 KiCad** |
 
-基座模型在电路图上输出的是预训练数据中的通用文本，与电路完全无关。微调后模型开始输出电路领域词汇。
+v2 在三项主指标上全面优于 v1，CompF1 提升 2.6×。
 
 ### Phase 1：基准实验（1,200 样本）
 
@@ -168,10 +169,10 @@ Phase 2 实验已完成。相比基座模型（CompF1 = 0.0000，JointF1 = 0.000
 | 📂 代码仓库 | [circuit-ocr-paddle](https://github.com/ZhangJ83/circuit-ocr-paddle) | 全部训练/评估/数据生成脚本 |
 | 📦 数据集 | [circuit_ocr_dataset_final](https://github.com/ZhangJ83/circuit_ocr_dataset_final) | 1,820 样本 + 质量报告 |
 | 🎮 在线 Demo | [HF Space](https://huggingface.co/spaces/yingchu83/CircuitOCR) | 预计算示例 + 基准数据展示 |
-| 🏋️ LoRA 权重 | [HF Models](https://huggingface.co/yingchu83/CircuitOCR-lora) | exp5/exp6 最优权重 |
-| 📄 技术报告 (CN) | [template.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf) | 24 页，含完整实验与分析 |
-| 📄 技术报告 (EN) | [english.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf) | English technical report |
-| 🎞️ Beamer 演示 | [beamer_slides.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf) | 37 页，含 15+ 张数据图表 |
+| 🏋️ LoRA 权重 | [HF Models](https://huggingface.co/yingchu83/CircuitOCR-lora) | v2 (Phase 1) + v1 (exp6) 双版本 |
+| 📄 技术报告 (CN) | [template.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf) | 51 页，含完整实验与分析 |
+| 📄 技术报告 (EN) | [english.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf) | 43 页 English technical report |
+| 🎞️ Beamer 演示 | [beamer_slides.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf) | 34 页，含 15+ 张数据图表 |
 
 ---
 

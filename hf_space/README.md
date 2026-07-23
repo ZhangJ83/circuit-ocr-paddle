@@ -4,7 +4,7 @@ emoji: ⚡
 colorFrom: blue
 colorTo: indigo
 sdk: gradio
-sdk_version: 4.44.0
+sdk_version: 5.23.1
 app_file: app.py
 pinned: true
 license: mit
@@ -13,26 +13,23 @@ python_version: "3.10"
 
 # CircuitOCR: Schematic Diagram Understanding
 
-PaddleOCR-VL-0.9B + LoRA fine-tuning for circuit schematic OCR and netlist extraction.
+PaddleOCR-VL-0.9B + LoRA fine-tuning for circuit schematic OCR.
 
-## Phase 1 Benchmark (V10-Fixed S600, easy50-pure, 44 samples)
+## Benchmark (test_clean, N=30)
 
-| Model | CompF1 ↑ | TokenRec ↑ | NED ↓ | RepRate | Diversity |
-|:---|---:|---:|---:|---:|---:|
-| Base (no fine-tune) | 0.0455 | 0.0016 | 0.9296 | 6.8% | 90.9% |
-| S400 | 0.1820 | 0.1302 | 0.8298 | 20.5% | 95.5% |
-| **S600** ★ | **0.2061** | **0.1540** | **0.8031** | 15.9% | 90.9% |
-| S800 (overfit) | 0.2080 | 0.1191 | 0.8063 | 40.9% | 93.2% |
+| Model | CompF1 ↑ | LineAcc ↑ | NED ↓ | Description |
+|:---|---:|---:|---:|---|
+| Base | 0.000 | 0.000 | 0.944 | No fine-tuning |
+| **v2 (Phase 1)** ★ | **0.304** | **0.040** | **0.942** | 5,000 synthetic KiCad pre-training |
+| v1 (exp6) | 0.119 | 0.033 | 0.946 | 1,500 real + synthetic text |
 
-- Component F1: **4.5×** improvement | Token Recall: **96×** improvement | NED: **13.6%** relative error reduction
-- S600 is the optimal checkpoint; S800 overfits (repetition rate 40.9%)
+- CompF1: **2.6×** improvement over v1 | All training on single RTX 4060 8GB
 
-## Key Technical Details
+## Key Details
 
-- **Architecture**: PaddleOCR-VL-0.9B (908M params) + Wide LoRA (r=16, α=32, 5.7M params, 0.63%)
-- **Strategy**: LLM-Only LoRA — freeze Projector, fine-tune only LLM layers to avoid modality collapse
-- **Dataset**: V5 Golden — 1,857 samples (500 synthetic V3 + 1,357 real KiCad projects), 100% visual-literal alignment
-- **Training**: 3 epochs (1,165 steps), single RTX 4060 8GB, ~43 minutes
-- **Three bugs fixed**: causal token double-shift, BPE boundary merging, set_state_dict silent failure (Paddle 3.1.0)
+- **Strategy**: Freeze Projector → LoRA (r=16, α=32, 5.7M params) on LLM only
+- **v2**: 5,000 synthetic KiCad schematics (kicad-cli), pure synthetic pre-training
+- **v1**: 1,500 samples (1,200 real KiCad + 300 synthetic text, 20% mix)
+- **Data**: Dataset A — 1,820 samples, 7-round validation, accuracy >99%
 
 [GitHub](https://github.com/ZhangJ83/circuit-ocr-paddle) | [Dataset](https://github.com/ZhangJ83/circuit-ocr-dataset) | [Report (EN)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf) | [Report (CN)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf) | [LoRA Weights](https://huggingface.co/yingchu83/CircuitOCR-lora)
