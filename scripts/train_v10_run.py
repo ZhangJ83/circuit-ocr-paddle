@@ -1,0 +1,374 @@
+"""
+V10-Fixed: Phase 1 Repair Script
+=================================
+Based on V9-Pure, with critical fixes:
+  1. LR FIX: 5e-4 → 2e-5 with LinearWarmup (100 steps, 2e-6 → 2e-5)
+     - Root cause of 41-90% repetition degradation
+  2. REPETITION_PENALTY=1.1 in quick_inference
+  3. EARLY PATCH: flex_checkpoint dummy applied BEFORE paddleformers import
+     - Required for Paddle 3.1.0 compatibility in pyqpanda-quantum env
+  4. Same data: V9 Pure (1554 samples: 1097 KiCad + 457 Synthetic V3, NO Masala)
+  5. Same architecture: Wide LoRA r=16, alpha=32, LLM attention only
+
+Key unchanged from V9:
+  - SEPARATE tokenization (BPE-safe)
+  - Manual CE loss with correct causal shift
+  - MAX_DIM=384, EPOCHS=3, GRAD_ACCUM=4, GRAD_CLIP=1.0
+  - LoRA targets: .*q_proj, .*k_proj, .*v_proj, .*o_proj, .*linear_1, .*linear_2
+"""
+import os, sys, json, time, random
+
+# ── Early patch: flex_checkpoint for Paddle 3.1.0 compatibility ──
+# MUST run before ANY paddleformers import
+from types import ModuleType
+_dummy_fc = ModuleType('dummy_flex_checkpoint')
+_dummy_fc.build_sharded_state_dict = lambda *a, **kw: None
+sys.modules.setdefault('paddle.distributed.flex_checkpoint', _dummy_fc)
+sys.modules.setdefault('paddle.distributed.flex_checkpoint.dcp', _dummy_fc)
+sys.modules.setdefault('paddle.distributed.flex_checkpoint.dcp.sharded_weight', _dummy_fc)
+
+# Fall back to default cache directories if local F:/ paths do not exist
+local_hf_cache = "F:/hf_cache/hub"
+local_paddle_cache = "F:/paddle_cache"
+if os.path.exists(local_hf_cache):
+    os.environ.setdefault("HF_HOME", local_hf_cache)
+    os.environ.setdefault("HF_HUB_CACHE", local_hf_cache)
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+if os.path.exists(local_paddle_cache):
+    os.environ.setdefault("PADDLE_HOME", local_paddle_cache)
+
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+os.environ.setdefault("FLAGS_allocator_strategy", "auto_growth")
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'circuit-ocr-dataset', 'scripts'))
+import paddle; paddle.set_device("gpu")
+# Minimal patches
+if not hasattr(paddle, "LongTensor"): paddle.LongTensor = paddle.Tensor
+import paddle.nn.functional as F
+if not hasattr(F, "swiglu"): F.swiglu = lambda x: paddle.chunk(x, 2, -1)[0] * F.silu(paddle.chunk(x, 2, -1)[1])
+
+# Minimal PySafeSlice.shape patch (no temp file creation)
+try:
+    from safetensors import safe_open as _orig_so
+    def _patched_so(*args, **kwargs):
+        result = _orig_so(*args, **kwargs)
+        if len(result.keys()) > 0:
+            sl = result.get_slice(list(result.keys())[0])
+            if not hasattr(type(sl), 'shape'):
+                type(sl).shape = property(lambda self: self.get_shape())
+        return result
+    import safetensors; safetensors.safe_open = _patched_so
+except Exception: pass
+import numpy as np
+from paddleformers.transformers import AutoModelForConditionalGeneration, AutoProcessor
+from paddleformers.peft import LoRAConfig, LoRAModel
+
+# Determine dataset directory dynamically relative to script location
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATASET_DIR = r"g:/mimo_project/circuit_ocr"
+
+LOCAL_MODEL_PATH = r"F:\hf_cache\hub\models--PaddlePaddle--PaddleOCR-VL\snapshots\baee27eebcbf26cdeab160116679d765f13a3f27"
+if os.path.exists(LOCAL_MODEL_PATH):
+    MODEL_PATH = LOCAL_MODEL_PATH
+else:
+    MODEL_PATH = os.environ.get("PADDLE_MODEL_PATH", "PaddlePaddle/PaddleOCR-VL")
+
+OUTPUT_DIR = r"g:/mimo_project/circuit_ocr/checkpoints"
+CKPT_DIR = r"g:/mimo_project/circuit_ocr/checkpoints/v10_local"
+os.makedirs(CKPT_DIR, exist_ok=True)
+
+def log(msg):
+    ts = __import__('datetime').datetime.now().strftime("%H:%M:%S")
+    try: print(f"[{ts}] {msg}", flush=True)
+    except: print(f"[{ts}] {msg.encode('ascii','replace').decode('ascii')}", flush=True)
+
+# ── Config ──
+MAX_DIM = 384
+EPOCHS = 2
+GRAD_ACCUM = 4
+GRAD_CLIP = 1.0
+CHECKPOINT_STEPS = 200
+
+# LR FIX: 2e-5 (was 5e-4 — 25x reduction)
+BASE_LR = 2e-5
+WARMUP_STEPS = 100
+ETA_MIN = 2e-6
+
+# Repetition penalty for inference monitoring
+REPETITION_PENALTY = 1.1
+
+# WIDE targets: Vision Encoder + LLM + Projector
+TARGETS = [
+    ".*q_proj", ".*k_proj", ".*v_proj", ".*o_proj",
+    ".*linear_1", ".*linear_2",
+]
+
+log("=" * 60)
+log("TRAINING V10-LOCAL (Phase 2: v4 synth + real KiCad + regularization)")
+log(f"  Targets: {TARGETS}")
+log(f"  Config: max_dim={MAX_DIM}, epochs={EPOCHS}, LR={BASE_LR:.0e}→{ETA_MIN:.0e}, warmup={WARMUP_STEPS} steps")
+log(f"  grad_accum={GRAD_ACCUM}, grad_clip={GRAD_CLIP}")
+log(f"  repetition_penalty={REPETITION_PENALTY}")
+log(f"  Dataset: output/train_clean.jsonl (v4 synth 2000 + real KiCad 1839, NO Masala)")
+log(f"  Tokenization: Separate Prompt & Label (No BPE boundary merging)")
+log(f"  Loss: Manual CE with correct shift (No double-shift)")
+log("=" * 60)
+
+# ── Load Model ──
+log("Loading model...")
+model = AutoModelForConditionalGeneration.from_pretrained(
+    MODEL_PATH, load_checkpoint_format="safetensors", dtype="bfloat16",
+    low_cpu_mem_usage=True)
+# Trigger immediate GPU allocation to free CPU RAM
+import gc; gc.collect()
+model.config._attn_implementation = "flashmask"
+model.visual.config._attn_implementation = "flashmask"
+
+# LoRA with r=16, alpha=32 (scale = 2.0)
+lc = LoRAConfig(r=16, lora_alpha=32, target_modules=TARGETS, lora_dropout=0.05)
+model = LoRAModel(model, lc)
+model.mark_only_lora_as_trainable()
+if not hasattr(model.model, 'full'):
+    model.model.full = lambda *a, **kw: iter(model.model.named_parameters())
+processor = AutoProcessor.from_pretrained(MODEL_PATH)
+
+trainable = sum(p.size for p in model.parameters() if not p.stop_gradient)
+lora_count = sum(1 for k, p in model.named_parameters() if 'lora_' in k)
+log(f"Trainable parameters: {trainable:,}  LoRA matrices: {lora_count}")
+
+# ── Data ──
+with open(f"{DATASET_DIR}/output/train_clean.jsonl", encoding="utf-8") as f:
+    data = [json.loads(l) for l in f if l.strip()]
+random.shuffle(data)
+# Hold out 10% for validation monitoring
+split = int(len(data) * 0.9)
+train_data = data[:split]
+val_data = data[split:]
+total_samples = EPOCHS * len(train_data)
+total_steps = total_samples // GRAD_ACCUM
+log(f"Training: {len(train_data)} train + {len(val_data)} val x {EPOCHS} epochs = {total_samples} samples = {total_steps} optimizer steps")
+
+# ── Optimizer (LR FIX) ──
+# LinearWarmup (100 steps: 2e-6 → 2e-5) + CosineAnnealing (2e-5 → 2e-6)
+cosine_decay = paddle.optimizer.lr.CosineAnnealingDecay(
+    learning_rate=BASE_LR, T_max=total_steps - WARMUP_STEPS, eta_min=ETA_MIN)
+lr_scheduler = paddle.optimizer.lr.LinearWarmup(
+    learning_rate=cosine_decay,
+    warmup_steps=WARMUP_STEPS, start_lr=ETA_MIN, end_lr=BASE_LR)
+opt = paddle.optimizer.AdamW(
+    learning_rate=lr_scheduler, parameters=[p for p in model.parameters() if not p.stop_gradient],
+    weight_decay=0.1)
+
+log(f"Optimizer: AdamW, lr_schedule: LinearWarmup({WARMUP_STEPS} steps, {ETA_MIN:.0e}→{BASE_LR:.0e}) + CosineAnnealing(→{ETA_MIN:.0e})")
+
+# ── Quick inference helper (Manual Greedy Decoder with repetition_penalty) ──
+def quick_inference(samples, max_tokens=60):
+    preds = []
+    for s in samples:
+        try:
+            from PIL import Image
+            img_path = f"{DATASET_DIR}/{s['images'][0].lstrip('./')}"
+            img = Image.open(img_path).convert("RGB")
+            w, h = img.size
+            if max(w, h) > MAX_DIM:
+                scale = MAX_DIM / max(w, h)
+                img = img.resize((int(w*scale), int(h*scale)), Image.LANCZOS)
+
+            msgs = [{"role":"user","content":[{"type":"image","image":img},{"type":"text","text":s["messages"][0]["content"].replace("<image>","")}]}]
+            inp = processor.apply_chat_template(msgs, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors="pd")
+
+            input_ids = inp["input_ids"]
+            attention_mask = inp["attention_mask"]
+            pixel_values = inp.get("pixel_values")
+            image_grid_thw = inp.get("image_grid_thw")
+
+            generated = []
+            with paddle.no_grad():
+                for _ in range(max_tokens):
+                    outputs = model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        pixel_values=pixel_values,
+                        image_grid_thw=image_grid_thw
+                    )
+                    logits = outputs[0] if isinstance(outputs, (list, tuple)) else outputs.logits
+                    next_token_logits = logits[:, -1, :]
+
+                    # Apply repetition_penalty: penalize already-generated tokens
+                    if REPETITION_PENALTY != 1.0 and generated:
+                        for tid in set(generated):
+                            score = next_token_logits[0, tid].item()
+                            if score < 0:
+                                next_token_logits[0, tid] = score * REPETITION_PENALTY
+                            else:
+                                next_token_logits[0, tid] = score / REPETITION_PENALTY
+
+                    next_token = int(paddle.argmax(next_token_logits, axis=-1).numpy()[0])
+                    if next_token == processor.tokenizer.eos_token_id:
+                        break
+                    generated.append(next_token)
+                    next_tensor = paddle.to_tensor([[next_token]], dtype=input_ids.dtype)
+                    input_ids = paddle.concat([input_ids, next_tensor], axis=1)
+                    attention_mask = paddle.concat([attention_mask, paddle.ones([1, 1], dtype=attention_mask.dtype)], axis=1)
+
+            resp = processor.tokenizer.decode(generated, skip_special_tokens=True)
+            preds.append(resp)
+            img.close()
+            del img, inp, input_ids, attention_mask, generated; paddle.device.cuda.empty_cache()
+        except Exception as e:
+            preds.append(f"[ERR:{str(e)[:40]}]")
+    return preds
+
+# Monitor on validation set (easy50 test set for external benchmark, val for internal)
+monitor_samples = val_data[:3]
+log(f"Using val split for monitoring ({len(val_data)} held-out samples)")
+
+# ── Train ──
+from PIL import Image; from io import BytesIO
+model.train()
+t0 = time.time()
+global_step = 0
+history = []
+opt.clear_grad()
+
+for epoch in range(EPOCHS):
+    random.shuffle(train_data)
+    log(f"--- Epoch {epoch+1}/{EPOCHS} ---")
+
+    for idx, sample in enumerate(train_data):
+        img_path = f"{DATASET_DIR}/{sample['images'][0].lstrip('./')}"
+        if not os.path.exists(img_path):
+            continue
+        image = Image.open(img_path).convert("RGB")
+        w, h = image.size
+        if max(w, h) > MAX_DIM:
+            scale = MAX_DIM / max(w, h)
+            image = image.resize((int(w*scale), int(h*scale)), Image.LANCZOS)
+        buf = BytesIO(); image.save(buf, format="JPEG", quality=95); buf.seek(0)
+        image = Image.open(buf)
+
+        query = sample["messages"][0]["content"]
+        label = sample["messages"][1]["content"]
+
+        # === 1. TOKENIZE PROMPT & LABEL SEPARATELY (No BPE boundary merging) ===
+        prompt_msgs = [{"role":"user","content":[{"type":"image","image":image},{"type":"text","text":query.replace("<image>","")}]}]
+        prompt_inputs = processor.apply_chat_template(prompt_msgs, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors="pd")
+        prompt_ids = prompt_inputs["input_ids"][0]
+        prompt_len = prompt_ids.shape[0]
+
+        lt = processor.tokenizer(label, return_tensors="pd", padding=False, truncation=True, max_length=512)
+        label_ids = lt["input_ids"][0]
+        eos_tensor = paddle.to_tensor([processor.tokenizer.eos_token_id], dtype=label_ids.dtype)
+        label_ids = paddle.concat([label_ids, eos_tensor], axis=0)
+        label_len = label_ids.shape[0]
+
+        # === 2. CONCATENATE INPUTS & CREATING LABELS ===
+        full_input_ids = paddle.concat([prompt_ids, label_ids], axis=0).unsqueeze(0)
+        full_attn_mask = paddle.concat([prompt_inputs["attention_mask"][0], paddle.ones([label_len], dtype="int64")], axis=0).unsqueeze(0)
+
+        labels_t = paddle.full([1, prompt_len + label_len], fill_value=-100, dtype="int64")
+        labels_t[0, prompt_len:] = label_ids
+
+        # === 3. FORWARD PASS ===
+        out = model(
+            input_ids=full_input_ids,
+            attention_mask=full_attn_mask,
+            pixel_values=prompt_inputs["pixel_values"],
+            image_grid_thw=prompt_inputs.get("image_grid_thw")
+        )
+        logits = out[0] if isinstance(out, (tuple, list)) else out.logits
+
+        # === 4. MANUAL CE LOSS WITH CORRECT CAUSAL SHIFT ===
+        shift_logits = paddle.cast(logits[:, :-1, :], "float32")
+        shift_labels = labels_t[:, 1:]
+        mask = paddle.cast(shift_labels != -100, "float32")
+        shift_labels_clamped = paddle.where(shift_labels != -100, shift_labels, paddle.zeros_like(shift_labels))
+        ce = paddle.nn.functional.cross_entropy(
+            shift_logits.reshape([-1, shift_logits.shape[-1]]),
+            shift_labels_clamped.reshape([-1]), reduction="none").reshape(shift_labels.shape)
+        loss = (ce * mask).sum() / mask.sum().clip(min=1)
+
+        # === 5. BACKWARD + OPTIMIZER UPDATE ===
+        scaled_loss = loss / GRAD_ACCUM
+        scaled_loss.backward()
+        image.close()
+
+        if (idx + 1) % GRAD_ACCUM == 0 or idx == len(train_data) - 1:
+            paddle.nn.utils.clip_grad_norm_([p for p in model.parameters() if not p.stop_gradient], max_norm=GRAD_CLIP)
+            opt.step()
+            lr_scheduler.step()
+            opt.clear_grad()
+            global_step += 1
+
+            if global_step % 20 == 0 or global_step == 1:
+                elapsed = (time.time()-t0)/60
+                eta = (elapsed/global_step*total_steps - elapsed) if global_step > 0 else 0
+                log(f"  [S{global_step}/{total_steps}] loss={loss.item():.4f} lr={opt.get_lr():.2e} elapsed={elapsed:.0f}m ETA={eta:.0f}m")
+                history.append({"step": global_step, "loss": float(loss.item()), "lr": opt.get_lr()})
+
+            # ── Checkpoint Save & Monitor ──
+            if global_step % CHECKPOINT_STEPS == 0:
+                log(f"--- Checkpoint at S{global_step} ---")
+                model.eval()
+
+                # Save LoRA weights
+                lora_dict = {k: paddle.cast(p.detach(), "float16") for k, p in model.named_parameters() if 'lora_' in k}
+                ckpt_path = f"{CKPT_DIR}/lora_s{global_step}.pdparams"
+                paddle.save(lora_dict, ckpt_path)
+                log(f"  Saved: {ckpt_path} ({len(lora_dict)} matrices)")
+
+                # Monitor inference quality
+                log("  Running quick validation inference...")
+                preds = quick_inference(monitor_samples)
+                for m_idx, pred in enumerate(preds):
+                    ref = monitor_samples[m_idx]["messages"][1]["content"][:80]
+                    log(f"    Sample {m_idx} Pred: {repr(pred[:100])}")
+                    log(f"    Sample {m_idx} Ref:  {repr(ref)}")
+
+                unique_preds = len(set(preds))
+                log(f"    Diversity: {unique_preds}/{len(preds)}")
+
+                # Save as latest best
+                best_path = f"{OUTPUT_DIR}/lora_best_v11_fp16.pdparams"
+                paddle.save(lora_dict, best_path)
+                log(f"  Also saved as best/latest: {best_path}")
+
+                paddle.device.cuda.empty_cache()
+                model.train()
+
+total_min = (time.time()-t0)/60
+log(f"\nTraining done in {total_min:.0f}m")
+
+# ── Save Final Model ──
+model.eval()
+lora_dict = {k: paddle.cast(p.detach(), "float16") for k, p in model.named_parameters() if 'lora_' in k}
+final_path = f"{OUTPUT_DIR}/lora_v11_final_fp16.pdparams"
+paddle.save(lora_dict, final_path)
+log(f"Final model saved: {final_path} ({len(lora_dict)} matrices)")
+
+# ── Final Report ──
+log("=" * 60)
+log("TRAINING V10-LOCAL (Phase 2) SUMMARY")
+log(f"  LR: {BASE_LR:.0e} with {WARMUP_STEPS}-step warmup → Cosine to {ETA_MIN:.0e}")
+log(f"  Repetition penalty: {REPETITION_PENALTY}")
+log(f"  Total steps: {total_steps}")
+log(f"  Total time: {total_min:.0f}m")
+log(f"  Final model: {final_path}")
+log(f"  Checkpoints: {CKPT_DIR}")
+if history:
+    log(f"  Initial loss: {history[0]['loss']:.4f}")
+    log(f"  Final loss: {history[-1]['loss']:.4f}")
+log("=" * 60)
+
+# ── Save training history ──
+with open(f"{CKPT_DIR}/training_history_v11.json", "w") as f:
+    json.dump({"history": history, "total_steps": total_steps, "total_min": total_min,
+               "config": {"base_lr": BASE_LR, "warmup_steps": WARMUP_STEPS, "eta_min": ETA_MIN,
+                          "repetition_penalty": REPETITION_PENALTY, "max_dim": MAX_DIM,
+                          "epochs": EPOCHS, "grad_accum": GRAD_ACCUM}}, f)
+
+log("Training V10-Fixed complete!")

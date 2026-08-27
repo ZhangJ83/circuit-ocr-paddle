@@ -1,0 +1,332 @@
+{
+  "config": {
+    "model_path": "F:\\hf_cache\\hub\\models--PaddlePaddle--PaddleOCR-VL\\snapshots\\baee27eebcbf26cdeab160116679d765f13a3f27",
+    "lora_checkpoint": null,
+    "data_path": "../ocr_vl_sft-test-easy50-pure.jsonl",
+    "repetition_penalty": 1.1,
+    "max_new_tokens": 256
+  },
+  "metrics": {
+    "n_samples": 44,
+    "exact_match_rate": 0.0,
+    "component_precision": 0.0455,
+    "component_recall": 0.0455,
+    "component_f1": 0.0455,
+    "token_recall": 0.0016,
+    "repetition_rate": 0.0682,
+    "repetition_count": 3,
+    "ned": 0.9296,
+    "unique_predictions": 40,
+    "diversity": 0.9091
+  },
+  "results": [
+    {
+      "id": 0,
+      "image": "./data/test/Mark-MDO47_Skull-Project.png",
+      "reference": "U2\n~\nA1\nArduino_USB\nR4\n3K\nU3\n~\nR3\n7K",
+      "prediction": "NOTE: Notwithstanding the from (shoe (set) connection video)\n(A)\n(B)\n(C)\n(D)\n(E)\n(F)\n(G)\n(H)\n(I)\n(J)\n(K)\n(L)\n(M)\n(N)\n(O)\n(P)\n(Q)\n(R)\n(S)\n(T)\n(U)\n(V)\n(W)\n(X)\n(Y)\n(Z)",
+      "time_sec": 13.3
+    },
+    {
+      "id": 1,
+      "image": "./data/test/digital_simple_0000.png",
+      "reference": "C1\n10uF\nC2\n1uF\nR1\n100\nF1\n2A\nC3\n100nF",
+      "prediction": "ESP32-WROOM",
+      "time_sec": 1.24
+    },
+    {
+      "id": 2,
+      "image": "./data/test/rh1tech_echo.png",
+      "reference": "VBUS\nJ3\nD-SUB 9 Male\nGND\nC10\n100n\nGND",
+      "prediction": "ID | Value\n0123456789 |  \n00123456789 |  \n0123456789 |  \n00123456789 |  \n0123456789 |  \n00123456789 |  \n0123456789 |  \n00123456789 |  \n0123456789 |  \n00123456789 |  \n0123456789 |  \n00123456789 |  \n0123456789 |  \n00123456789 |  \n0123456789 |  \n00123456789 |  \n0123456789 |  \n00123456789 |  \n012345678",
+      "time_sec": 33.62
+    },
+    {
+      "id": 3,
+      "image": "./data/test/analog_simple_v2_0018.png",
+      "reference": "R1\n22k\nR2\n100\nD1\n1N4007\nL1\n100uH\nR3\n470",
+      "prediction": "This image is a logo and does not contain any chart, graph, or data points that can be extracted into a table.",
+      "time_sec": 2.93
+    },
+    {
+      "id": 4,
+      "image": "./data/test/Pari55051_cat-pcb.png",
+      "reference": "D1\nLED\nBT1\nBattery_Cell\nR1\nR\nR2\nR\nD2\nLED",
+      "prediction": "Name | Type\nBMS | BMS\nDendroxy_forr | Dendroxy_forr\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS",
+      "time_sec": 27.98
+    },
+    {
+      "id": 5,
+      "image": "./data/test/lokichubs_Flicker-noise-project.png",
+      "reference": "U3\n1063\nJ1\nRaspberry_Pi_4\nGND\nR1\nR\nU1\nADS1115IDGS",
+      "prediction": "Model | Model Name\nT5-10B | T5-10B\nT5-20B | T5-20B\nT5-30B | T5-30B\nT5-40B | T5-40B\nT5-50B | T5-50B\nT5-60B | T5-60B\nT5-70B | T5-70B\nT5-80B | T5-80B\nT5-90B | T5-90B\nT5-100B | T5-100B\nT5-110B | T5-110B\nT5-120B | T5-120B\nT5-130B | T5-130B\nT5-140B | T5-140B\nT5-150B | T5-150B\nT5-160B | T5-160B\nT5-170B | T5-17",
+      "time_sec": 28.66
+    },
+    {
+      "id": 6,
+      "image": "./data/test/power_simple_v2_0000.png",
+      "reference": "C1\n1nF\nU1\nLM7805\nU2\nLM7805\nR1\n330\nU3\nTC4427\nF1\n5A",
+      "prediction": "1.0\n2.0\n3.0\n4.0\n5.0\n6.0\n7.0\n8.0\n9.0\n10.0",
+      "time_sec": 4.78
+    },
+    {
+      "id": 7,
+      "image": "./data/test/power_simple_v2_0005.png",
+      "reference": "U1\nMIC5219-3.3\nU2\nUCC27211\nC1\n100pF\nC2\n10uF\nR1\n4.7k",
+      "prediction": "This image is a logo or graphic design, not a chart. It does not contain any data points that can be extracted and converted into a table.",
+      "time_sec": 3.48
+    },
+    {
+      "id": 8,
+      "image": "./data/test/Brown-County-FIRST-Robotics_SPARKMAX_Breakout.png",
+      "reference": "GND\n+3.3V\n+3.3V\nJ2\nConn_02x07_Odd_Even\nJ5\n5-104935-3\nGND",
+      "prediction": "Data Point | Value\n1 | 0.25\n2 | 0.30\n3 | 0.40\n4 | 0.60\n5 | 0.80\n6 | 1.00",
+      "time_sec": 5.62
+    },
+    {
+      "id": 9,
+      "image": "./data/test/benjiaomodular_sot2dip.png",
+      "reference": "J2\nConn_01x06_Male\nJ3\nConn_01x03_Male\nJ1\nConn_01x03_Male",
+      "prediction": "Category | Name\nGym |  \nDate | 2018-06-04\nTime | 19:57:30\nTime | 20:00:00\nTime | 20:00:30\nTime | 20:01:00\nTime | 20:01:30\nTime | 20:02:00\nTime | 20:02:30\nTime | 20:03:00\nTime | 20:03:30\nTime | 20:04:00\nTime | 20:04:30\nTime | 20:05:00\nTime | 20:05:30\nTime | 20:06:00\nTime | 20:06:30\nTime | 20:07:00\nTime | 20:07:30\nTime | 20:08:00\nTime | 20:08:30\nTime | 20",
+      "time_sec": 34.07
+    },
+    {
+      "id": 10,
+      "image": "./data/test/JOBriant30_PIC32_dev_board.png",
+      "reference": "J1\nConn_01x24_Pin\nJ2\nConn_01x24_Pin\nU2\nPIC32CX1012BZ25048",
+      "prediction": "Data Point | Value\n1 | 0.5\n2 | 0.6\n3 | 0.7\n4 | 0.8\n5 | 0.9\n6 | 1.0\n7 | 1.1\n8 | 1.2\n9 | 1.3\n10 | 1.4\n11 | 1.5\n12 | 1.6\n13 | 1.7\n14 | 1.8\n15 | 1.9\n16 | 2.0\n17 | 2.1\n18 | 2.2\n19 | 2.3\n20 | 2.4\n21 | 2.5\n22 | 2.6\n23 | 2.7\n24 | 2.8\n25 | 2.9\n26 | 3.0\n27 | 3.1\n28 | 3.2\n29 | 3.3\n30 | 3.4\n31 | 3.5\n32 | 3.6\n33 | ",
+      "time_sec": 28.87
+    },
+    {
+      "id": 11,
+      "image": "./data/test/BoredModder_FilpperZero_Gameboy_Link.png",
+      "reference": "GND\nJ1\n0022232041\nD1\nLED\nR2\n150\nP3\nLINKPORTCGB-LINK\nR1\n33k",
+      "prediction": "Item | Description\nName |  \nDate | 2023-12-05 14:58:00\nAddress | 100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "time_sec": 28.42
+    },
+    {
+      "id": 12,
+      "image": "./data/test/Fugate-A_ChairGuru.png",
+      "reference": "U2\nDRV8825PWPR\nU1\nDRV8825PWPR\nU4\nDRV8825PWPR\nU3\nDRV8825PWPR",
+      "prediction": "项目 | 内容\n报告标题 | 2023年第一季度销售数据分析报告\n报告主题 | 2023年第二季度销售数据分析报告\n报告标题 | 2023年第三季度销售数据分析报告\n报告主题 | 2023年第四季度销售数据分析报告",
+      "time_sec": 7.37
+    },
+    {
+      "id": 13,
+      "image": "./data/test/analog_simple_0026.png",
+      "reference": "C1\n1nF\nQ1\nBC557\nC2\n10nF\nC3\n100pF\nQ2\nBC547\nD1\n1N4007\nR1\n4.7k",
+      "prediction": "The provided image is a graphic design and does not contain any chart, graph, or data to be converted into a table.",
+      "time_sec": 2.83
+    },
+    {
+      "id": 14,
+      "image": "./data/test/psas_lv3.1-avionics.png",
+      "reference": "R15\n1k\nGND\nR13\n150k\nPINHD-1X6\nQ1\nSI7465DP-T1-E3\n+16V\nR14\n1k",
+      "prediction": "16.8V to 12V SPS\n12V to SV SPS",
+      "time_sec": 2.31
+    },
+    {
+      "id": 15,
+      "image": "./data/test/analog_simple_v2_0016.png",
+      "reference": "R1\n100k\nC1\n10uF\nF1\n1A\nTP1\nTP\nL1\n10mH\nR2\n220\nR3\n1k\nQ1\n2N2907\nTP2\nTP",
+      "prediction": "1.0\n2.0\n3.0\n4.0\n5.0\n6.0\n7.0\n8.0\n9.0\n10.0",
+      "time_sec": 4.41
+    },
+    {
+      "id": 16,
+      "image": "./data/test/cailloumajor_esp-display.png",
+      "reference": "DS1\nWC1602A\nU2\nTXS0108EPW\nRV1\n10kΩ\nR1\n100kΩ\nR2\n330Ω\nU1\nWeMos_S2_mini",
+      "prediction": "Model | Model Name\nSwin-LSTM | Swin LSTM\nResNet-18 | ResNet-18\nResNet-50 | ResNet-50\nResNet-18-LSTM | ResNet-18-LSTM\nResNet-18-DLM | ResNet-18-DLM\nResNet-18-Attn | ResNet-18-Attn\nResNet-18-Attn-LSTM | ResNet-18-Attn-LSTM\nResNet-18-Attn-Attn-LSTM | ResNet-18-Attn-Attn-LSTM\nResNet-18-Attn-Attn-Attn | ResNet-18-Attn-Attn-Attn\nResNet-18-Attn-Attn-Attn-LSTM | ResNet-18-Attn-Attn-Attn-LSTM\nResNet-18-Attn-Attn-Attn-Attn-LSTM | ResNet-18-Attn-Attn-Attn-Attn-LSTM\n",
+      "time_sec": 33.16
+    },
+    {
+      "id": 17,
+      "image": "./data/test/Rubey4112_hackcard.png",
+      "reference": "47ohm1\nR\nU1\nNT3H2111W0FHKH\nD1\nLED\nC1\nCL10B224KA8NNNC\nAE1\nAntenna_Loop",
+      "prediction": "Item | Description\nName |  \nDate | 2018-03-04\nAddress | 100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "time_sec": 28.75
+    },
+    {
+      "id": 18,
+      "image": "./data/test/power_simple_v2_0010.png",
+      "reference": "U1\nLM1117-1.8\nU2\nLM7812\nU3\nLM1117-1.8\nD1\n1N4007\nU4\nRT9013-33\nU5\nTC4427",
+      "prediction": "1.0\n2.0\n3.0\n4.0\n5.0\n6.0\n7.0\n8.0\n9.0\n10.0\n11.0\n12.0\n13.0\n14.0\n15.0\n16.0\n17.0\n18.0\n19.0\n20.0\n21.0\n22.0\n23.0\n24.0\n25.0\n26.0\n27.0\n28.0\n29.0\n30.0\n31.0\n32.0\n33.0\n34.0\n35.0\n36.0\n37.0\n38.0\n39.0\n40.0\n41.0\n42.0\n43.0\n44.0\n45.0\n46.0\n47.0\n48.0\n49.0\n50.0\n51.0\n52.0\n53.0\n",
+      "time_sec": 28.47
+    },
+    {
+      "id": 19,
+      "image": "./data/test/NickEngmann_MagicGPT8Ball.png",
+      "reference": "R1\n1K\nJ2\nConn_01x03_Pin\nJ1\nConn_01x02_Pin\n+3V3\nGND\nD1\n1N4007\nQ1\nPN2222A",
+      "prediction": "The above films are not the same as the original film.\nTitle: Vibrator Water Schematls\nNo. of Vibrators | 2019-03-28",
+      "time_sec": 5.04
+    },
+    {
+      "id": 20,
+      "image": "./data/test/MSTRocketDesignTeam_Avionics-Telemetry-PCB.png",
+      "reference": "GND\nL4\n8.2nH\nC11\n2.4pF\nGND\nU2\nADL5521\nR1\n1.3k\nL5\n3.4nH\nC12\n100nF\nGND\n+5V",
+      "prediction": "Model | Model Name\nS-CNN | S-CNN\nResNet18 | ResNet18\nResNet50 | ResNet50\nResNet18-101 | ResNet18-101\nResNet18-201 | ResNet18-201\nResNet18-301 | ResNet18-301\nResNet18-401 | ResNet18-401\nResNet18-501 | ResNet18-501\nResNet18-601 | ResNet18-601\nResNet18-701 | ResNet18-701\nResNet18-801 | ResNet18-801\nResNet18-901 | ResNet18-901\nResNet18-1001 | ResNet18-1001\nResNet18-1101 | ResNet18-1101\nResNet18-1201 | ResNet18-1201\nRes",
+      "time_sec": 29.78
+    },
+    {
+      "id": 21,
+      "image": "./data/test/power_simple_v2_0013.png",
+      "reference": "L1\n10uH\nF1\n500mA\nD1\n1N4148\nR1\n47k\nR2\n100\nR3\n10k\nR4\n220\nC1\n100uF\nQ1\n2N7002",
+      "prediction": "1.\n2.\n3.\n4.\n5.",
+      "time_sec": 2.11
+    },
+    {
+      "id": 22,
+      "image": "./data/test/power_simple_v2_0004.png",
+      "reference": "Q1\n2N7002\nU1\nUCC27211\nD1\nBAT54\nR1\n4.7k\nC1\n1nF\nQ2\n2N7002\nC2\n10pF\nU2\nRT9013-33",
+      "prediction": " | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10\n1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1\n2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1\n3 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1\n4 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1\n5 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1\n6 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1\n7 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1\n",
+      "time_sec": 90.67
+    },
+    {
+      "id": 23,
+      "image": "./data/test/fwachsmuth_Synkino.png",
+      "reference": "J1\nEYE1_OUT\nGND\nU1\nQRE1113GR\nPWR_FLAG\nR2\n47k\nR1\n220\nTP2\nTestPoint\nTP1\nTestPoint",
+      "prediction": "Model | Model Name\nTiny | Tiny\nXiaomi | Xiaomi\nXiaomi 1000 | Xiaomi 1000\nXiaomi 2000 | Xiaomi 2000\nXiaomi 3000 | Xiaomi 3000\nXiaomi 4000 | Xiaomi 4000\nXiaomi 5000 | Xiaomi 5000\nXiaomi 6000 | Xiaomi 6000\nXiaomi 7000 | Xiaomi 7000\nXiaomi 8000 | Xiaomi 8000\nXiaomi 9000 | Xiaomi 9000\nXiaomi 10000 | Xiaomi 10000",
+      "time_sec": 23.04
+    },
+    {
+      "id": 24,
+      "image": "./data/test/bschapendonk_sensorclock.png",
+      "reference": "A1\nRaspberryPi-PicoW\nGND\nJ1\nSensorclock\nGND\nGND\nSW1\nSW_Push\n+5V\nQ1\nDMG2305UX\n+5V",
+      "prediction": "Model | Model Name\nSwin-LSTM | Swin LSTM\nT-CNN | T-CNN\nResNet-18 | ResNet-18\nResNet-50 | ResNet-50\nResNet-18-LSTM | ResNet-18-LSTM\nResNet-18-DLM | ResNet-18-DLM\nResNet-18-Attention | ResNet-18-Attention\nResNet-18-Attention-LSTM | ResNet-18-Attention-LSTM\nResNet-18-Attention-DLM | ResNet-18-Attention-DLM\nResNet-18-Attention-Attention | ResNet-18-Attention-Attention\nResNet-18-Attention-Attention-LSTM | ResNet-18-Attention-Attention-LSTM\nResNet-18-Attention-Attention-DLM | ResNet-18-Attention-Attention-DLM\nResNet-18-Attention-Attention-Attention-LSTM | ResNet-1",
+      "time_sec": 33.42
+    },
+    {
+      "id": 25,
+      "image": "./data/test/4x4Robots_kicad.png",
+      "reference": "DFPlayerMini\n~\nSW1\nSW_Push\nBT3\n1.5V\nLS1\nSpeaker\nBT2\n1.5V\nBT1\n1.5V\nSW2\nSW_DIP_x02",
+      "prediction": "Model | Type\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\nBMS | BMS\n",
+      "time_sec": 31.16
+    },
+    {
+      "id": 26,
+      "image": "./data/test/mixed_simple_0029.png",
+      "reference": "U1\n74HC08\nA\nB\nVCC\nGND\nY\nU2\n74HC00\nA\nB\nVCC\nGND\nY\nJ1\n2x10\nTP1\nTP\nLED1\nBlue\nC1\n100uF",
+      "prediction": "The provided image is a graphic design and does not contain any chart, graph, or data to be converted into a table.",
+      "time_sec": 3.39
+    },
+    {
+      "id": 27,
+      "image": "./data/test/evantill_arduino-wiimote-nunchuk.png",
+      "reference": "J1\nWii Nunchuck\n+5V\nGND\nU1\nPCA9306D\nGND\n+3V3\n+5V\n+5V\nA1\nArduino_UNO_R3\n+3V3\n+3V3\nGND",
+      "prediction": "ID | Name\n01 | 01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01_01",
+      "time_sec": 30.03
+    },
+    {
+      "id": 28,
+      "image": "./data/test/willbicks_Recurse-Presentation-Clicker.png",
+      "reference": "SW2\nPREV\nGND\nR3\n50\nA1\nRaspberryPi_Pico\n+3V3\nSW1\nNEXT\nR2\n50\nGND\n+3V3\nR1\n50\nD1\nLED_ARGB",
+      "prediction": "Item | Description\nNumber of Layers | 7\nNumber of Layers | 10\nNumber of Layers | 20\nNumber of Layers | 30\nNumber of Layers | 40\nNumber of Layers | 50\nNumber of Layers | 60\nNumber of Layers | 70\nNumber of Layers | 80\nNumber of Layers | 90\nNumber of Layers | 100\nNumber of Layers | 110\nNumber of Layers | 120\nNumber of Layers | 130\nNumber of Layers | 140\nNumber of Layers | 150\nNumber of Layers | 160\nNumber of Layers | 170\nNumber of Layers | 180\nNumber of Layers | 190\nNumber of Layers | 200\nNumber of Layers | 210\nNumber of Layers | 220\nNumber of Layers | 230\nNumber of Layers | 240\nNumber of Layers | 250\nNumber of L",
+      "time_sec": 159.71
+    },
+    {
+      "id": 29,
+      "image": "./data/test/Wik19_AFRO_term_design.png",
+      "reference": "+3V3\nGND\nGND\nR6\n100k\nU2\nINMP441\nGND\nGND\n+3V3\nU1\nLSM6DS3\nGND\nGND\nC3\n100n\nC2\n100n\nC1\n100n",
+      "prediction": "Item | Value\nT-1 | 0.25\nT-2 | 0.30\nT-3 | 0.40\nT-4 | 0.50\nT-5 | 0.60\nT-6 | 0.70\nT-7 | 0.80\nT-8 | 0.90\nT-9 | 1.00\nT-10 | 1.10\nT-11 | 1.20\nT-12 | 1.30\nT-13 | 1.40\nT-14 | 1.50\nT-15 | 1.60\nT-16 | 1.70\nT-17 | 1.80\nT-18 | 1.90\nT-19 | 2.00\nT-20 | 2.10\nT-21 | 2.20\nT-22 | 2.30\nT-23 | 2.40\nT-24 | 2.",
+      "time_sec": 29.89
+    },
+    {
+      "id": 30,
+      "image": "./data/test/analog_simple_v2_0019.png",
+      "reference": "Q1\nBC547\nQ2\nS8550\nU1\nLM324\nV+\nV-\nVCC\nVEE\nOUT\nU2\nTL072\nV+\nV-\nVCC\nVEE\nOUT\nR1\n4.7k\nD1\nBZX84",
+      "prediction": "The provided image is a graphic design and does not contain any chart, graph, or data to be converted into a table.",
+      "time_sec": 3.26
+    },
+    {
+      "id": 31,
+      "image": "./data/test/nxlabs-ch_shared-workflows.png",
+      "reference": "+5V\n+3.3V\nGND\nGND\nJ1\nGPIO\nC1\n100n\nR1\n3.9k\nJP1\nID_WP\nR2\n3.9k\n+3.3V\nU1\nCAT24C256\nGND\n+3.3V",
+      "prediction": "The provided image is a logo or a graphic design, not a chart. It does not contain any data, axes, or labels that can be extracted and converted into a markdown table. Therefore, it is impossible to extract specific numerical data points from the image to create a table as requested.",
+      "time_sec": 6.5
+    },
+    {
+      "id": 32,
+      "image": "./data/test/power_simple_v2_0017.png",
+      "reference": "D1\nBAT54\nU1\nLM7805\nR1\n220\nQ1\nAO3401\nU2\nAMS1117-3.3\nD2\nBZX84\nF1\n500mA\nU3\nLM1117-1.8\nQ2\nAO3400",
+      "prediction": "1.0",
+      "time_sec": 0.53
+    },
+    {
+      "id": 33,
+      "image": "./data/test/power_simple_v2_0019.png",
+      "reference": "U1\nTC4427\nC1\n22pF\nC2\n10uF\nU2\nUCC27211\nU3\nTC4427\nQ1\n2N7002\nTP1\nTP\nU4\nLM1117-1.8\nU5\nAMS1117-3.3",
+      "prediction": "1.00\n2.00\n3.00\n4.00\n5.00\n6.00\n7.00\n8.00\n9.00\n10.00\n11.00\n12.00",
+      "time_sec": 6.84
+    },
+    {
+      "id": 34,
+      "image": "./data/test/bzeiss_synth-pcbs.png",
+      "reference": "C5\n100nF\nC4\n10uF\nPWR_FLAG\nGND\n+5V\n+5V\nGND\nGND\nGND\nGND\nPWR_FLAG\nGND\nU1\nPico\nGND\nQ1\nTBD62003APG",
+      "prediction": "Data Point | Value\n1 | 0.85\n2 | 0.90\n3 | 0.75\n4 | 0.60\n5 | 0.50\n6 | 0.40\n7 | 0.30\n8 | 0.20\n9 | 0.10",
+      "time_sec": 8.34
+    },
+    {
+      "id": 35,
+      "image": "./data/test/kbeckmann_badge2022.png",
+      "reference": "VCC\nVCC\nTP4\nGPIO10\nTP6\nGPIO29\nR1\n10k\nTP3\nGPIO11\nTP5\nGPIO28\nTP1\nGPIO8\nGND\nX1\nTP2\nGPIO9\nR2\n10k\nVCC",
+      "prediction": "Model | Model Name\nTesla | Tesla 2024-25.000001\nTesla | Tesla 2024-25.000002\nTesla | Tesla 2024-25.000003\nTesla | Tesla 2024-25.000004\nTesla | Tesla 2024-25.000005\nTesla | Tesla 2024-25.000006\nTesla | Tesla 2024-25.000007\nTesla | Tesla 2024-25.000008\nTesla | Tesla 2024-25.000009\nTesla | Tesla 2024-25.000010\nTesla | Tesla 2024-25.00001",
+      "time_sec": 37.77
+    },
+    {
+      "id": 36,
+      "image": "./data/test/analog_simple_0012.png",
+      "reference": "Q1\n2N2222\nC1\n1nF\nR1\n220\nQ2\nS8050\nU1\nLM324\nV+\nV-\nVCC\nVEE\nOUT\nU2\nTLV3701\nV+\nV-\nVCC\nVEE\nOUT\nQ3\nBC547",
+      "prediction": "The provided image is a graphic design and does not contain any chart, graph, or data to be converted into a table.",
+      "time_sec": 4.74
+    },
+    {
+      "id": 37,
+      "image": "./data/test/OpenSourceEBike_Automatic_Switch_Anti_spark_JBD_BMS.png",
+      "reference": "NA?\nADXL345\\nmodule\nU?\nESP32-S2 Lolin S2 Mini\nU1\nStep-down converter  to 3.3V\nK1\nRelay\nGND\nGND\nGND",
+      "prediction": "Date | Event\n2018-07-04 | 2018-07-05\n2018-07-06 | 2018-07-07\n2018-07-09 | 2018-07-10\n2018-07-11 | 2018-07-12\n2018-07-13 | 2018-07-14\n2018-07-15 | 2018-07-16\n2018-07-17 | 2018-07-18\n2018-07-19 | 2018-07-20\n2018-07-21 | 2018-07-22\n2018-07-23 | 2018-07-24\n2018-07-25 | 2018-07-26",
+      "time_sec": 28.67
+    },
+    {
+      "id": 38,
+      "image": "./data/test/ShibamRoy9826_transisted.png",
+      "reference": "SW1\nSW_Push\nRV1\nR_Potentiometer\nD1\nLED\nSW2\nSW_Push\nR1\nR\nD2\nLED\nD3\nLED\nQ1\nNPN\nBT1\nBattery_Cell\nQ2\nNPN",
+      "prediction": "Model | Type\nS5 | Model\nS6 | Model\nS7 | Model\nS8 | Model\nS9 | Model\nS10 | Model\nS11 | Model\nS12 | Model\nS13 | Model\nS14 | Model\nS15 | Model\nS16 | Model\nS17 | Model\nS18 | Model\nS19 | Model\nS20 | Model\nS21 | Model\nS22 | Model\nS23 | Model\nS24 | Model\nS25 | Model\nS26 | Model\nS27 | Model\nS28 | Model\nS29 | Model\nS30 | Model\nS31 | Model\nS32 | Model\nS33 | Model\nS34 | Model\nS35 | Model\nS36 | Model\nS37 | Model\nS38 | Model\nS39 | Model\nS40 | Model\nS41 | Model\nS42 | Model\nS43 | Model\nS44 | Model\nS45 | Model\nS46 | Model\nS47 | Model",
+      "time_sec": 29.16
+    },
+    {
+      "id": 39,
+      "image": "./data/test/techy-robot_JoyKey.png",
+      "reference": "+3V3\nU5\n2_axis_analog_joystick_button\nGND\nU2\nAlps SRBE110301\nGND\n+3V3\nGND\nGND\nGND\nU6\nAlps SRBE110301",
+      "prediction": "Model | Model Name\nModel Name | Model Name\nModel Name | Model Name\nModel Name | Model Name\nModel Name | Model Name",
+      "time_sec": 3.19
+    },
+    {
+      "id": 40,
+      "image": "./data/test/ch98-1_Electrostatic_Headphone_DAC_Amp.png",
+      "reference": "U?\nLT3757EMSE\nJ?\nUSB_C_Receptacle_USB2.0\nY?\nCrystal_GND24\nU?\nOPA1622\nU?\nOPA1622\nU?\nOPA1622\nQ?\nQ_NPN_BEC",
+      "prediction": "Item | Description\nName |  \nDate | 2023-10-05 14:00:00+00\nTime | 18:00:00+00\nTime_text | 2023-10-05 14:00:00+00\nTime_text_url | 2023-10-05 14:00:00+00\nTime_text_text_url | 2023-10-05 14:00:00+00",
+      "time_sec": 15.5
+    },
+    {
+      "id": 41,
+      "image": "./data/test/analog_simple_v2_0009.png",
+      "reference": "Q1\nS8050\nQ2\nS8050\nC1\n10pF\nC2\n100uF\nR1\n1M\nQ3\nS8050\nR2\n10k\nC3\n10uF\nU1\nLM358\nV+\nV-\nVCC\nVEE\nOUT\nR3\n1M\nR4\n100k",
+      "prediction": "The provided image is a graphic design and does not contain any chart, graph, or data to be converted into a table. It is a title page with textual information.",
+      "time_sec": 4.43
+    },
+    {
+      "id": 42,
+      "image": "./data/test/connormartin12_NHL_Goal_Light.png",
+      "reference": "C1\n10uF/25V(20%)\nGND\nR2\n10K(1%)\nGND\nGND\nC3\n1uF/16V(10%)\nC2\n0.1uF/50V(10%)\nR1\n0(1%)\nU1\nESP32-S3-WROOM-1-N16R2",
+      "prediction": "Model | Model Name\nDSC-100 | DSC-100\nDSC-125 | DSC-125\nDSC-150 | DSC-150\nDSC-175 | DSC-175\nDSC-200 | DSC-200\nDSC-225 | DSC-225\nDSC-250 | DSC-250\nDSC-275 | DSC-275\nDSC-300 | DSC-300\nDSC-325 | DSC-325\nDSC-350 | DSC-350\nDSC-375 | DSC-375\nDSC-400 | DSC-400\nDSC-425 | DSC-425\nDSC-450 | DSC-450\nDSC-475 | DSC-475\nDSC-500 | DSC-500\nDSC-525 | DSC-525",
+      "time_sec": 35.42
+    },
+    {
+      "id": 43,
+      "image": "./data/test/analog_simple_0016.png",
+      "reference": "TP1\nTP\nR1\n10k\nD1\nBZX84\nC1\n100pF\nC2\n10pF\nD2\n1N4007\nD3\n1N4007\nL1\n100uH\nU1\nLM393\nV+\nV-\nVCC\nVEE\nOUT\nR2\n47k\nR3\n10k",
+      "prediction": "Data Point | Value\n1 | 0.95\n2 | 0.85\n3 | 0.75\n4 | 0.65\n5 | 0.55\n6 | 0.45\n7 | 0.35\n8 | 0.25\n9 | 0.15\n10 | 0.05",
+      "time_sec": 11.18
+    }
+  ]
+}

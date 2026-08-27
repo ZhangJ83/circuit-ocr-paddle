@@ -1,0 +1,332 @@
+{
+  "config": {
+    "model_path": "F:\\hf_cache\\hub\\models--PaddlePaddle--PaddleOCR-VL\\snapshots\\baee27eebcbf26cdeab160116679d765f13a3f27",
+    "lora_checkpoint": "../PaddleOCR-VL-LoRA-circuit-ocr/checkpoints_v10_fixed/lora_s400.pdparams",
+    "data_path": "../ocr_vl_sft-test-easy50-pure.jsonl",
+    "repetition_penalty": 1.1,
+    "max_new_tokens": 256
+  },
+  "metrics": {
+    "n_samples": 44,
+    "exact_match_rate": 0.0,
+    "component_precision": 0.1862,
+    "component_recall": 0.2501,
+    "component_f1": 0.182,
+    "token_recall": 0.1302,
+    "repetition_rate": 0.2045,
+    "repetition_count": 9,
+    "ned": 0.8298,
+    "unique_predictions": 42,
+    "diversity": 0.9545
+  },
+  "results": [
+    {
+      "id": 0,
+      "image": "./data/test/Mark-MDO47_Skull-Project.png",
+      "reference": "U2\n~\nA1\nArduino_USB\nR4\n3K\nU3\n~\nR3\n7K",
+      "prediction": "J1\nConn_0x2\nR3\n10k\nR4\n10k\nU1\nHuawei Smart-App\nGND\nD1\nConn_0x2\nR2\n10k\nR5\n10k\nU2\nHuawei Smart-App\nGND\nD2\nConn_0x2\nR6\n10k\nR7\n10k\nU3\nHuawei Smart-App\nGND\nD3\nConn_0x2\nR1\n10k",
+      "time_sec": 24.8
+    },
+    {
+      "id": 1,
+      "image": "./data/test/digital_simple_0000.png",
+      "reference": "C1\n10uF\nC2\n1uF\nR1\n100\nF1\n2A\nC3\n100nF",
+      "prediction": "U4\nLED\nU5\nLED\nU3\nLED\nU2\nLED\nU1\nLED\nU6\nLED\nU7\nLED\nU5\nLED\nA051115\nA051115\nESP32-WROOM",
+      "time_sec": 10.79
+    },
+    {
+      "id": 2,
+      "image": "./data/test/rh1tech_echo.png",
+      "reference": "VBUS\nJ3\nD-SUB 9 Male\nGND\nC10\n100n\nGND",
+      "prediction": "R1\n10k\nU2\nD435-M6\nGND\nJ1\nLED_LED_B1\nGND\nR2\n10k\nR3\n10k\nJ3\nLED_LED_B2\nGND\nR4\n10k",
+      "time_sec": 11.16
+    },
+    {
+      "id": 3,
+      "image": "./data/test/analog_simple_v2_0018.png",
+      "reference": "R1\n22k\nR2\n100\nD1\n1N4007\nL1\n100uH\nR3\n470",
+      "prediction": "1\n2",
+      "time_sec": 1.12
+    },
+    {
+      "id": 4,
+      "image": "./data/test/Pari55051_cat-pcb.png",
+      "reference": "D1\nLED\nBT1\nBattery_Cell\nR1\nR\nR2\nR\nD2\nLED",
+      "prediction": "R1\n5k\nR2\n10k\nR3\n10k\nJ1\nConn_0x100\nJ2\nConn_0x100\nJ4\nConn_0x100\nJ5\nConn_0x100\nJ6\nConn_0x100",
+      "time_sec": 11.97
+    },
+    {
+      "id": 5,
+      "image": "./data/test/lokichubs_Flicker-noise-project.png",
+      "reference": "U3\n1063\nJ1\nRaspberry_Pi_4\nGND\nR1\nR\nU1\nADS1115IDGS",
+      "prediction": "J1\nPin\nR2\n10k\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND",
+      "time_sec": 19.16
+    },
+    {
+      "id": 6,
+      "image": "./data/test/power_simple_v2_0000.png",
+      "reference": "C1\n1nF\nU1\nLM7805\nU2\nLM7805\nR1\n330\nU3\nTC4427\nF1\n5A",
+      "prediction": "U1\n1028-750\nR1\n10k\nR2\n10k\nR3\n10k\nR4\n10k",
+      "time_sec": 6.65
+    },
+    {
+      "id": 7,
+      "image": "./data/test/power_simple_v2_0005.png",
+      "reference": "U1\nMIC5219-3.3\nU2\nUCC27211\nC1\n100pF\nC2\n10uF\nR1\n4.7k",
+      "prediction": "R1\n0.2uF\nR2\n0.2uF\nR3\n0.2uF\nR4\n0.2uF\nR5\n0.2uF",
+      "time_sec": 7.13
+    },
+    {
+      "id": 8,
+      "image": "./data/test/Brown-County-FIRST-Robotics_SPARKMAX_Breakout.png",
+      "reference": "GND\n+3.3V\n+3.3V\nJ2\nConn_02x07_Odd_Even\nJ5\n5-104935-3\nGND",
+      "prediction": "GND\nR1\n10k\nGND\nJ2\nConn_03_x2\nGND\nJ4\nConn_03_x2\nGND\nJ5\nConn_03_x2\nGND\nJ6\nConn_03_x2\nGND\nJ7\nConn_03_x2\nGND\nJ8\nConn_03_x2\nGND",
+      "time_sec": 16.24
+    },
+    {
+      "id": 9,
+      "image": "./data/test/benjiaomodular_sot2dip.png",
+      "reference": "J2\nConn_01x06_Male\nJ3\nConn_01x03_Male\nJ1\nConn_01x03_Male",
+      "prediction": "GND\nR1\n10k\nGND\nJ2\nConn_0386_Pin\nGND\nR4\n10k\nGND\nJ1\nConn_0386_Pin\nGND\nJ3\nConn_0386_Pin",
+      "time_sec": 10.57
+    },
+    {
+      "id": 10,
+      "image": "./data/test/JOBriant30_PIC32_dev_board.png",
+      "reference": "J1\nConn_01x24_Pin\nJ2\nConn_01x24_Pin\nU2\nPIC32CX1012BZ25048",
+      "prediction": "U1\nDIN9203-80004564B\nR1\n10k\nR2\n10k\nR3\n10k\nC1\n10uF\nC2\n10uF\nC3\n10uF\nC4\n10uF\nC5\n10uF\nC6\n10uF\nC7\n10uF\nC8\n10uF\nC9\n10uF\nC10\n10uF",
+      "time_sec": 23.89
+    },
+    {
+      "id": 11,
+      "image": "./data/test/BoredModder_FilpperZero_Gameboy_Link.png",
+      "reference": "GND\nJ1\n0022232041\nD1\nLED\nR2\n150\nP3\nLINKPORTCGB-LINK\nR1\n33k",
+      "prediction": "R1\n5k\nR2\n10k\nJ3\nConn_0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x1x0x",
+      "time_sec": 54.74
+    },
+    {
+      "id": 12,
+      "image": "./data/test/Fugate-A_ChairGuru.png",
+      "reference": "U2\nDRV8825PWPR\nU1\nDRV8825PWPR\nU4\nDRV8825PWPR\nU3\nDRV8825PWPR",
+      "prediction": "U1\n10k\nR1\n10k\nR2\n10k\nR3\n10k\nR4\n10k\nR5\n10k\nR6\n10k\nR7\n10k\nR8\n10k",
+      "time_sec": 13.35
+    },
+    {
+      "id": 13,
+      "image": "./data/test/analog_simple_0026.png",
+      "reference": "C1\n1nF\nQ1\nBC557\nC2\n10nF\nC3\n100pF\nQ2\nBC547\nD1\n1N4007\nR1\n4.7k",
+      "prediction": "1\n2\n3\n4\n5\n6",
+      "time_sec": 2.42
+    },
+    {
+      "id": 14,
+      "image": "./data/test/psas_lv3.1-avionics.png",
+      "reference": "R15\n1k\nGND\nR13\n150k\nPINHD-1X6\nQ1\nSI7465DP-T1-E3\n+16V\nR14\n1k",
+      "prediction": "J1\nArming Switch\nJ2\nArming Switch\nJ3\nArming Switch\nJ4\nArming Switch\nJ5\nArming Switch\nJ6\nArming Switch\nJ7\nArming Switch\nJ8\nArming Switch\nJ9\nArming Switch\nJ10\nArming Switch\nJ11\nArming Switch\nJ12\nArming Switch\nJ13\nArming Switch\nJ14\nArming Switch\nJ15\nArming Switch\nJ16\nArming Switch\nJ17\nArming Switch\nJ18\nArming Switch\nJ19\nArming Switch\nJ20\nArming Switch\nJ21\nArming Switch\nJ22\nArming Switch\nJ23\nArming Switch\nJ24\nArming Switch\nJ25\nArming Switch\nJ26\nArming Switch\nJ27\nArming Switch\nJ28\nArming Switch\nJ29\nArming Switch\nJ30\nArming Switch\nJ31\nArming Switch\nJ32\nArming Switch\nJ33\nArming Switch\nJ",
+      "time_sec": 53.05
+    },
+    {
+      "id": 15,
+      "image": "./data/test/analog_simple_v2_0016.png",
+      "reference": "R1\n100k\nC1\n10uF\nF1\n1A\nTP1\nTP\nL1\n10mH\nR2\n220\nR3\n1k\nQ1\n2N2907\nTP2\nTP",
+      "prediction": "1\n2\n3\n4\n5\n6\n7\n8\n9",
+      "time_sec": 4.97
+    },
+    {
+      "id": 16,
+      "image": "./data/test/cailloumajor_esp-display.png",
+      "reference": "DS1\nWC1602A\nU2\nTXS0108EPW\nRV1\n10kΩ\nR1\n100kΩ\nR2\n330Ω\nU1\nWeMos_S2_mini",
+      "prediction": "R1\n10k\nR2\n10k\nGND\nGND\nU1\nDIN4358-74\nR3\n10k\nGND\nGND\nU2\nDIN4358-74\nR4\n10k\nGND\nGND\nR5\n10k\nGND\nGND\nGND\nR6\n10k\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND",
+      "time_sec": 20.51
+    },
+    {
+      "id": 17,
+      "image": "./data/test/Rubey4112_hackcard.png",
+      "reference": "47ohm1\nR\nU1\nNT3H2111W0FHKH\nD1\nLED\nC1\nCL10B224KA8NNNC\nAE1\nAntenna_Loop",
+      "prediction": "GND\nR1\n10k\nR2\n10k\nGND\nGND\nGND\nGND\nGND\nGND\nGND",
+      "time_sec": 6.99
+    },
+    {
+      "id": 18,
+      "image": "./data/test/power_simple_v2_0010.png",
+      "reference": "U1\nLM1117-1.8\nU2\nLM7812\nU3\nLM1117-1.8\nD1\n1N4007\nU4\nRT9013-33\nU5\nTC4427",
+      "prediction": "U1\n10k\nR1\n10k\nR2\n10k\nR3\n10k\nR4\n10k",
+      "time_sec": 5.88
+    },
+    {
+      "id": 19,
+      "image": "./data/test/NickEngmann_MagicGPT8Ball.png",
+      "reference": "R1\n1K\nJ2\nConn_01x03_Pin\nJ1\nConn_01x02_Pin\n+3V3\nGND\nD1\n1N4007\nQ1\nPN2222A",
+      "prediction": "J1\nPowered by L302\nR5\n10k\nC1\n10uF\nGND\nU2\nDIN-842X-P4\nR6\n10k\nJ2\nPowered by L302\nJ3\nPowered by L302\nJ4\nPowered by L302",
+      "time_sec": 14.68
+    },
+    {
+      "id": 20,
+      "image": "./data/test/MSTRocketDesignTeam_Avionics-Telemetry-PCB.png",
+      "reference": "GND\nL4\n8.2nH\nC11\n2.4pF\nGND\nU2\nADL5521\nR1\n1.3k\nL5\n3.4nH\nC12\n100nF\nGND\n+5V",
+      "prediction": "J1\nConn_0x2\nR3\n10k\nGND\nU1\nArduino_DIN94-10\nR2\n10k\nR4\n10k\nGND\nJ2\nConn_0x2\nR5\n10k\nJ3\nConn_0x2\nR6\n10k\nJ4\nConn_0x2\nR7\n10k\nJ5\nConn_0x2\nR8\n10k",
+      "time_sec": 20.96
+    },
+    {
+      "id": 21,
+      "image": "./data/test/power_simple_v2_0013.png",
+      "reference": "L1\n10uH\nF1\n500mA\nD1\n1N4148\nR1\n47k\nR2\n100\nR3\n10k\nR4\n220\nC1\n100uF\nQ1\n2N7002",
+      "prediction": "1\n2\n3\n4\n5\n6\n7\n8",
+      "time_sec": 3.31
+    },
+    {
+      "id": 22,
+      "image": "./data/test/power_simple_v2_0004.png",
+      "reference": "Q1\n2N7002\nU1\nUCC27211\nD1\nBAT54\nR1\n4.7k\nC1\n1nF\nQ2\n2N7002\nC2\n10pF\nU2\nRT9013-33",
+      "prediction": "J1\n10k\nJ2\n10k\nJ3\n10k\nJ4\n10k",
+      "time_sec": 5.05
+    },
+    {
+      "id": 23,
+      "image": "./data/test/fwachsmuth_Synkino.png",
+      "reference": "J1\nEYE1_OUT\nGND\nU1\nQRE1113GR\nPWR_FLAG\nR2\n47k\nR1\n220\nTP2\nTestPoint\nTP1\nTestPoint",
+      "prediction": "GND\nR1\n10k\nJ2\nConn_x2x2\nU1\nDIN-847\nR3\n10k\nR4\n10k\nJ1\nConn_x2x2\nGND\nGND",
+      "time_sec": 10.32
+    },
+    {
+      "id": 24,
+      "image": "./data/test/bschapendonk_sensorclock.png",
+      "reference": "A1\nRaspberryPi-PicoW\nGND\nJ1\nSensorclock\nGND\nGND\nSW1\nSW_Push\n+5V\nQ1\nDMG2305UX\n+5V",
+      "prediction": "GND\nR1\n10k\nGND\nJ2\nLED_LED_Cyan\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND",
+      "time_sec": 17.86
+    },
+    {
+      "id": 25,
+      "image": "./data/test/4x4Robots_kicad.png",
+      "reference": "DFPlayerMini\n~\nSW1\nSW_Push\nBT3\n1.5V\nLS1\nSpeaker\nBT2\n1.5V\nBT1\n1.5V\nSW2\nSW_DIP_x02",
+      "prediction": "R1\n5.0n\nJ2\nConn_0x102\nR3\n1.0n\nJ4\nConn_0x102\nR2\n10k\nU1\nDIN_10A\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND",
+      "time_sec": 14.48
+    },
+    {
+      "id": 26,
+      "image": "./data/test/mixed_simple_0029.png",
+      "reference": "U1\n74HC08\nA\nB\nVCC\nGND\nY\nU2\n74HC00\nA\nB\nVCC\nGND\nY\nJ1\n2x10\nTP1\nTP\nLED1\nBlue\nC1\n100uF",
+      "prediction": "R1\n0.2uF\nR2\n0.2uF\nR3\n0.2uF\nR4\n0.2uF",
+      "time_sec": 6.61
+    },
+    {
+      "id": 27,
+      "image": "./data/test/evantill_arduino-wiimote-nunchuk.png",
+      "reference": "J1\nWii Nunchuck\n+5V\nGND\nU1\nPCA9306D\nGND\n+3V3\n+5V\n+5V\nA1\nArduino_UNO_R3\n+3V3\n+3V3\nGND",
+      "prediction": "GND\nR1\n10k\nJ2\nLED_10K\nU1\nArduino_U-3457\nR2\n10k\nC1\n10uF\nD1\nLED_10K\nD2\nLED_10K\nD3\nLED_10K\nD4\nLED_10K\nD5\nLED_10K\nD6\nLED_10K\nD7\nLED_10K\nD8\nLED_10K\nD9\nLED_10K\nD10\nLED_10K\nD11\nLED_10K\nD12\nLED_10K\nD13\nLED_10K\nD14\nLED_10K\nD15\nLED_10K\nD16\nLED_10K\nD17\nLED_10K\nD18\nLED_10K\nD19\nLED_10K\nD20\nLED_10K\nD21\nLED_10K\nD22\nLED_10",
+      "time_sec": 59.16
+    },
+    {
+      "id": 28,
+      "image": "./data/test/willbicks_Recurse-Presentation-Clicker.png",
+      "reference": "SW2\nPREV\nGND\nR3\n50\nA1\nRaspberryPi_Pico\n+3V3\nSW1\nNEXT\nR2\n50\nGND\n+3V3\nR1\n50\nD1\nLED_ARGB",
+      "prediction": "GND\nR1\n10k\nR2\n10k\nJ1\nConn_0x1x_0x1x_0x1x\nU1\nArduino_A3_Fuse\nR4\n10k\nR5\n10k\nR6\n10k\nR7\n10k\nR8\n10k\nR9\n10k\nR10\n10k\nR11\n10k\nR12\n10k",
+      "time_sec": 22.36
+    },
+    {
+      "id": 29,
+      "image": "./data/test/Wik19_AFRO_term_design.png",
+      "reference": "+3V3\nGND\nGND\nR6\n100k\nU2\nINMP441\nGND\nGND\n+3V3\nU1\nLSM6DS3\nGND\nGND\nC3\n100n\nC2\n100n\nC1\n100n",
+      "prediction": "GND\nR1\n3.5K\nR2\n10K\nJ1\nConn_x2x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x",
+      "time_sec": 54.36
+    },
+    {
+      "id": 30,
+      "image": "./data/test/analog_simple_v2_0019.png",
+      "reference": "Q1\nBC547\nQ2\nS8550\nU1\nLM324\nV+\nV-\nVCC\nVEE\nOUT\nU2\nTL072\nV+\nV-\nVCC\nVEE\nOUT\nR1\n4.7k\nD1\nBZX84",
+      "prediction": "U1\n100A\nR1\n10k\nR2\n10k\nR3\n10k\nR4\n10k",
+      "time_sec": 8.19
+    },
+    {
+      "id": 31,
+      "image": "./data/test/nxlabs-ch_shared-workflows.png",
+      "reference": "+5V\n+3.3V\nGND\nGND\nJ1\nGPIO\nC1\n100n\nR1\n3.9k\nJP1\nID_WP\nR2\n3.9k\n+3.3V\nU1\nCAT24C256\nGND\n+3.3V",
+      "prediction": "GND\nR1\n10k\nJ2\nLED_LED_Cyan\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND",
+      "time_sec": 69.66
+    },
+    {
+      "id": 32,
+      "image": "./data/test/power_simple_v2_0017.png",
+      "reference": "D1\nBAT54\nU1\nLM7805\nR1\n220\nQ1\nAO3401\nU2\nAMS1117-3.3\nD2\nBZX84\nF1\n500mA\nU3\nLM1117-1.8\nQ2\nAO3400",
+      "prediction": "GND\nR1\n10k\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND",
+      "time_sec": 9.7
+    },
+    {
+      "id": 33,
+      "image": "./data/test/power_simple_v2_0019.png",
+      "reference": "U1\nTC4427\nC1\n22pF\nC2\n10uF\nU2\nUCC27211\nU3\nTC4427\nQ1\n2N7002\nTP1\nTP\nU4\nLM1117-1.8\nU5\nAMS1117-3.3",
+      "prediction": "J1\nLED_LED_01\nJ2\nLED_LED_02\nJ3\nLED_LED_03\nJ4\nLED_LED_04\nJ5\nLED_LED_05\nJ6\nLED_LED_06\nJ7\nLED_LED_07\nJ8\nLED_LED_08\nJ9\nLED_LED_09\nJ10\nLED_LED_10\nJ11\nLED_LED_11",
+      "time_sec": 19.89
+    },
+    {
+      "id": 34,
+      "image": "./data/test/bzeiss_synth-pcbs.png",
+      "reference": "C5\n100nF\nC4\n10uF\nPWR_FLAG\nGND\n+5V\n+5V\nGND\nGND\nGND\nGND\nPWR_FLAG\nGND\nU1\nPico\nGND\nQ1\nTBD62003APG",
+      "prediction": "R1\n10k\nR2\n10k\nR3\n10k\nR4\n10k\nJ1\nLED_LED_B01\nJ2\nLED_LED_B01\nJ3\nLED_LED_B01",
+      "time_sec": 12.81
+    },
+    {
+      "id": 35,
+      "image": "./data/test/kbeckmann_badge2022.png",
+      "reference": "VCC\nVCC\nTP4\nGPIO10\nTP6\nGPIO29\nR1\n10k\nTP3\nGPIO11\nTP5\nGPIO28\nTP1\nGPIO8\nGND\nX1\nTP2\nGPIO9\nR2\n10k\nVCC",
+      "prediction": "GND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nG",
+      "time_sec": 61.44
+    },
+    {
+      "id": 36,
+      "image": "./data/test/analog_simple_0012.png",
+      "reference": "Q1\n2N2222\nC1\n1nF\nR1\n220\nQ2\nS8050\nU1\nLM324\nV+\nV-\nVCC\nVEE\nOUT\nU2\nTLV3701\nV+\nV-\nVCC\nVEE\nOUT\nQ3\nBC547",
+      "prediction": "R1\n0.2uF\nR2\n0.2uF\nR3\n0.2uF\nU1\nDIN-800A\nU2\nDIN-800A\nU3\nDIN-800A\nU4\nDIN-800A",
+      "time_sec": 16.95
+    },
+    {
+      "id": 37,
+      "image": "./data/test/OpenSourceEBike_Automatic_Switch_Anti_spark_JBD_BMS.png",
+      "reference": "NA?\nADXL345\\nmodule\nU?\nESP32-S2 Lolin S2 Mini\nU1\nStep-down converter  to 3.3V\nK1\nRelay\nGND\nGND\nGND",
+      "prediction": "J1\nConn_0x2\nR3\n10k\nJ2\nConn_0x2\nR4\n10k\nJ3\nConn_0x2\nR5\n10k\nJ4\nConn_0x2\nR6\n10k\nJ5\nConn_0x2\nR7\n10k\nJ6\nConn_0x2\nR8\n10k",
+      "time_sec": 21.18
+    },
+    {
+      "id": 38,
+      "image": "./data/test/ShibamRoy9826_transisted.png",
+      "reference": "SW1\nSW_Push\nRV1\nR_Potentiometer\nD1\nLED\nSW2\nSW_Push\nR1\nR\nD2\nLED\nD3\nLED\nQ1\nNPN\nBT1\nBattery_Cell\nQ2\nNPN",
+      "prediction": "GND\nGND\nR1\n10k\nR2\n10k\nR3\n10k\nR4\n10k\nR5\n10k\nR6\n10k\nU1\nSDI-SPX-DTC\nR7\n10k\nR8\n10k\nR9\n10k\nR10\n10k\nR11\n10k\nR12\n10k",
+      "time_sec": 22.69
+    },
+    {
+      "id": 39,
+      "image": "./data/test/techy-robot_JoyKey.png",
+      "reference": "+3V3\nU5\n2_axis_analog_joystick_button\nGND\nU2\nAlps SRBE110301\nGND\n+3V3\nGND\nGND\nGND\nU6\nAlps SRBE110301",
+      "prediction": "R1\n10k\nU2\nSW358\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND\nGND",
+      "time_sec": 10.94
+    },
+    {
+      "id": 40,
+      "image": "./data/test/ch98-1_Electrostatic_Headphone_DAC_Amp.png",
+      "reference": "U?\nLT3757EMSE\nJ?\nUSB_C_Receptacle_USB2.0\nY?\nCrystal_GND24\nU?\nOPA1622\nU?\nOPA1622\nU?\nOPA1622\nQ?\nQ_NPN_BEC",
+      "prediction": "U1\nDIN_035X2\nR1\n10k\nC1\n10uF\nGND\nJ1\nLED_LED_035X2\nR2\n10k\nGND\nJ2\nLED_LED_035X2\nR3\n10k\nGND\nJ4\nLED_LED_035X2\nR4\n10k",
+      "time_sec": 20.92
+    },
+    {
+      "id": 41,
+      "image": "./data/test/analog_simple_v2_0009.png",
+      "reference": "Q1\nS8050\nQ2\nS8050\nC1\n10pF\nC2\n100uF\nR1\n1M\nQ3\nS8050\nR2\n10k\nC3\n10uF\nU1\nLM358\nV+\nV-\nVCC\nVEE\nOUT\nR3\n1M\nR4\n100k",
+      "prediction": "1\n2\n3\n4\n5\n6\n7\n8\n9",
+      "time_sec": 4.44
+    },
+    {
+      "id": 42,
+      "image": "./data/test/connormartin12_NHL_Goal_Light.png",
+      "reference": "C1\n10uF/25V(20%)\nGND\nR2\n10K(1%)\nGND\nGND\nC3\n1uF/16V(10%)\nC2\n0.1uF/50V(10%)\nR1\n0(1%)\nU1\nESP32-S3-WROOM-1-N16R2",
+      "prediction": "J1\nConn_0x2\nR3\n10k\nGND\nU1\nDIN_0104\nR2\n10k\nGND\nU2\nDIN_0105\nR4\n10k\nGND\nU3\nDIN_0106\nR1\n10k\nGND\nU4\nDIN_0107\nR5\n10k\nGND\nU5\nDIN_0108\nR6\n10k\nGND",
+      "time_sec": 25.56
+    },
+    {
+      "id": 43,
+      "image": "./data/test/analog_simple_0016.png",
+      "reference": "TP1\nTP\nR1\n10k\nD1\nBZX84\nC1\n100pF\nC2\n10pF\nD2\n1N4007\nD3\n1N4007\nL1\n100uH\nU1\nLM393\nV+\nV-\nVCC\nVEE\nOUT\nR2\n47k\nR3\n10k",
+      "prediction": "1\n2\n3\n4\n5\n6\n7\n8",
+      "time_sec": 2.93
+    }
+  ]
+}

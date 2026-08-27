@@ -1,8 +1,9 @@
 \beamer@sectionintoc {1}{引言}{3}{0}{1}
 \beamer@sectionintoc {2}{数据集构建}{4}{0}{2}
-\beamer@sectionintoc {3}{场景稀缺性}{11}{0}{3}
+\beamer@sectionintoc {3}{场景稀缺性}{10}{0}{3}
 \beamer@sectionintoc {4}{任务复杂度}{14}{0}{4}
 \beamer@sectionintoc {5}{训练数据集构建}{16}{0}{5}
 \beamer@sectionintoc {6}{实验与结果}{17}{0}{6}
-\beamer@sectionintoc {7}{讨论}{22}{0}{7}
-\beamer@sectionintoc {8}{总结与展望}{24}{0}{8}
+\beamer@sectionintoc {7}{讨论}{27}{0}{7}
+\beamer@sectionintoc {8}{可投入应用程度分析}{29}{0}{8}
+\beamer@sectionintoc {9}{总结与展望}{40}{0}{9}

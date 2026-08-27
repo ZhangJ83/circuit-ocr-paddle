@@ -299,7 +299,7 @@ def generate_one(idx, rng):
     return img, {
         "images": [],  # filled by caller with relative path
         "messages": [
-            {"role": "user", "content": "<image>\nOCR:"},
+            {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": "OCR:"}]},
             {"role": "assistant", "content": label},
         ],
     }
@@ -307,13 +307,15 @@ def generate_one(idx, rng):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--count", type=int, default=500)
+    ap.add_argument("--count", type=int, default=5000)
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--out", default="data/synthetic_v4")
+    ap.add_argument("--out", default="g:/mimo_project/circuit_ocr/output/synthetic_circuits_v4")
     args = ap.parse_args()
 
-    out_dir = DATASET_DIR / args.out
+    out_dir = Path(args.out) if os.path.isabs(args.out) else DATASET_DIR / args.out
     out_dir.mkdir(parents=True, exist_ok=True)
+    img_dir = out_dir / "images"
+    img_dir.mkdir(parents=True, exist_ok=True)
     rng = random.Random(args.seed)
 
     entries = []
@@ -321,9 +323,9 @@ def main():
     for i in range(args.count):
         try:
             img, convo = generate_one(i, rng)
-            img_name = f"synth_v4_{i + 1:04d}.png"
-            img.save(str(out_dir / img_name))
-            convo["images"] = [f"{args.out}/{img_name}"]
+            img_name = f"synth_v4_{i + 1:06d}.png"
+            img.save(str(img_dir / img_name))
+            convo["images"] = [str(img_dir / img_name).replace('\\', '/')]
             entries.append(convo)
         except Exception as e:
             print(f"  [{i}] Error: {e}")
@@ -331,13 +333,13 @@ def main():
         if (i + 1) % 50 == 0:
             print(f"  [{i + 1}/{args.count}] {time.time() - t0:.0f}s")
 
-    jsonl_path = DATASET_DIR / f"ocr_vl_sft-synthetic-v4.jsonl"
+    jsonl_path = out_dir / f"train_synthetic_v4.jsonl"
     with open(jsonl_path, "w", encoding="utf-8") as f:
         for e in entries:
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
 
     print(f"\nDone: {len(entries)} images in {time.time() - t0:.0f}s")
-    print(f"Images -> {out_dir}")
+    print(f"Images -> {img_dir}")
     print(f"JSONL  -> {jsonl_path}")
     if entries:
         print("\nSample GT:\n" + entries[0]["messages"][1]["content"][:300])

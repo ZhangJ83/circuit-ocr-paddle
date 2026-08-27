@@ -1,201 +1,234 @@
-# CircuitOCR: Built for Schematic Diagram Understanding
+<div align="center">
+
+# CircuitOCR
+### 基于 PaddleOCR-VL 的电路原理图 OCR 与元件信息识别
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PaddleOCR-VL](https://img.shields.io/badge/Base%20Model-PaddleOCR--VL--0.9B-blue)](https://github.com/PaddlePaddle/PaddleOCR)
-[![LoRA](https://img.shields.io/badge/Fine--Tuning-LoRA%20(r%3D16)-green)]()
+[![Hackathon 10th](https://img.shields.io/badge/PaddleOCR%20Challenge-Finals%20Top%207-FF4444?logo=baidu&logoColor=white)](https://github.com/PaddlePaddle/PaddleOCR/issues/17858)
+[![Base Model: PaddleOCR-VL-0.9B](https://img.shields.io/badge/Base%20Model-PaddleOCR--VL--0.9B-blue)](https://github.com/PaddlePaddle/PaddleOCR)
+[![Fine-Tuning: LoRA (r=16)](https://img.shields.io/badge/Fine--Tuning-LoRA%20(r%3D16)-green)]()
 [![HuggingFace Space](https://img.shields.io/badge/Demo-HuggingFace-orange)](https://huggingface.co/spaces/yingchu83/CircuitOCR)
+[![HuggingFace Models](https://img.shields.io/badge/Weights-CircuitOCR--lora-purple)](https://huggingface.co/yingchu83/CircuitOCR-lora)
 
-> 📄 **技术报告:** [中文版 (PDF)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf) | [English (PDF)](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf)
-> 🎞️ **Beamer:** [35 页演示文稿](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf)
-> 🎮 **在线 Demo:** [HuggingFace Space](https://huggingface.co/spaces/yingchu83/CircuitOCR)
-> 🏋️ **LoRA 权重:** [HuggingFace Models](https://huggingface.co/yingchu83/CircuitOCR-lora)
+<p align="center">
+  <a href="https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf">📄 中文技术报告 (51页)</a> •
+  <a href="https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf">📄 English Report (43p)</a> •
+  <a href="https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf">🎞️ Beamer 演示文稿</a> •
+  <a href="https://huggingface.co/spaces/yingchu83/CircuitOCR">🎮 在线 Demo</a> •
+  <a href="https://huggingface.co/yingchu83/CircuitOCR-lora">🏋️ 模型权重</a> •
+  <a href="https://github.com/ZhangJ83/circuit_ocr_dataset_final">📦 数据集</a>
+</p>
 
----
-
-## 项目概述
-
-CircuitOCR 是一个基于 **PaddleOCR-VL-0.9B** 的电路原理图 OCR 系统，通过 LoRA 微调实现元件标号、参数值的自动识别。所有训练在单卡 RTX 4060 8GB 上完成。
-
-电路原理图 OCR 是一个被现有 OCR 工具普遍忽视但具有真实工业需求的场景。PaddleOCR、Tesseract、EasyOCR 三大引擎在电路图上全部失效。经过 LoRA 微调后，v2 模型（5,000 张合成 KiCad 预训练）达到 **CompF1 = 0.304**（2.6× v1），LineAcc = 0.040。本项目的核心贡献是构建了高精度标注数据集 Dataset A，提出合成文字数据防塌缩策略，并通过 kicad-cli 程序化生成 5,000 张合成 KiCad 原理图实现了纯合成预训练的最佳模型。
-
-### 当前状态
-
-**v2 (Phase 1 合成预训练) 是目前最优模型**，CompF1 = 0.304（较 v1 提升 2.6×），LineAcc = 0.040，NED = 0.942。v2 在三项主指标上均优于 v1。**本项目为研究原型（TRL 3），不可用于生产环境。** 辅助人工标注是当前最优的近期落地场景。
+</div>
 
 ---
 
-## 数据集
-
-### 概况
-
-| 指标 | 数值 |
-|------|:----:|
-| 训练样本 | 1,520（1,200 电路图 + 300 合成文字 + 20 真实拍照） |
-| 测试样本 | 150（全部为真实 KiCad 电路图，不含合成或拍照数据） |
-| 验证样本 | 150 |
-| OCR 实例总数 | 4,810（仅测试集） |
-| 元件类型 | 10 种（R/C/D/U/J/Q/L/LED/F/Y） |
-
-### 数据来源
-
-- **KiCad 原理图（1,200 张）**：作者自绘设计，SVG 光栅化导出，stroked-text 自动提取标注。全部 MIT 协议，无版权问题。
-- **合成文字图片（300 张）**：Python PIL 生成的白底黑字文档风格图片，内容为电阻表、电容表、IC 型号、引脚定义等电路领域文本。用于强制模型建立视觉-文字对齐，对抗模态塌缩。
-- **真实拍照（20 张）**：打印 A4 原理图后手机拍摄，引入自然光照、视角倾斜和 CMOS 噪声等真实世界变量。
-
-### 标注流程
-
-标注经过 7 轮递进式验证：
-
-1. JSON Schema 自动校验 → 2. 图片路径一致性检查 → 3. 非法字符/控制字符扫描 → 4. 元件标号正则匹配 → 5. 参数值单位标准化（统一 Ω/F/H/V/A） → 6. 与 KiCad 网表交叉验证 → 7. 人工抽检（10% 样本逐行校对）
-
-标注准确率：元件标号 >99%，参数值 >97%，引脚号 >98%。完整质量报告和 12 组可视化对比见[数据集仓库](https://github.com/ZhangJ83/circuit_ocr_dataset_final)。
-
-### 难度分层
-
-测试集按 OCR 实例数分为 Easy（<15，20%）、Medium（15-35，40%）、Hard（>35，40%）三档，并额外提供文字密度、结构复杂度和参数值丰富度三个维度的视觉标签。
-
-> 📦 数据集独立仓库：[circuit_ocr_dataset_final](https://github.com/ZhangJ83/circuit_ocr_dataset_final) | 📊 质量报告：[quality_report/](https://github.com/ZhangJ83/circuit_ocr_dataset_final/tree/master/quality_report)
+> 🏆 **赛事荣誉 | Award & Recognition**
+>
+> 本项目参与百度主办的 **[第十届飞桨黑客松 · PaddleOCR 全球衍生模型挑战赛 (Hackathon 10th)](https://github.com/PaddlePaddle/PaddleOCR/issues/17858)**，在长尾 OCR 衍生微调赛道中完成全流程开发并进入决赛，获得 **决赛第 7 名（Top 10 获奖衍生模型）**。
 
 ---
 
-## 为什么电路 OCR 很难
+## 项目背景与说明
 
-### 视觉层面
+电路原理图包含密集的电气符号、小字号参数与引脚编号，通用 OCR 模型（如 PaddleOCR 通用版、Tesseract 等）在此类图像上容易失效。
 
-电路原理图与通用文档存在本质差异：
+本项目基于 **PaddleOCR-VL-0.9B**（NaViT 视觉编码器 + ERNIE-4.5-0.3B 语言模型），在单卡 RTX 4060（8GB 显存）环境下，使用 LoRA 微调与合成数据预训练方法，探索电路图文字和元件标号的识别。
 
-- **文字与电气符号密集交错**：电阻、电容、IC 等符号与文字标注在有限空间内混排
-- **极微小字体**：引脚号（1, 2, 3...）和参数值（100nF、10kΩ）字号极小，视觉编码器容易遗漏
-- **多方向文字**：水平、垂直、旋转 90°、镜像——商用 OCR 引擎均假设水平文本布局
-- **线条穿越文字**：导线和总线频繁穿越文字区域，造成结构性遮挡
-- **超高文字密度**：测试集平均 32.1 个 OCR 实例/页，远超通用文档的 10-20/页
-- **等宽工程字体**：非标准字体，预训练 VLM 从未见过
-
-### 结构层面
-
-电路 OCR 是一个隐式多任务联合问题，包含 5 个层次化子任务：
-
-1. **元件检测** — 从密集视觉场景中识别 R1/C2/U3 等标号
-2. **参数值读取** — 读取每个元件的参数（10kΩ/100nF/3.3V）
-3. **标号-参数配对（KIE）** — R1 ↔ 10kΩ 的正确关联，本质是关键信息抽取
-4. **引脚解析** — 引脚号与功能名的联合识别（1 VIN, 2 GND, 3 VOUT）
-5. **网络标号识别** — VCC/GND/TX/RX 等节点标签
-
-5 个子任务共享同一个 VLM 解码器，模型必须在无显式任务边界的情况下学习多任务协同优化。
-
-### 模态塌缩
-
-在小数据集（<2,000 样本）上微调 VLM 时，模型倾向于学习"忽略图片，直接输出高频模式"的快捷路径——这就是模态塌缩。典型表现为输出固定数字序列（"1, 2, 3, 4, 5..."）而非读取图片中的实际文字。
+当前模型定位于研究原型，主要作为辅助人工标注的参考工具。
 
 ---
 
-## 为什么电路 OCR 很重要
+## 实验结果与对比
 
-### 行业刚需
+### 1. 主模型测试集表现
 
-- **PCB 逆向工程**：年外包市场超 5 亿美元，约 30% 时间消耗于原理图重建
-- **遗留文档数字化**：大量 1980-2000 年代纸质原理图亟待数字化，人工转录错误率 5-15%
-- **BOM 自动提取**：从原理图提取物料清单是硬件工程师日常工作的高频痛点
-- **跨 EDA 工具迁移**：Altium ↔ KiCad ↔ Eagle 格式互转需要原理图结构化理解
+在 30 样本测试集上的评测结果如下：
 
-### 研究空白
+| 模型 | 训练数据与配置 | CompF1 (元件标号) | LineAcc (行匹配率) | NED ↓ | 说明 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **PaddleOCR-VL-0.9B 基座** | 无微调 (Zero-Shot) | 0.000 | 0.000 | 0.944 | 输出无关的通用文本或模板 |
+| **v1 (exp6)** | 1,500 样本 (含 20% 合成文字) | 0.119 | 0.033 | 0.946 | 具备基础标号识别能力 |
+| **v2 (Phase 1 预训练)** | 5,000 张合成 KiCad 原理图 | **0.304** | **0.040** | **0.942** | 当前测试集中表现较好的版本 |
 
-在 CircuitOCR 之前，学术界和工业界均不存在专门针对电路原理图 OCR 的公开基准数据集。Open Schematics (2025) 仅提供网表，无 OCR 标注；Masala-CHAI 的标注与图片存在系统性不匹配（本项目已验证并剔除）。主流 VLM-OCR 研究（Qwen-VL、PaliGemma、GOT-OCR 等）均未涉及工程图纸。
+### 2. 检查点消融评测（V10-Fixed，测试集 44 样本）
 
----
+使用 `eval_benchmark_v3.py` 评测不同训练步数检查点的结果：
 
-## 实验与结果
+| Checkpoint | ExactMatch | CompF1 | CompPrec | CompRec | TokenRec | NED ↓ | RepRate ↓ | Diversity |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Base 基座** | 0% | 0.0455 | 0.0455 | 0.0455 | 0.0016 | 0.9296 | 6.8% | 90.9% |
+| **S400** | 0% | 0.1820 | 0.1862 | 0.2501 | 0.1302 | 0.8298 | 20.5% | 95.5% |
+| **S600** | 0% | **0.2061** | 0.2024 | **0.3114** | **0.1540** | **0.8031** | **15.9%** | **90.9%** |
+| **S800** | 0% | 0.2080 | 0.2862 | 0.1996 | 0.1191 | 0.8063 | 40.9% | 93.2% |
 
-### 模型对比（30 样本测试集）
+- S600 步为该组实验中指标平衡较好的检查点。
+- S800 步时重复输出比例上升至 40.9%，出现过拟合。
+- ExactMatch 均为 0%，表明模型尚无法完整无误地还原整张复杂图纸。
 
-| 模型 | CompF1 | LineAcc | NED | 说明 |
-|------|:---:|:---:|:---:|------|
-| 基座 PaddleOCR-VL-0.9B | 0.000 | 0.000 | 0.944 | 幻觉文本，无法识别电路元件 |
-| v1 (exp6, 合成文字混合) | 0.119 | 0.033 | 0.946 | 1,500 样本基线 |
-| **v2 (Phase 1, 合成 KiCad 预训练)** | **0.304** | **0.040** | **0.942** | **最佳模型，5,000 合成 KiCad** |
+### 3. 失败实验记录
 
-v2 在三项主指标上全面优于 v1，CompF1 提升 2.6×。
-
-### Phase 1：基准实验（1,200 样本）
-
-四组控制变量实验探索关键配置对模态塌缩的影响：
-
-| 实验 | 配置 | CompF1 | 关键发现 |
-|------|------|:---:|------|
-| exp1 Baseline | 384px, lr=2e-5, do=0.05 | 0.037 | 全部模型出现模态塌缩（输出数字序列） |
-| exp2 HiRes | 512px, lr=2e-5 | 0.058 | 高分辨率无显著收益 |
-| exp3 Anti-Overfit | lr=1e-5, do=0.10, 3 epochs | 0.028 | 训练验证逐渐恢复（"Rash Converter" → "R1 10k"），测试仍塌缩 |
-| exp4 Unfrozen Projector | 384px, 解冻投影器 | 0.092 | CompF1 最高但 90% 输出仍为数字序列 |
-
-**核心发现**：解冻 Projector 会导致严重模态塌缩——视觉特征被扭曲为分布外向量，LLM 退化为高频 token 机械重复。冻结 Projector（LLM-Only LoRA）是安全策略。
-
-### Phase 2：合成数据防塌缩（1,500 样本，20% 合成文字）
-
-| 实验 | 配置 | CompF1 | JointF1 | 关键发现 |
-|------|------|:---:|:---:|------|
-| exp5 (Anti-Overfit + Synth) | lr=1e-5, do=0.10 | **0.126** | **0.011** | S200-S800 持续稳定，电容 BOM 完美识别 |
-| exp6 (Baseline + Synth) | lr=2e-5, do=0.05 | **0.156** | **0.011** | CompF1 最高（4.2× vs Phase 1 基线） |
-
-**核心发现**：300 张合成文字图片以 20% 比例混入训练集是防塌缩最有效的手段。合成图片具有完美的视觉→文字映射，模型无法通过"猜"来降低 loss，必须真正读取图片。CompF1 提升 4.2×，JointF1 提升 2.2×。
-
-### 训练策略
-
-- **LoRA r=16, α=32**：仅训练 5.7M 参数（0.6%），显存需求从 24GB+ 降至 8GB
-- **冻结 Projector（mlp_AR）**：防止视觉-语言对齐权重被扰动
-- **手工 CE Loss**：修复 Paddle 3.1.0 的因果 token 双重偏移 bug
-- **分离 Tokenization**：避免 BPE 边界合并导致 prompt/label 粘连
-- **四维评估**：CompF1（标号识别）+ JointF1（标号-值 KIE 配对）+ NED（编辑距离）+ RepRate（塌缩预警）
+- **V11（正则化 + 合成 V4 数据）**：增加 Dropout 与 Label Smoothing，并引入 Synthetic-V4 数据后，测试集重复率上升至 84.1%，CompF1 下降至 0.060。
+- **V12（两阶段单独训练视觉 LoRA）**：冻结语言模型并单独训练视觉编码器 LoRA（学习率 1e-4），导致输出变为无效字符。
 
 ---
 
-## 未来工作
+## 典型识别案例
 
-四条改进方向可以组合成一条完整的优化路径，逐步逼近可用模型：
+以下选取技术报告中的 2 个实际测试样本，展示基座模型、v1 与 v2 的完整输出对比：
 
-### 1. 扩大训练数据 + 两阶段训练 + 更大 LoRA rank
+### 样本 1：微控制器与外设电路 (Sample #0，1446.png，17 个元件)
 
-当前瓶颈在于 1,200 张训练图不足以支撑 VLM 泛化。下一步将训练数据扩展至 3,000+ 张，采用两阶段策略——先在合成数据上预训练学习视觉-文字对齐，再在真实电路图上微调学习领域特征——同时将 LoRA rank 从 r=16 提升至 r=32/64，增加模型容量。目标是将 JointF1 从 0.011 推至 0.05 以上。
-
-### 2. RL + SPICE 网表格式对齐
-
-当 JointF1 达到可用阈值后，通过 GRPO 强化学习将模型输出从自由文本格式（"R1 10kΩ ±1%"）转化为严格的 SPICE 网表格式（"R1 NET_A NET_B 10k"），实现从 OCR 识别到可仿真验证网表的最后一公里。设计三组件 reward：SPICE 语法有效性 + 元件标号 F1 + 节点编号一致性。
-
----
-
-## 开源资产
-
-| 资源 | 链接 | 说明 |
-|------|------|------|
-| 📂 代码仓库 | [circuit-ocr-paddle](https://github.com/ZhangJ83/circuit-ocr-paddle) | 全部训练/评估/数据生成脚本 |
-| 📦 数据集 | [circuit_ocr_dataset_final](https://github.com/ZhangJ83/circuit_ocr_dataset_final) | 1,820 样本 + 质量报告 |
-| 🎮 在线 Demo | [HF Space](https://huggingface.co/spaces/yingchu83/CircuitOCR) | 预计算示例 + 基准数据展示 |
-| 🏋️ LoRA 权重 | [HF Models](https://huggingface.co/yingchu83/CircuitOCR-lora) | v2 (Phase 1) + v1 (exp6) 双版本 |
-| 📄 技术报告 (CN) | [template.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/template.pdf) | 51 页，含完整实验与分析 |
-| 📄 技术报告 (EN) | [english.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/arxiv_template/english.pdf) | 43 页 English technical report |
-| 🎞️ Beamer 演示 | [beamer_slides.pdf](https://github.com/ZhangJ83/circuit-ocr-paddle/blob/master/slides/beamer_slides.pdf) | 34 页，含 15+ 张数据图表 |
-
----
-
-## 快速开始
-
-```bash
-# 克隆仓库
-git clone https://github.com/ZhangJ83/circuit-ocr-paddle
-cd circuit-ocr-paddle
-
-# 下载 LoRA 权重（exp6 推荐）
-# https://huggingface.co/yingchu83/CircuitOCR-lora
-
-# 单张图片推理
-python circuit-ocr-dataset/scripts/eval_benchmark_v3.py \
-    --lora_checkpoint lora_exp6_best.pdparams \
-    --image your_circuit.png
-
-# 批量测试集评估
-python fast_eval.py
+#### 标注真值 (Ground Truth，前 22 行)
+```text
+H101
+6.00mm
+H102
+6.00mm
+H103
+6.00mm
++5V
+USB In
+3.3V Regulator
+Debug
+PWR_FLAG
+H104
+6.00mm
+H105
+6.00mm
++3.3V
+SWD Connector
+C101
+10uF
+Mounting Holes
+SWD
+J102
+USB-C
 ```
 
-**环境要求**：Windows/Linux，NVIDIA GPU ≥8GB VRAM，Python 3.10+，PaddlePaddle 3.1.0，PaddleFormers 1.1.1。
+#### 各模型实际输出对比
+
+| 模型 | 输出文本 | 输出分析 |
+| :--- | :--- | :--- |
+| **基座模型 (Zero-Shot)** | ```text<br>Service \| Name / Service Name \| SERVING<br>Status \| Status \| Status<br>Version \| Version \| Version<br>ID \| ID \| ID<br>Created \| Created \| Created<br>Updated \| Updated \| Updated<br>``` | 输出预训练语料中的通用 API 表格模板，与电路图内容无关。<br>(CompF1 = 0.000) |
+| **v1 (exp6, 1.5k 混合)** | ```text<br>1<br>2<br>3<br>4<br>5<br>...<br>23<br>``` | 发生局部模态塌缩，输出机械递增的纯数字序列，未读取图纸文字。<br>(CompF1 = 0.000) |
+| **v2 (Phase 1 预训练)** | ```text<br>H101<br>6.00mm<br>H102<br>6.00mm<br>H103<br>6.00mm<br>+5V<br>USB In<br>3.3V Regulator<br>Debug<br>PWR_FLAG<br>H104<br>6.00mm<br>H105<br>6.00mm<br>+3.3V<br>SWD Connector<br>C101<br>10uF<br>Mounting Holes<br>SWD<br>J102<br>USB-C<br>A1 GND<br>A12 GND<br>A4 VBUS<br>A5 CC1<br>``` | 完整匹配 GT 前 21 行内容，正确读取定位孔标号及尺寸（`H101~H105`、`6.00mm`）、电容（`C101 10uF`）、接口（`J102 USB-C`）及网络标号。<br>(CompF1 ≈ 1.0) |
+
+---
+
+### 样本 2：电源输入与开关接口电路 (Sample #1，0385.png，22 个元件)
+
+#### 标注真值 (Ground Truth，前 18 行)
+```text
+PWR_FLAG
++12V_In
+PWR_FLAG
++12V
+DC1
+DC-005-5A-2.0
+1
+2
+3
+SW1
+SW_SPDT
+1
+2
+3
+SW2
+SW_SPDT
+1
+2
+```
+
+#### 各模型实际输出对比
+
+| 模型 | 输出文本 | 输出分析 |
+| :--- | :--- | :--- |
+| **基座模型 (Zero-Shot)** | ```text<br>This image is a graphic design and does not contain any chart<br>or data that can be extracted into tabular format.<br>The image appears to be a technical drawing or diagram<br>with various labels and annotations.<br>``` | 输出一段图像通用说明文本，未能解析出具体文字与元件信息。<br>(CompF1 = 0.000) |
+| **v1 (exp6, 1.5k 混合)** | ```text<br>Model \| Model Name / T-SNE \| T-SNE / PCA \| PCA<br>Data \| Data \| Data<br>Analysis \| Analysis \| Analysis<br>Result \| Result \| Result<br>Output \| Output \| Output<br>``` | 输出机器学习名词表格，未转入电路领域的实体识别。<br>(CompF1 = 0.000) |
+| **v2 (Phase 1 预训练)** | ```text<br>PWR_FLAG<br>+12V_In<br>PWR_FLAG<br>+12V<br>DC1<br>DC-005-5A-2.0<br>1<br>2<br>3<br>SW1<br>SW_SPDT<br>1<br>2<br>3<br>SW2<br>SW_SPDT<br>1<br>2<br>3<br>SW3<br>SW_SPDT<br>``` | 前 20 行与真值一致，准确识别出电源接口型号 `DC-005-5A-2.0`、开关类型 `SW_SPDT` 及对应引脚序号 `1, 2, 3`。<br>(CompF1 ≈ 1.0) |
+
+---
+
+## 训练问题排查与修复
+
+在微调过程中，主要处理了以下 6 个技术问题：
+
+1. **因果标签偏移（Causal Token Double-Shift）**：模型内部在计算损失时已包含标签错位处理，若训练脚本再次手动错位会导致监督信号偏移 2 位。
+2. **分词边界合并（BPE Boundary Merging）**：直接拼接 Prompt 与 Label 字符串会导致分词器在连接处合并字符，改用分别 Tokenize 后拼接 Token ID 的方式。
+3. **Paddle 3.1.0 权重加载**：部分版本下 `model.set_state_dict()` 对 LoRA 返回 `None`，改为通过 `LoRAModel` 遍历参数并使用 `p.set_value()` 注入。
+4. **投影层（Projector）冻结**：小样本微调中，解冻 `mlp_AR` 投影层容易导致语言模型退化为输出高频数字，因此保持投影层冻结。
+5. **数据混合防塌缩**：在电路图训练集中混入 20% 纯文字图片（阻容表、引脚定义），促使模型依赖视觉输入。
+6. **参数转换精度**：统一 LoRA 权重在 float32 与 bfloat16 之间的转换逻辑，避免截断误差。
+
+---
+
+## 数据集说明
+
+数据集独立仓库：[`ZhangJ83/circuit_ocr_dataset_final`](https://github.com/ZhangJ83/circuit_ocr_dataset_final)
+
+- **样本规模**：共 1,820 张（训练集 1,520 张：含 1,200 张 KiCad 图、300 张合成文字图、20 张拍照图；验证集 150 张；测试集 150 张）。
+- **标注流程**：采用 7 步检查流程（Schema 检查 $\to$ 文件与路径有效性 $\to$ 控制字符过滤 $\to$ 标号格式正则检查 $\to$ 单位符号标准化 $\to$ KiCad 网表交叉对比 $\to$ 10% 人工抽检）。
+
+---
+
+## 快速使用
+
+### 1. 安装环境
+
+```bash
+git clone https://github.com/ZhangJ83/circuit-ocr-paddle.git
+cd circuit-ocr-paddle
+pip install -r requirements.txt
+```
+
+### 2. 模型加载与推理
+
+```python
+import paddle
+from PIL import Image
+from paddleformers.transformers import AutoModelForConditionalGeneration, AutoProcessor
+from paddleformers.peft import LoRAConfig, LoRAModel
+
+# 加载基座模型
+model_name = "PaddlePaddle/PaddleOCR-VL"
+processor = AutoProcessor.from_pretrained(model_name)
+base_model = AutoModelForConditionalGeneration.from_pretrained(model_name, dtype="bfloat16")
+
+# 配置 LoRA 目标层
+TARGETS = [
+    r'model\.layers\..*q_proj', r'model\.layers\..*k_proj',
+    r'model\.layers\..*v_proj', r'model\.layers\..*o_proj',
+    r'model\.layers\..*linear_1', r'model\.layers\..*linear_2'
+]
+lora_config = LoRAConfig(r=16, lora_alpha=32, target_modules=TARGETS)
+model = LoRAModel(base_model, lora_config)
+
+# 加载 LoRA 权重
+lora_state = paddle.load("checkpoints/lora_v2_phase1.pdparams")
+model_lora_params = {k: p for k, p in model.named_parameters() if 'lora_' in k}
+for k, v in lora_state.items():
+    if k in model_lora_params:
+        model_lora_params[k].set_value(paddle.cast(v, model_lora_params[k].dtype))
+
+model.eval()
+
+# 推理
+image = Image.open("examples/demo_circuit.png").convert("RGB")
+inputs = processor(images=image, text="Recognize all circuit components and values in this schematic.", return_tensors="pd")
+with paddle.no_grad():
+    outputs = model.generate(**inputs, max_new_tokens=512)
+print(processor.decode(outputs[0], skip_special_tokens=True))
+```
+
+### 3. 运行测试集评测
+
+```bash
+python circuit-ocr-dataset/scripts/eval_benchmark_v3.py \
+    --lora_checkpoint checkpoints/lora_s600.pdparams \
+    --test_jsonl circuit-ocr-dataset/ocr_vl_sft-test-easy50-pure.jsonl \
+    --output_file eval_results.json
+```
 
 ---
 
@@ -206,10 +239,11 @@ python fast_eval.py
   title={CircuitOCR: LoRA Fine-Tuning PaddleOCR-VL for Circuit Schematic Understanding},
   author={Jianning Zhang},
   year={2026},
-  url={https://github.com/ZhangJ83/circuit-ocr-paddle},
+  publisher={GitHub},
+  howpublished={\url{https://github.com/ZhangJ83/circuit-ocr-paddle}}
 }
 ```
 
 ## 许可证
 
-MIT License。全部代码、数据集、模型权重开源。
+本项目采用 [MIT License](LICENSE) 许可证。

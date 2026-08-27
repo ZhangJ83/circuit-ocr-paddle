@@ -1,7 +1,68 @@
+# Python & Bytecode
 __pycache__/
-*.pyc
-PaddleOCR-VL-LoRA-ablation-*/
-*.log
-!training_lora_final.log
-results_*.jsonl
+*.py[cod]
+*$py.class
 *.npz
+
+# Model weights & Checkpoints (large files)
+checkpoints/
+checkpoints_rl/
+PaddleOCR-VL-LoRA-ablation-*/
+*.pdparams
+*.pdopt
+*.pdstates
+*.tar.gz
+*.zip
+wheels/
+
+# Sub-repositories & clones
+dataset_final_push/
+hf_clone/
+hf_model_clone/
+hf_upload_package/
+backups_before_unify/
+
+# Data & temporary outputs
+data/
+output/
+real_photo_templates/
+
+# Logs & diagnostic dumps
+*.log
+*.log*
+!training_lora_final.log
+cleanup_*.txt
+cleanup_log.txt
+cleanup_done.txt
+disk_check.txt
+gpu_state.txt
+*cleanup_result.txt
+pipeline_state.json
+
+# Shell & PowerShell temporary scripts
+*.ps1
+
+# IDE & Editor configs
+.vscode/
+.claude/
+.idea/
+.DS_Store
+
+# Results & predictions
+results_*.jsonl
+
+# Nested dataset repo untracked files
+circuit-ocr-dataset/PaddleOCR-VL-LoRA-circuit-ocr/
+circuit-ocr-dataset/*.jsonl
+circuit-ocr-dataset/*.json
+circuit-ocr-dataset/*.txt
+circuit-ocr-dataset/*.log*
+circuit-ocr-dataset/configs/
+circuit-ocr-dataset/src/
+circuit-ocr-dataset/tests/
+circuit-ocr-dataset/masala_chai_check
+circuit-ocr-dataset/G*
+PaddleOCR-VL-LoRA-circuit-ocr/
+!output/fig_ablation_summary.png
+!output/fig_model_comparison.png
+circuit-ocr-dataset/.gitignore

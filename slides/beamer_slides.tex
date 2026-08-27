@@ -11,6 +11,7 @@
 \definecolor{sysublue}{RGB}{0,51,102}
 \definecolor{sysured}{RGB}{180,30,30}
 \definecolor{phase2color}{RGB}{237,125,49}
+\definecolor{mygreen}{RGB}{0,128,0}
 \setbeamercolor{structure}{fg=sysublue}
 \setbeamercolor{title}{fg=white,bg=sysublue}
 \setbeamercolor{frametitle}{fg=white,bg=sysublue}
@@ -162,36 +163,6 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{难度分层体系}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{OCR 实例数维度}
-        \footnotesize
-        \begin{tabular}{lcc}
-          \toprule
-          难度 & 实例数 & 占比 \\
-          \midrule
-          简单 & < 15 & 20\% \\
-          中等 & 15--35 & 40\% \\
-          困难 & > 35 & 40\% \\
-          \bottomrule
-        \end{tabular}
-        \vspace{0.3cm}
-        2:4:4 比例符合真实场景分布
-      \end{block}
-    \column{0.5\textwidth}
-      \begin{block}{多维视觉标签（新增）}
-        \footnotesize
-        \begin{itemize}
-          \item 文字密度：低 / 中 / 高
-          \item 结构复杂度：简单 / 中等 / 复杂
-          \item 参数值丰富度：稀疏 / 中等 / 密集
-          \item 综合视觉难度评分
-        \end{itemize}
-      \end{block}
-  \end{columns}
-\end{frame}
-
 \begin{frame}{数据集关键指标一览}
   \begin{center}
     \includegraphics[width=\textwidth]{../slides_figures/dataset_metrics_infographic.pdf}
@@ -278,6 +249,16 @@
   \end{table}
 \end{frame}
 
+\begin{frame}{真实电路图示例：开源 KiCad 原理图}
+  \begin{center}
+    \includegraphics[width=0.92\textwidth,keepaspectratio]{../output/review_1000/images/1507.png}
+  \end{center}
+  \vspace{0.1cm}
+  \begin{center}
+    \footnotesize 真实 KiCad 开源项目（Nifty Numpad, RP2040）：高密度元件、多方向文字、符号与标注交错
+  \end{center}
+\end{frame}
+
 % ═══════════ 任务复杂度 ═══════════
 \section{任务复杂度}
 
@@ -346,19 +327,19 @@
       \textbf{模型} & \textbf{CompF1} & \textbf{LineAcc} & \textbf{NED} \\
       \midrule
       基座 PaddleOCR-VL-0.9B & 0.000 & 0.000 & 0.944 \\
-      exp6（v1, 合成文字混合）& 0.156 & 0.022 & 0.946 \\
-      \textbf{Phase 1（v2, KiCad预训练）} & \textbf{0.304} & \textbf{0.041} & \textbf{0.942} \\
+      exp6（v1, 合成文字混合）& 0.119 & 0.033 & 0.946 \\
+      \textbf{Phase 1（v2, KiCad预训练）} & \textbf{0.304} & \textbf{0.040} & \textbf{0.942} \\
       \bottomrule
     \end{tabular}
   \end{table}
   \begin{block}{}
     \footnotesize
     基座模型输出为预训练幻觉文本（"Service Name / Data Source"），完全无法识别电路元件。
-    LoRA 微调后 CompF1 从零提升至 0.156，LineAcc 为 0.022——输出开始包含电路领域词汇。
+    LoRA 微调后 CompF1 从零提升至 0.119，LineAcc 为 0.033——输出开始包含电路领域词汇。
   \end{block}
 \end{frame}
 
-\begin{frame}{Phase 1：四组控制变量实验（1,200 样本）}
+\begin{frame}{Phase 1：四组控制变量实验（1,200 样本，150 样本评测）}
   \begin{table}
     \centering
     \scriptsize
@@ -380,7 +361,7 @@
   \end{block}
 \end{frame}
 
-\begin{frame}{Phase 2：合成数据防塌缩（1,500 样本）}
+\begin{frame}{Phase 2：合成数据防塌缩（1,500 样本，150 样本评测）}
   \begin{columns}[T]
     \column{0.4\textwidth}
       \begin{block}{方法}
@@ -408,6 +389,16 @@
   \vspace{0.3cm}
   \begin{center}
     \footnotesize \textbf{合成数据混合可有效缓解模态塌缩，CompF1 提升 4.2 倍}
+  \end{center}
+\end{frame}
+
+\begin{frame}{合成数据示例（BOM 表格风格）}
+  \begin{center}
+    \includegraphics[width=0.85\textwidth,keepaspectratio]{../output/synth_text_images/s0105.png}
+  \end{center}
+  \vspace{0.1cm}
+  \begin{center}
+    \footnotesize 合成文本数据：模拟 BOM 表格风格，用于增强模型对结构化文本的识别能力，防止模态塌缩
   \end{center}
 \end{frame}
 
@@ -476,6 +467,13 @@
         \end{itemize}
       \end{block}
   \end{columns}
+  \vspace{0.15cm}
+  \begin{center}
+    \includegraphics[width=0.65\textwidth,keepaspectratio]{../output/synthetic_kicad_v3/images/synth_002892.png}
+  \end{center}
+  \begin{center}
+    \footnotesize KiCad 程序化生成的合成原理图：元件符号、连线、文字标注与真实 KiCad 图纸外观一致
+  \end{center}
 \end{frame}
 
 \begin{frame}{多模型对比（DeepSeek-V4 风格）}
@@ -492,24 +490,24 @@
   \begin{table}
     \centering
     \scriptsize
-    \begin{tabular}{lrrrc}
+    \begin{tabular}{lrrc}
       \toprule
-      \textbf{模型} & \textbf{CompF1} & \textbf{JointF1-norm} & \textbf{LineAcc} & \textbf{说明} \\
+      \textbf{模型} & \textbf{CompF1} & \textbf{LineAcc} & \textbf{说明} \\
       \midrule
-      基座 PaddleOCR-VL-0.9B & 0.000 & 0.000 & 0.000 & 通用VLM，无领域微调 \\
-      v1 (exp6，合成文字混合) & 0.156 & — & — & 基线，300 合成文字 \\
-      \rowcolor{blue!10} \textbf{v2 (Phase 1 预训练)} & \textbf{0.304} & — & — & \textbf{最佳模型，5,000 合成 KiCad} \\
-      v2 + 真实数据微调 & 0.002 & 0.000 & 0.000 & 两阶段训练后塌缩 \\
+      基座 PaddleOCR-VL-0.9B & 0.000 & 0.000 & 通用VLM，无领域微调 \\
+      v1 (exp6，合成文字混合) & 0.119 & 0.033 & 基线，300 合成文字 \\
+      \rowcolor{blue!10} \textbf{v2 (Phase 1 预训练)} & \textbf{0.304} & \textbf{0.040} & \textbf{最佳模型，5,000 合成 KiCad} \\
+      v2 + 真实数据微调 & 0.002 & 0.000 & 两阶段训练后塌缩 \\
       \bottomrule
     \end{tabular}
   \end{table}
   \vspace{-0.3cm}
   \begin{center}
-    \small \textbf{CompF1 $\uparrow$ 2.5$\times$ (0.156 $\to$ 0.304) \quad NED $\downarrow$ (0.946 $\to$ 0.942)}
+    \small \textbf{CompF1 $\uparrow$ 2.6$\times$ (0.119 $\to$ 0.304) \quad LineAcc $\uparrow$ 1.2$\times$ (0.033 $\to$ 0.040)}
   \end{center}
   \begin{block}{关键发现}
     \footnotesize
-    v2 在 CompF1（2.5$\times$）、LineAcc（1.9$\times$）、NED 和塌缩率上全面超越 v1，为本项目最佳模型。
+    v2 在 CompF1（2.6$\times$）、LineAcc（1.2$\times$）和 NED 三项主指标上均优于 v1，为本项目最佳模型。JointF1-norm 双方均接近零，标号-参数值联合识别是本任务核心瓶颈。
   \end{block}
 \end{frame}
 
@@ -548,7 +546,7 @@
         \footnotesize
         \begin{itemize}
           \item 1,200 训练样本不足以支撑 VLM 泛化
-          \item CompF1=0.304 但 LineAcc 仅 0.041，行级匹配率有待提升
+          \item CompF1=0.304 但 LineAcc 仅 0.040，行级匹配率有待提升
           \item 更大 LoRA 秩在当前数据量下无效
           \item 精标小数据 > 粗标大数据
         \end{itemize}
@@ -566,6 +564,408 @@
   \end{columns}
 \end{frame}
 
+% ═══════════ 可部署性分析 ═══════════
+\section{可投入应用程度分析}
+
+\begin{frame}{最优模型 (v2) 能力画像}
+  \begin{columns}[T]
+    \column{0.45\textwidth}
+      \begin{block}{量化指标（30 样本）}
+        \footnotesize
+        \begin{tabular}{lcc}
+          \toprule
+          \textbf{指标} & \textbf{数值} & \textbf{解读} \\
+          \midrule
+          CompF1 & 0.304 & 约 1/3 标号正确 \\
+          LineAcc & 0.040 & 约 4\% 行匹配 \\
+          NED & 0.942 & 字符级接近 \\
+          JtF1-norm & $\approx$0 & 配对未建立 \\
+          \bottomrule
+        \end{tabular}
+      \end{block}
+    \column{0.55\textwidth}
+      \begin{block}{能力总结}
+        \footnotesize
+        \begin{itemize}
+          \item \textcolor{mygreen}{\textbf{已建立}}：电路图视觉风格表征
+          \item \textcolor{mygreen}{\textbf{已建立}}：不塌缩的稳定输出
+          \item \textcolor{mygreen}{\textbf{已建立}}：30\% 元件标号检出
+          \item \textcolor{sysured}{\textbf{未建立}}：标号-参数值配对
+          \item \textcolor{sysured}{\textbf{未建立}}：复杂引脚表识别
+          \item \textcolor{sysured}{\textbf{未建立}}：结构化输出格式
+        \end{itemize}
+      \end{block}
+  \end{columns}
+  \vspace{0.3cm}
+  \begin{center}
+    \large 当前阶段：\textbf{TRL 3（概念验证）}，部分能力接近 TRL 4
+  \end{center}
+\end{frame}
+
+\begin{frame}{案例 0: 1446.png（17 元件, 34 行 GT）}
+  \begin{center}
+    \includegraphics[height=0.55\textheight,keepaspectratio]{../output/review_1000/images/1446.png}
+  \end{center}
+  \vspace{0.1cm}
+  \begin{table}
+    \centering
+    \scriptsize
+    \begin{tabular}{lp{2cm}p{8cm}}
+      \toprule
+      \textbf{模型} & \textbf{CompF1} & \textbf{输出特征} \\
+      \midrule
+      基座 & 0.000 & API 文档模板，完全无关 \\
+      exp6 (v1) & 0.000 & 数字序列塌缩 (1--23) \\
+      Phase 1 (v2) & $\approx$1.0 & \textbf{前 21 行与 GT 完全一致（标号+数值均正确）} \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+\begin{frame}{案例 0: 三模型原始输出对比}
+  \begin{columns}[T]
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize 基座（PaddleOCR-VL-0.9B）}
+        \ttfamily\tiny
+        Service | Name /\\ Service Name | SERVING\\
+        Status | Status | Status\\
+        Version | Version | Version\\
+        ID | ID | ID\\
+        Created | Created | Created\\
+        Updated | Updated | Updated
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize exp6 (v1)}
+        \ttfamily\tiny
+        1\\
+        2\\
+        3\\
+        4\\
+        5\\
+        6\\
+        7\\
+        8\\
+        9\\
+        10\\
+        11\\
+        12\\
+        13\\
+        \ldots（数字塌缩）
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize Phase 1 (v2) $\star$}
+        \ttfamily\tiny
+        H101\\
+        6.00mm\\
+        H102\\
+        6.00mm\\
+        H103\\
+        6.00mm\\
+        +5V\\
+        USB In\\
+        3.3V Regulator\\
+        Debug\\
+        PWR\_FLAG\\
+        H104\\
+        6.00mm\\
+        \ldots\textbf{前21行完全一致}
+      \end{block}
+  \end{columns}
+  \vspace{0.2cm}
+  \begin{center}
+    \footnotesize 基座$\to$exp6$\to$Phase 1：通用文本 $\to$ 数字塌缩 $\to$ \textbf{电路标号+数值完整输出}
+  \end{center}
+\end{frame}
+
+\begin{frame}{案例 1: 0385.png（22 元件, 44 行 GT）}
+  \begin{center}
+    \includegraphics[height=0.55\textheight,keepaspectratio]{../output/review_1000/images/0385.png}
+  \end{center}
+  \vspace{0.1cm}
+  \begin{table}
+    \centering
+    \scriptsize
+    \begin{tabular}{lp{2cm}p{8cm}}
+      \toprule
+      \textbf{模型} & \textbf{CompF1} & \textbf{输出特征} \\
+      \midrule
+      基座 & 0.000 & 图像描述文本 (``This image is a graphic design...'') \\
+      exp6 (v1) & 0.000 & ML 术语 (Model/T-SNE/PCA...)，未转向电路领域 \\
+      Phase 1 (v2) & $\approx$1.0 & \textbf{前 20 行与 GT 完全一致，正确识别电路内容} \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+\begin{frame}{案例 1: 三模型原始输出对比}
+  \begin{columns}[T]
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize 基座（PaddleOCR-VL-0.9B）}
+        \ttfamily\tiny
+        This image is a graphic design\\
+        and does not contain any\\
+        chart or data that can be\\
+        extracted into tabular format.\\
+        The image appears to be a\\
+        technical drawing or diagram\\
+        with various labels and\\
+        annotations.
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize exp6 (v1)}
+        \ttfamily\tiny
+        Model | Model Name /\\
+        T-SNE | T-SNE / PCA | PCA\\
+        Data | Data | Data\\
+        Analysis | Analysis | Analysis\\
+        Result | Result | Result\\
+        Output | Output | Output
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize Phase 1 (v2) $\star$}
+        \ttfamily\tiny
+        PWR\_FLAG\\
+        +12V\_In\\
+        PWR\_FLAG\\
+        +12V\\
+        DC1\\
+        DC-005-5A-2.0\\
+        1\\
+        2\\
+        3\\
+        SW1\\
+        SW\_SPDT\\
+        1\\
+        2\\
+        \ldots\textbf{前20行完全一致}
+      \end{block}
+  \end{columns}
+  \vspace{0.2cm}
+  \begin{center}
+    \footnotesize 基座$\to$exp6$\to$Phase 1：图像描述 $\to$ ML术语 $\to$ \textbf{电路标号+参数值正确识别}
+  \end{center}
+\end{frame}
+
+\begin{frame}{案例 5: 0478.png（36 元件, 72 行 GT）}
+  \begin{center}
+    \includegraphics[height=0.55\textheight,keepaspectratio]{../output/review_1000/images/0478.png}
+  \end{center}
+  \vspace{0.1cm}
+  \begin{table}
+    \centering
+    \scriptsize
+    \begin{tabular}{lp{2cm}p{8cm}}
+      \toprule
+      \textbf{模型} & \textbf{CompF1} & \textbf{输出特征} \\
+      \midrule
+      基座 & 0.000 & 填表模板 (Name/Time/Place/Date...) \\
+      exp6 (v1) & 0.000 & +3.3V 重复（数值幻觉：识别到电源但产生重复） \\
+      Phase 1 (v2) & 部分 & 多类型输出（电压+USB信号名+R/C/U），差异化响应 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+\begin{frame}{案例 5: 三模型原始输出对比}
+  \begin{columns}[T]
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize 基座（PaddleOCR-VL-0.9B）}
+        \ttfamily\tiny
+        Name: \_\_\_ /\\
+        Time: 51-34 /\\
+        Place: \_\_\_ /\\
+        Date: \_\_\_ \\
+        （填表模板，\\
+        与电路完全无关）
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize exp6 (v1)}
+        \ttfamily\tiny
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        \ldots（+3.3V 重复 19 行）\\
+        \textbf{数值幻觉}
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize Phase 1 (v2) $\star$}
+        \ttfamily\tiny
+        +3.3V\\
+        GND\\
+        +5V\\
+        VBUS\\
+        D+\\
+        D-\\
+        CC1\\
+        CC2\\
+        SBU1\\
+        SBU2\\
+        R1\\
+        5.1k\\
+        R2\\
+        5.1k\\
+        \ldots\textbf{多类型差异化输出}
+      \end{block}
+  \end{columns}
+  \vspace{0.2cm}
+  \begin{center}
+    \footnotesize 基座$\to$exp6$\to$Phase 1：填表模板 $\to$ 电压幻觉 $\to$ \textbf{电压+USB+R/C/U 多类型识别}
+  \end{center}
+\end{frame}
+
+\begin{frame}{案例 8: 0640.png（42 元件, 84 行 GT）}
+  \begin{center}
+    \includegraphics[height=0.55\textheight,keepaspectratio]{../output/review_1000/images/0640.png}
+  \end{center}
+  \vspace{0.1cm}
+  \begin{table}
+    \centering
+    \scriptsize
+    \begin{tabular}{lp{2cm}p{8cm}}
+      \toprule
+      \textbf{模型} & \textbf{CompF1} & \textbf{输出特征} \\
+      \midrule
+      基座 & 0.000 & 数据表格描述 (Category/Data Point/Series...) \\
+      exp6 (v1) & 0.000 & 部分读取 ``APP P7016''（AMP POWER 误识），后塌缩为数字 \\
+      Phase 1 (v2) & 部分 & \textbf{前 13 行与 GT 完全一致}，后续输出合成高频元件模式 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+\begin{frame}{案例 8: 三模型原始输出对比}
+  \begin{columns}[T]
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize 基座（PaddleOCR-VL-0.9B）}
+        \ttfamily\tiny
+        Category | Data Point 1\\
+        (X, Y) | Data Point 2\\
+        (X, Y) | Series A |\\
+        Series B\\
+        （数据表格描述，\\
+        与电路完全无关）
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize exp6 (v1)}
+        \ttfamily\tiny
+        APP P7016\\
+        1\\
+        2\\
+        3\\
+        4\\
+        5\\
+        6\\
+        7\\
+        8\\
+        9\\
+        10\\
+        \ldots（数字塌缩）\\
+        AMP$\to$APP, POWER$\to$P7016
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize Phase 1 (v2) $\star$}
+        \ttfamily\tiny
+        AMP POWER\\
+        1\\
+        2\\
+        3\\
+        +12V\\
+        GND\\
+        GND\\
+        GND\\
+        GND\\
+        GND\\
+        OUTPUT\\
+        OUTPUT\\
+        \ldots\textbf{前13行完全一致}
+      \end{block}
+  \end{columns}
+  \vspace{0.2cm}
+  \begin{center}
+    \footnotesize 基座$\to$exp6$\to$Phase 1：表格描述 $\to$ 误识+塌缩 $\to$ \textbf{前13行与GT完全匹配}
+  \end{center}
+\end{frame}
+
+\begin{frame}{案例 12: 1449.png（29 元件, 58 行 GT）}
+  \begin{center}
+    \includegraphics[height=0.55\textheight,keepaspectratio]{../output/review_1000/images/1449.png}
+  \end{center}
+  \vspace{0.1cm}
+  \begin{table}
+    \centering
+    \scriptsize
+    \begin{tabular}{lp{2cm}p{8cm}}
+      \toprule
+      \textbf{模型} & \textbf{CompF1} & \textbf{输出特征} \\
+      \midrule
+      基座 & 0.000 & 图像说明文本，完全无关 \\
+      exp6 (v1) & 0.000 & +3.3V 重复（数值幻觉，与案例 5 相同模式） \\
+      Phase 1 (v2) & 部分 & 多电压+元件+IC 输出 (LM358, 1N4148)，差异化响应 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+\begin{frame}{案例 12: 三模型原始输出对比}
+  \begin{columns}[T]
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize 基座（PaddleOCR-VL-0.9B）}
+        \ttfamily\tiny
+        This image is a graphic\\
+        design and does not contain\\
+        any chart or data that\\
+        can be extracted into\\
+        tabular format.\\
+        （图像说明文本，\\
+        与电路完全无关）
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize exp6 (v1)}
+        \ttfamily\tiny
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        +3.3V\\
+        \ldots（+3.3V 重复）\\
+        \textbf{数值幻觉}\\
+        （与案例5相同模式）
+      \end{block}
+    \column{0.33\textwidth}
+      \begin{block}{\footnotesize Phase 1 (v2) $\star$}
+        \ttfamily\tiny
+        +3.3V\\
+        GND\\
+        +5V\\
+        +12V\\
+        R1\\
+        10k\\
+        R2\\
+        22k\\
+        R3\\
+        47k\\
+        C1\\
+        100nF\\
+        C2\\
+        10uF\\
+        \ldots\textbf{多电压+元件+IC}
+      \end{block}
+  \end{columns}
+  \vspace{0.2cm}
+  \begin{center}
+    \footnotesize 基座$\to$exp6$\to$Phase 1：图像描述 $\to$ 电压幻觉 $\to$ \textbf{LM358/1N4148 等元件识别}
+  \end{center}
+\end{frame}
+
 % ═══════════ 总结 ═══════════
 \section{总结与展望}
 
@@ -580,7 +980,7 @@
           \item 冻结 Projector + LoRA
           \item 多指标评估体系
           \item 7 轮标注验证管线
-          \item 合成KiCad预训练：CompF1 达 0.304（2.5 倍提升）
+          \item 合成KiCad预训练：CompF1 达 0.304（2.6 倍提升）
         \end{enumerate}
       \end{block}
     \column{0.5\textwidth}
@@ -598,33 +998,6 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{局限与未来工作}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-      \begin{block}{当前局限}
-        \footnotesize
-        \begin{itemize}
-          \item LineAcc = 0.041，v2 较 v1 提升 1.9$\times$ 但仍需提高
-          \item 最优 CompF1 = 0.304，但 ExactMatch = 0\%
-          \item 仅 1,200 真实训练样本（单 CAD 来源）
-          \item 合成$\to$真实两阶段微调塌缩（性能下降）
-          \item 复杂样本持续塌缩（ESP32 引脚表等）
-        \end{itemize}
-      \end{block}
-    \column{0.5\textwidth}
-      \begin{block}{未来方向}
-        \footnotesize
-        \begin{itemize}
-          \item 扩大合成数据规模（5k $\to$ 50k+）
-          \item 渐进式领域适配：合成$\to$真实
-          \item 改进标号-参数值配对机制
-          \item 探索更大基座模型容量
-          \item 多 CAD 来源数据增强
-        \end{itemize}
-      \end{block}
-  \end{columns}
-\end{frame}
-
 \begin{frame}{开源资产}
   \begin{table}
     \centering
@@ -637,7 +1010,7 @@
       数据集仓库 & \url{github.com/ZhangJ83/circuit_ocr_dataset_final} \\
       在线 Demo & \url{huggingface.co/spaces/yingchu83/CircuitOCR} \\
       LoRA 权重 & \url{huggingface.co/yingchu83/CircuitOCR-lora} \\
-      技术报告（中/英）& 24 页 PDF \\
+      技术报告（中/英）& 51 页 PDF \\
       Beamer 演示 & 本文件 \\
       \bottomrule
     \end{tabular}

@@ -55,21 +55,24 @@ def apply_paddle_patches():
         from types import ModuleType
         import paddle
 
-        # Patch 0: PySafeSlice.shape for safetensors compatibility (Paddle 3.0rc/beta)
+        # Patch 0: PySafeSlice.shape for safetensors compatibility — lazy (no file read)
         try:
-            from safetensors import safe_open as _safe_open
-            # Trigger PySafeSlice type registration by opening any safetensors file,
-            # then patch the class to add .shape property
-            _orig_safe_open = _safe_open
-            def _patched_safe_open(*args, **kwargs):
-                result = _orig_safe_open(*args, **kwargs)
-                if len(result.keys()) > 0:
-                    sl = result.get_slice(list(result.keys())[0])
-                    if not hasattr(type(sl), 'shape'):
-                        type(sl).shape = property(lambda self: self.get_shape())
-                return result
             import safetensors
-            safetensors.safe_open = _patched_safe_open
+            if hasattr(safetensors, 'safe_open'):
+                _orig = safetensors.safe_open
+                _patched = [False]  # mutable flag
+                def _lazy_patch_safe_open(*args, **kwargs):
+                    result = _orig(*args, **kwargs)
+                    if not _patched[0] and len(result.keys()) > 0:
+                        try:
+                            sl = result.get_slice(list(result.keys())[0])
+                            if not hasattr(type(sl), 'shape'):
+                                type(sl).shape = property(lambda s: s.get_shape())
+                            _patched[0] = True
+                        except Exception:
+                            pass
+                    return result
+                safetensors.safe_open = _lazy_patch_safe_open
         except Exception:
             pass
 
@@ -336,20 +339,8 @@ def apply_paddle_patches():
         import paddle.distributed.fleet.meta_parallel as mp
         mp.LocalSharedLayerDesc = mp.SharedLayerDesc
 
-        # Patch safetensors PySafeSlice to support .shape attribute for compatibility
-        try:
-            import numpy as np
-            import tempfile
-            from safetensors.numpy import save_file, safe_open
-            tmp_path = tempfile.mktemp(suffix='.safetensors')
-            save_file({'dummy': np.zeros((1,))}, tmp_path)
-            with safe_open(tmp_path, framework='np') as f:
-                PySafeSlice = type(f.get_slice('dummy'))
-                setattr(PySafeSlice, 'shape', property(lambda self: self.get_shape()))
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-        except Exception as patch_e:
-            print(f"Warning: Failed to patch safetensors PySafeSlice: {patch_e}", file=sys.stderr)
+        # Patch safetensors PySafeSlice — skip temp file creation (crashes on low memory)
+        # The wrapping approach in Patch 0 already handles this
     except Exception as e:
         import sys
         print(f"Warning: Failed to apply Paddle compatibility patches: {e}", file=sys.stderr)

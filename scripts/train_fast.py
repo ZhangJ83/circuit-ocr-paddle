@@ -143,25 +143,17 @@ def train(args):
                             # Same as training: add pixel_values from image_processor
                             vinp_pd["pixel_values"]=paddle.to_tensor(vfeats["pixel_values"]) if isinstance(vfeats["pixel_values"],np.ndarray) else paddle.to_tensor(vfeats["pixel_values"].numpy())
                             vinp_pd["image_grid_thw"]=paddle.to_tensor(vfeats["image_grid_thw"]) if isinstance(vfeats["image_grid_thw"],np.ndarray) else paddle.to_tensor(vfeats["image_grid_thw"].numpy())
-                            input_ids=vinp_pd["input_ids"];attn=vinp_pd["attention_mask"]
-                            pv=vinp_pd["pixel_values"];igt=vinp_pd["image_grid_thw"]
-                            gen=[]
-                            for _ in range(256):
-                                vo=model(input_ids=input_ids,attention_mask=attn,pixel_values=pv,image_grid_thw=igt)
-                                vl=vo[0] if isinstance(vo,(list,tuple)) else vo.logits
-                                vt=vl[:,-1,:]
-                                for tid in set(gen):
-                                    sc=float(vt[0,tid]);vt[0,tid]=sc*1.1 if sc<0 else sc/1.1
-                                nt=int(paddle.argmax(vt,axis=-1).numpy()[0])
-                                if nt==eos_id:break
-                                gen.append(nt)
-                                input_ids=paddle.concat([input_ids,paddle.to_tensor([[nt]])],axis=1)
-                                attn=paddle.concat([attn,paddle.ones([1,1],dtype=attn.dtype)],axis=1)
+                            # Use model.model.generate() to bypass LoRA wrapper (which breaks output)
+                            from paddleformers.generation import GenerationConfig
+                            gc=GenerationConfig(do_sample=False,bos_token_id=1,eos_token_id=2,pad_token_id=0,use_cache=False)
+                            out=model.model.generate(**vinp_pd,generation_config=gc,max_new_tokens=256)
+                            gen=out[0].tolist()[0]
                             preds.append(proc.tokenizer.decode(gen,skip_special_tokens=True))
                             refs.append(vs["messages"][1]["content"])
                             vimg.close()
                         except Exception as e:
                             preds.append("[ERR]");refs.append(vs["messages"][1]["content"])
+                            if len(preds)==1:log(f"  VAL_ERR: {str(e)[:80]}")
                 model.train()
                 m=compute_all(preds,refs,label=f"s{gs}")
                 log(f"  Val: jf1={m['joint_f1']:.4f} CompF1={m['component_f1']:.4f} RepRate={m['repetition_rate']:.2%}")
@@ -169,6 +161,8 @@ def train(args):
                 if preds and preds[0]!="[ERR]":
                     log(f"  Pred[0]: {preds[0][:80]}")
                     log(f"  Ref [0]: {refs[0][:80]}")
+                else:
+                    log(f"  Pred[0]: {preds[0] if preds else 'EMPTY'}")
 
         log(f"Epoch {epoch+1}: {(time.time()-t0)/60:.1f}min total")
 
